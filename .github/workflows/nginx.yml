@@ -3,7 +3,7 @@ name: nginx-构建和提交docker
 on:
   push:
     branches:
-      - master
+      - main
 
 
 jobs:
