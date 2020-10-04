@@ -1,0 +1,5 @@
+FROM adockero/nginx:lua
+
+RUN apt-get update \ 
+      && apt-get install -y --no-install-recommends luarocks \     
+      && rm -rf /var/lib/apt/lists/* 
