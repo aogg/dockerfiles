@@ -35,3 +35,25 @@ jobs:
         # build_args: arg1=value1,arg2=value2
         # Adds labels with git repository information to the built image
         add_git_labels: true
+        
+   
+    - name: nginx-skywalking
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: adockero
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD }}
+        # Docker repository to tag the image with
+        repository: adockero/nginx
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: skywalking
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./nginx
+        dockerfile: Dockerfile.skywalking
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # Comma-delimited list of build-time variables
+        # build_args: arg1=value1,arg2=value2
+        # Adds labels with git repository information to the built image
+        add_git_labels: true
