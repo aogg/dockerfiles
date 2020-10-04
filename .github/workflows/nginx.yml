@@ -28,7 +28,7 @@ jobs:
         tags: lua
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./nginx
-        dockerfile: Dockerfile.lua
+        dockerfile: nginx/Dockerfile.lua
         # Always attempt to pull a newer version of the image
         always_pull: true
         # Comma-delimited list of build-time variables
@@ -50,7 +50,7 @@ jobs:
         tags: skywalking
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./nginx
-        dockerfile: Dockerfile.skywalking
+        dockerfile: nginx/Dockerfile.skywalking
         # Always attempt to pull a newer version of the image
         always_pull: true
         # Comma-delimited list of build-time variables
