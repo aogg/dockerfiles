@@ -1,5 +1,3 @@
-FROM adockero/nginx:lua
+FROM openresty/openresty:alpine-fat
 
-RUN apt-get update \ 
-      && apt-get install -y --no-install-recommends luarocks \     
-      && rm -rf /var/lib/apt/lists/* 
+RUN luarocks install skywalking-nginx-lua
