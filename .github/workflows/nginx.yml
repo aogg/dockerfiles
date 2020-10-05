@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     # Map a step output to a job output
     outputs:
-      should_skip: ${{ steps.skip_check_docs.outputs.should_skip }}
+      should_skip: ${{ steps.skip_check_docs.outputs.should_skip == 'false' && steps.skip_check_local.outputs.should_skip != 'false' }}
     steps:
       - id: skip_check_docs
         name: 跳过文档
@@ -20,12 +20,18 @@ jobs:
           github_token: ${{ github.token }}
           paths_ignore: '["**/README.md", "**/docs/**"]'
   
+      - id: skip_check_local
+        name: 跳过指定路径
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          github_token: ${{ github.token }}
+          paths: '["nginx/**", ".github/workflows/nginx.yml"]'
   
   setup-build-publish:
     needs: pre_job
     runs-on: ubuntu-latest
     name: 构建和推送docker镜像
-    if: ${{ needs.pre_job.outputs.should_skip == 'false' }}
+    if: ${{ needs.pre_job.outputs.should_skip }}
     steps:
     
     - name: Checkout
