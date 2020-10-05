@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     # Map a step output to a job output
     outputs:
-      should_skip: ${{ steps.skip_check.outputs.skip_check_docs == 'false' && steps.skip_check.outputs.skip_check_local == 'false' }}
+      should_skip: ${{ steps.skip_check.outputs.skip_check_docs == 'false' && steps.skip_check.outputs.skip_check_local != 'false' }}
     steps:
       - id: skip_check_docs
         uses: fkirc/skip-duplicate-actions@master
