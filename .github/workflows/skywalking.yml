@@ -1,0 +1,66 @@
+name: skywalking-构建和提交docker
+
+on:
+  push:
+    branches:
+      - main
+
+
+jobs:
+  pre_job:
+    runs-on: ubuntu-latest
+    # Map a step output to a job output
+    outputs:
+      should_skip: ${{ steps.skip_check_docs.outputs.should_skip == 'false' && steps.skip_check_local.outputs.should_skip != 'false' }}
+    steps:
+      - id: skip_check_docs
+        name: 跳过文档
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          github_token: ${{ github.token }}
+          paths_ignore: '["**/README.md", "**/docs/**"]'
+  
+      - id: skip_check_local
+        name: 跳过指定路径
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          github_token: ${{ github.token }}
+          paths: '["skywalking/**", ".github/workflows/skywalking.yml"]'
+  
+  
+  setup-build-publish:
+    needs: pre_job
+    runs-on: ubuntu-latest
+    name: 构建和推送docker镜像
+    if: ${{ needs.pre_job.outputs.should_skip }}
+    steps:
+    
+    - name: Checkout
+      # 使用action库  actions/checkout获取源码
+      uses: actions/checkout@v2.3.2
+  
+  
+           
+    - name: 构建和推送容器
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: adockero
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD }}
+        # Docker repository to tag the image with
+        repository: adockero/nginx
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: update
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./skywalking/skywalking-oap-server
+        dockerfile: skywalking/skywalking-oap-server/Dockerfile
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # Comma-delimited list of build-time variables
+        # build_args: arg1=value1,arg2=value2
+        # Adds labels with git repository information to the built image
+        add_git_labels: true  
+  
+  
+
