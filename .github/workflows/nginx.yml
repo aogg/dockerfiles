@@ -7,9 +7,30 @@ on:
 
 
 jobs:
+  pre_job:
+    runs-on: ubuntu-latest
+    # Map a step output to a job output
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.skip_check-docs && steps.skip_check.outputs.跳过指定路径 }}
+    steps:
+      - id: skip_check-docs
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          github_token: ${{ github.token }}
+          paths_ignore: '["**/README.md", "**/docs/**"]'
+      
+      - id: 跳过指定路径
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          github_token: ${{ github.token }}
+          cancel_others: 'false'
+          paths: '["nginx/**", "nginx/**", ".github/workflows/nginx.yml"]'
+  
+  
   setup-build-publish:
     runs-on: ubuntu-latest
     name: 构建和推送docker镜像
+    if: ${{ needs.pre_job.outputs.should_skip == 'false' }}
     steps:
     
     - name: Checkout
