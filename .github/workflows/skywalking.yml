@@ -49,9 +49,9 @@ jobs:
         # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
         password: ${{ secrets.PASSWORD }}
         # Docker repository to tag the image with
-        repository: adockero/nginx
+        repository: adockero/skywalking-oap-server
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: update
+        tags: laster,mysql
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./skywalking/skywalking-oap-server
         dockerfile: skywalking/skywalking-oap-server/Dockerfile
