@@ -11,7 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     # Map a step output to a job output
     outputs:
-      should_skip: ${{ steps.skip_check_docs.outputs.should_skip == 'false' && steps.skip_check_local.outputs.should_skip != 'false' }}
+      should_skip_local: ${{ steps.skip_check_local.outputs.should_skip }}
+      should_skip: ${{ steps.skip_check_docs.outputs.should_skip }}
+
+
     steps:
       - id: skip_check_docs
         name: 跳过文档
@@ -31,7 +34,7 @@ jobs:
     needs: pre_job
     runs-on: ubuntu-latest
     name: 构建和推送docker镜像
-    if: ${{ needs.pre_job.outputs.should_skip }}
+    if: ${{ needs.pre_job.outputs.should_skip == 'false' && needs.pre_job.outputs.should_skip_local == 'false' }}
     steps:
     
     - name: Checkout
