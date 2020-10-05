@@ -19,14 +19,6 @@ jobs:
         with:
           github_token: ${{ github.token }}
           paths_ignore: '["**/README.md", "**/docs/**"]'
-      
-      - id: skip_check_local
-        name: 跳过指定路径
-        uses: fkirc/skip-duplicate-actions@master
-        with:
-          github_token: ${{ github.token }}
-          cancel_others: 'false'
-          paths: '["nginx/**", "nginx/**", ".github/workflows/nginx.yml"]'
   
   
   setup-build-publish:
