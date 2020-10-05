@@ -11,9 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     # Map a step output to a job output
     outputs:
-      should_skip: ${{ steps.skip_check.outputs.skip_check_docs == 'false' && steps.skip_check.outputs.skip_check_local != 'false' }}
+      should_skip: ${{ steps.skip_check.outputs.skip_check_docs }}
     steps:
       - id: skip_check_docs
+        name: 跳过文档
         uses: fkirc/skip-duplicate-actions@master
         with:
           github_token: ${{ github.token }}
@@ -31,7 +32,7 @@ jobs:
   setup-build-publish:
     runs-on: ubuntu-latest
     name: 构建和推送docker镜像
-    if: ${{ needs.pre_job.outputs.should_skip }}
+    if: ${{ needs.pre_job.outputs.should_skip == 'false' }}
     steps:
     
     - name: Checkout
