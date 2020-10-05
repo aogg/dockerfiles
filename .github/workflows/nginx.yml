@@ -11,15 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     # Map a step output to a job output
     outputs:
-      should_skip: ${{ steps.skip_check.outputs.skip_check-docs && steps.skip_check.outputs.跳过指定路径 }}
+      should_skip: ${{ steps.skip_check.outputs.skip_check_docs && steps.skip_check.outputs.skip_check_local }}
     steps:
-      - id: skip_check-docs
+      - id: skip_check_docs
         uses: fkirc/skip-duplicate-actions@master
         with:
           github_token: ${{ github.token }}
           paths_ignore: '["**/README.md", "**/docs/**"]'
       
-      - id: 跳过指定路径
+      - id: skip_check_local
+        name: 跳过指定路径
         uses: fkirc/skip-duplicate-actions@master
         with:
           github_token: ${{ github.token }}
