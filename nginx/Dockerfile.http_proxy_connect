@@ -13,7 +13,7 @@ RUN  apt update && apt install -y patch \
   && patchFilename=$([ $NGINX_VERSION=='1.18.0' ] && echo 'proxy_connect_rewrite_1018' ) \
   && echo $patchFilename \
   && patch -p1 < /ngx_http_proxy_connect_module-master/patch/${patchFilename}.patch \
-  && ./configure --add-module=/path/to/ngx_http_proxy_connect_module \
+  && ./configure --add-module=/ngx_http_proxy_connect_module/ngx_http_proxy_connect_module \
   && make && make install \
   && cd ../ && rm -Rf ./nginx-${NGINX_VERSION} && rm -Rf /ngx_http_proxy_connect_module-master \
   # 删除patch
