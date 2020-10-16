@@ -78,7 +78,7 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: http_proxy_connect-1.18.0
         build_args: |
-          VERSION=1.18.0 
+          VERSION=1.18.0
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./nginx
         dockerfile: nginx/Dockerfile.http_proxy_connect
