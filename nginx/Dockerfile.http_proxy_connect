@@ -1,4 +1,4 @@
-ARG VERSION=lasted 
+ARG VERSION=latest 
 
 FROM nginx:${VERSION} 
 
