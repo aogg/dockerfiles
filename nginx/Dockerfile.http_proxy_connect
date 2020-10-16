@@ -3,7 +3,7 @@ ARG VERSION=lasted
 FROM nginx:${VERSION} 
 
 RUN  curl -L -o ./nginx-${NGINX_VERSION}.tar.gz http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz \
-  && curl -L -o /ngx_http_proxy_connect_module.tar.gz https://github.com/chobits/ngx_http_proxy_connect_module/archive/master.tar.gz
+  && curl -L -o /ngx_http_proxy_connect_module.tar.gz https://github.com/chobits/ngx_http_proxy_connect_module/archive/master.tar.gz \
   && tar -xzvf nginx-${NGINX_VERSION}.tar.gz && rm -f nginx-${NGINX_VERSION}.tar.gz \
   && tar -xzvf /ngx_http_proxy_connect_module.tar.gz && rm -f /ngx_http_proxy_connect_module.tar.gz \
   && cd nginx-${NGINX_VERSION}/ \
