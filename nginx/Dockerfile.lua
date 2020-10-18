@@ -1,6 +1,6 @@
 FROM openresty/openresty:alpine-fat
 
-RUN cp -a /usr/local/openresty/nginx/conf /etc/nginx/ \
+RUN cp -a /usr/local/openresty/nginx/conf/* /etc/nginx/ \
   # 原有日志
   && mkdir -p /var/log/nginx/ \
   && ln -sf /dev/stdout /var/log/nginx/access.log \
