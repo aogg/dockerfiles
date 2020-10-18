@@ -15,7 +15,7 @@ RUN  apt update && apt install -y patch gcc libpcre3-dev zlib1g-dev build-essent
   && patch -p1 < /ngx_http_proxy_connect_module-master/patch/${patchFilename}.patch \
   && ./configure --add-module=/ngx_http_proxy_connect_module-master \
   && make && make install \
-  && ls -al && cp ./ngx_http_proxy_connect_module.so /usr/lib/nginx/modules
+  && ls -al && cp ./ngx_http_proxy_connect_module.so /usr/lib/nginx/modules \
   && cd ../ && rm -Rf ./nginx-${NGINX_VERSION} && rm -Rf /ngx_http_proxy_connect_module-master \
   # 删除
   && apt remove -y patch gcc libpcre3-dev zlib1g-dev wget build-essential apache2-utils \
