@@ -9,7 +9,8 @@ RUN cp -a /usr/local/openresty/nginx/conf/* /etc/nginx/ \
   && addgroup -g 101 -S nginx \
   && adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx
   
-
-CMD ["/usr/local/openresty/bin/openresty", "-p", "/etc/nginx/", "-c", "/etc/nginx/nginx.conf", "-g", "daemon off;"]
+  
+COPY docker-entrypoint.sh /usr/local/bin/ 
+CMD ["docker-entrypoint.sh"] 
 
 
