@@ -2,7 +2,7 @@ ARG VERSION=latest
 FROM nginx:1.18.0
 ARG VERSION=latest
 
-RUN  apt update && apt install -y patch gcc libpcre3-dev zlib1g-dev build-essential apache2-utils \
+RUN  apt update && apt install --no-install-recommends --no-install-suggests -y patch gcc libpcre3-dev make zlibc openssl \
   # 下载
   && echo $VERSION && echo $NGINX_VERSION && curl -L -o ./nginx-${NGINX_VERSION}.tar.gz http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz \
   && curl -L -o /ngx_http_proxy_connect_module.tar.gz https://github.com/chobits/ngx_http_proxy_connect_module/archive/master.tar.gz \
@@ -15,8 +15,7 @@ RUN  apt update && apt install -y patch gcc libpcre3-dev zlib1g-dev build-essent
   && patch -p1 < /ngx_http_proxy_connect_module-master/patch/${patchFilename}.patch \
   && ./configure --add-module=/ngx_http_proxy_connect_module-master \
   && make && make install \
-  && ls -al && cp ./ngx_http_proxy_connect_module.so /usr/lib/nginx/modules \
   && cd ../ && rm -Rf ./nginx-${NGINX_VERSION} && rm -Rf /ngx_http_proxy_connect_module-master \
   # 删除
-  && apt remove -y patch gcc libpcre3-dev zlib1g-dev wget build-essential apache2-utils \
+  && apt remove --purge --auto-remove -y patch gcc libpcre3-dev make zlibc openssl \
   && rm -rf /var/lib/apt/lists/*
