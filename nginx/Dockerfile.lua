@@ -10,6 +10,6 @@ RUN cp -a /usr/local/openresty/nginx/conf /etc/nginx/ \
   && adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx
   
 
-CMD ["/usr/local/openresty/bin/openresty", "-p", "/etc/nginx/", "-g", "daemon off;"]
+CMD ["/usr/local/openresty/bin/openresty", "-p", "/etc/nginx/", "-c", "/etc/nginx/nginx.conf", "-g", "daemon off;"]
 
 
