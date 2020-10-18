@@ -2,7 +2,7 @@ ARG VERSION=latest
 FROM nginx:1.18.0
 ARG VERSION=latest
 
-RUN  apt update && apt install --no-install-recommends --no-install-suggests -y patch gcc libpcre3-dev make zlibc openssl \
+RUN  apt update && apt install --no-install-recommends --no-install-suggests -y patch gcc libpcre3-dev make zlib1g-dev openssl \
   # 下载
   && echo $VERSION && echo $NGINX_VERSION && curl -L -o ./nginx-${NGINX_VERSION}.tar.gz http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz \
   && curl -L -o /ngx_http_proxy_connect_module.tar.gz https://github.com/chobits/ngx_http_proxy_connect_module/archive/master.tar.gz \
