@@ -9,8 +9,9 @@ RUN cp -a /usr/local/openresty/nginx/conf/* /etc/nginx/ \
   && addgroup -g 101 -S nginx \
   && adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx \
   # nginx的alias
-  && echo "alias nginx='/usr/local/openresty/bin/openresty -p /etc/nginx/ -c /etc/nginx/nginx.conf'" >> /etc/profile \
-  && mv /usr/local/openresty/nginx/sbin/nginx /usr/local/openresty/nginx/sbin/nginx_origin
+  && mv /usr/local/openresty/nginx/sbin/nginx /usr/local/openresty/nginx/sbin/nginx_origin \
+  && ln -sf /usr/local/openresty/nginx/sbin/nginx_origin /usr/local/openresty/bin/openresty \
+  && echo "alias nginx='/usr/local/openresty/bin/openresty -p /etc/nginx/ -c /etc/nginx/nginx.conf'" >> /root/.bashrc
   
   
 COPY docker-entrypoint.sh /usr/local/bin/ 
