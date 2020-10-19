@@ -1,7 +1,6 @@
 FROM adockero/nginx:lua
 
 RUN apk add --no-cache git \
-  && luarocks install lua-cjson 2.1.0-1 \
-  && luarocks install luaunit \
+  && luarocks install lua-resty-http  \
   && luarocks install lua-resty-jit-uuid \
   && luarocks install skywalking-nginx-lua
