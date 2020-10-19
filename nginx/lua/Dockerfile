@@ -5,6 +5,7 @@ RUN cp -a /usr/local/openresty/nginx/conf/* /etc/nginx/ \
   && mkdir -p /var/log/nginx/ \
   && ln -sf /dev/stdout /var/log/nginx/access.log \
   && ln -sf /dev/stderr /var/log/nginx/error.log \
+  && ln -sf /var/log/nginx/ /etc/nginx/logs \
   # 用户
   && addgroup -g 101 -S nginx \
   && adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx \
