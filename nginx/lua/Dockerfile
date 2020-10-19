@@ -12,7 +12,8 @@ RUN cp -a /usr/local/openresty/nginx/conf/* /etc/nginx/ \
   # nginx的alias
   && mv /usr/local/openresty/nginx/sbin/nginx /usr/local/openresty/nginx/sbin/nginx_origin \
   && ln -sf /usr/local/openresty/nginx/sbin/nginx_origin /usr/local/openresty/bin/openresty \
-  && echo "alias nginx='/usr/local/openresty/bin/openresty -p /etc/nginx/ -c /etc/nginx/nginx.conf'" >> /root/.bashrc
+  && echo '/usr/local/openresty/bin/openresty -p /etc/nginx/ -c /etc/nginx/nginx.conf' > /usr/local/openresty/nginx/sbin/nginx \
+  && chmod +x /usr/local/openresty/nginx/sbin/nginx
   
   
 COPY docker-entrypoint.sh /usr/local/bin/ 
