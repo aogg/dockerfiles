@@ -1,4 +1,6 @@
-FROM adockero/nginx:lua
+FROM adockero/nginx:openresty
+
+# 失败
 
 RUN apk add --no-cache git \
   && luarocks install lua-resty-http  \
