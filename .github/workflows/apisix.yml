@@ -3,8 +3,10 @@ name: apisix-构建和提交docker
 on:
   push:
     branches: [master]
-    paths: ["apisix/**", ".github/workflows/apisix.yml"]
-    paths-ignore: ["**.md"]
+    paths: 
+      - "apisix/**"
+      - ".github/workflows/apisix.yml"
+      - "!**.md"
 
 
 jobs:
