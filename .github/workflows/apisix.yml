@@ -49,7 +49,7 @@ jobs:
    # apisix-dashboard-manager
    
    
-    - name: apisix-dashboard-manager-laster
+    - name: apisix-dashboard-manager-latest
       uses: docker/build-push-action@v1.1.0
       with:
         # Username used to log in to a Docker registry. If not set then no login will occur
@@ -59,7 +59,7 @@ jobs:
         # Docker repository to tag the image with
         repository: adockero/apisix-dashboard
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: manager-laster
+        tags: manager-latest
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./apisix
         dockerfile: apisix/Dockerfile.apisix-dashboard-manager
@@ -99,7 +99,7 @@ jobs:
 
 
               
-    - name: apisix-dashboard-laster
+    - name: apisix-dashboard-latest
       uses: docker/build-push-action@v1.1.0
       with:
         # Username used to log in to a Docker registry. If not set then no login will occur
@@ -109,7 +109,7 @@ jobs:
         # Docker repository to tag the image with
         repository: adockero/apisix-dashboard
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: laster
+        tags: latest
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./apisix
         dockerfile: apisix/Dockerfile.apisix-dashboard
