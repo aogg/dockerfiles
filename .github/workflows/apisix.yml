@@ -3,31 +3,18 @@ name: apisix-构建和提交docker
 on:
   push:
     branches: [master]
+    paths: ["apisix/**", ".github/workflows/apisix.yml"]
     paths-ignore: ["**.md"]
 
 
 jobs:
   pre_job:
     runs-on: ubuntu-latest
-    # Map a step output to a job output
-    outputs:
-      should_skip_local: ${{ steps.skip_check_local.outputs.should_skip }}
-
-
-    steps:
-  
-      - id: skip_check_local
-        name: 跳过指定路径
-        uses: fkirc/skip-duplicate-actions@master
-        with:
-          github_token: ${{ github.token }}
-          paths: '["apisix/**", ".github/workflows/apisix.yml"]'
   
   setup-build-publish:
     needs: pre_job
     runs-on: ubuntu-latest
     name: 构建和推送docker镜像
-    if: ${{ needs.pre_job.outputs.should_skip_local == 'false' }}
     steps:
     
     - name: Checkout
