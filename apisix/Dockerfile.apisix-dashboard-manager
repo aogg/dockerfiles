@@ -11,7 +11,7 @@ RUN cd /apisix-dashboard && git checkout -B ${GIT_BRANCH} origin/${GIT_BRANCH}
 FROM golang:1.13.8 AS build-env
 
 WORKDIR /go/src/github.com/apisix/manager-api
-COPY --from=git /apisix-dashboard/ .
+COPY --from=git /apisix-dashboard/api /go/src/github.com/apisix/manager-api
 RUN mkdir /go/manager-api \
     && mkdir /go/manager-api/build-tools \
     && go env -w GOPROXY=https://goproxy.io,direct \
@@ -38,7 +38,7 @@ RUN  wget https://github.com/apache/apisix/archive/master.zip \
 
 FROM alpine:3.11
 
-RUN mkdir -p /go/manager-api
+
 WORKDIR /go/manager-api
 COPY --from=build-env /go/manager-api/ /go/manager-api/
 COPY --from=build-env /usr/share/zoneinfo/Hongkong /etc/localtime
