@@ -1,0 +1,62 @@
+# 下载代码
+FROM adockero/git-cli as git
+
+ARG GIT_BRANCH=master
+
+RUN cd / && git clone https://github.com/apache/apisix-dashboard.git
+RUN cd /apisix-dashboard && git checkout -B ${GIT_BRANCH} origin/${GIT_BRANCH}
+
+
+# @see https://github.com/apache/apisix-dashboard/blob/master/api/Dockerfile
+FROM golang:1.13.8 AS build-env
+
+WORKDIR /go/src/github.com/apisix/manager-api
+COPY --from=git /apisix-dashboard/ .
+RUN mkdir /go/manager-api \
+    && mkdir /go/manager-api/build-tools \
+    && go env -w GOPROXY=https://goproxy.io,direct \
+    && export GOPROXY=https://goproxy.io \
+    && go build -o /go/manager-api/manager-api \
+    && mv /go/src/github.com/apisix/manager-api/build.sh /go/manager-api/ \
+    && mv /go/src/github.com/apisix/manager-api/build-tools/* /go/manager-api/build-tools/ \
+    && mv /go/src/github.com/apisix/manager-api/conf/conf_preview.json /go/manager-api/conf.json \
+    && rm -rf /go/src/github.com/apisix/manager-api \
+    && rm -rf /etc/localtime \
+    && ln -s  /usr/share/zoneinfo/Hongkong /etc/localtime \
+    && dpkg-reconfigure -f noninteractive tzdata
+
+RUN wget https://github.com/api7/dag-to-lua/archive/v1.1.tar.gz \
+    && tar -zxvf v1.1.tar.gz \
+    && mkdir /go/manager-api/dag-to-lua \
+    && mv ./dag-to-lua-1.1/lib/* /go/manager-api/dag-to-lua/
+
+RUN  wget https://github.com/apache/apisix/archive/master.zip \
+     && mkdir /go/manager-api/build-tools/apisix \
+     && apt-get update && apt-get install zip -y \
+     && unzip master.zip \
+     && mv ./apisix-master/apisix/* /go/manager-api/build-tools/apisix/
+
+FROM alpine:3.11
+
+RUN mkdir -p /go/manager-api
+WORKDIR /go/manager-api
+COPY --from=build-env /go/manager-api/ /go/manager-api/
+COPY --from=build-env /usr/share/zoneinfo/Hongkong /etc/localtime
+
+RUN apk update  \
+   && apk add ca-certificates \
+   && update-ca-certificates \
+   && apk add --no-cache libc6-compat \
+   && echo "hosts: files dns" > /etc/nsswitch.conf \
+   && rm -rf /var/cache/apk/* \
+   # 原有独立run
+   && apk add lua5.1 \
+   && cd /go/manager-api/build-tools \
+   && lua schema-sync.lua > /go/manager-api/schema.json \
+   && cd /go/manager-api/ \
+   && rm -rf /go/manager-api/build-tools/ \
+   && chmod +x ./build.sh
+
+EXPOSE 8080
+
+CMD ["/bin/ash", "-c", "/go/manager-api/build.sh"]
