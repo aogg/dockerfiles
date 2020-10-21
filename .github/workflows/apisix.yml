@@ -2,8 +2,8 @@ name: apisix-构建和提交docker
 
 on:
   push:
-    branches:
-      - main
+    branches: [master]
+    paths-ignore: ["**.md"]
 
 
 jobs:
@@ -12,16 +12,9 @@ jobs:
     # Map a step output to a job output
     outputs:
       should_skip_local: ${{ steps.skip_check_local.outputs.should_skip }}
-      should_skip: ${{ steps.skip_check_docs.outputs.should_skip }}
 
 
     steps:
-      - id: skip_check_docs
-        name: 跳过文档
-        uses: fkirc/skip-duplicate-actions@master
-        with:
-          github_token: ${{ github.token }}
-          paths_ignore: '["**/README.md", "**/docs/**"]'
   
       - id: skip_check_local
         name: 跳过指定路径
@@ -34,7 +27,7 @@ jobs:
     needs: pre_job
     runs-on: ubuntu-latest
     name: 构建和推送docker镜像
-    if: ${{ needs.pre_job.outputs.should_skip == 'false' && needs.pre_job.outputs.should_skip_local == 'false' }}
+    if: ${{ needs.pre_job.outputs.should_skip_local == 'false' }}
     steps:
     
     - name: Checkout
