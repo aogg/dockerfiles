@@ -5,7 +5,7 @@ ARG GIT_BRANCH=master
 RUN cd / && git clone https://github.com/apache/apisix-dashboard.git
 RUN cd /apisix-dashboard && git checkout -B ${GIT_BRANCH} origin/${GIT_BRANCH}
 
-  
+# @see https://github.com/apache/apisix-dashboard/blob/master/Dockerfile
 # 构建前端html
 FROM node:12 as builder
 
@@ -22,7 +22,7 @@ RUN yarn build && rm -rf /usr/src/app/node_modules
 # phase-run
 FROM nginx:1.16-alpine
 
-COPY ./docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=git /apisix-dashboard/docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /usr/src/app/dist /usr/share/nginx/html
 
 EXPOSE 80
