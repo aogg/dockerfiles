@@ -1,4 +1,4 @@
-FROM git as git
+FROM adockero/git-cli as git
 
 ARG GIT_BRANCH=master
 
