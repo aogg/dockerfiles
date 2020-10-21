@@ -1,7 +1,7 @@
 # 下载代码
 FROM adockero/git-cli as git
 
-ARG GIT_BRANCH=1.5
+ARG GIT_BRANCH=v1.5
 
 RUN cd / && git clone https://github.com/apache/apisix-dashboard.git
 RUN cd /apisix-dashboard && git checkout -B ${GIT_BRANCH} origin/${GIT_BRANCH}
