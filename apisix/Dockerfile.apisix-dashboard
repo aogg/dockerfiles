@@ -2,8 +2,8 @@ FROM adockero/git-cli as git
 
 ARG GIT_BRANCH=master
 
-RUN cd / && git clone https://github.com/apache/apisix-dashboard.git \
-  && git checkout -b ${GIT_BRANCH} origin/${GIT_BRANCH}
+RUN cd / && git clone https://github.com/apache/apisix-dashboard.git
+RUN git checkout -b ${GIT_BRANCH} origin/${GIT_BRANCH}
 
   
 # 构建前端html
