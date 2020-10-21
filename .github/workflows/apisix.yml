@@ -108,9 +108,9 @@ jobs:
         # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
         password: ${{ secrets.PASSWORD }}
         # Docker repository to tag the image with
-        repository: adockero/apisix-dashboard-manager
+        repository: adockero/apisix-dashboard
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: laster
+        tags: manager-laster
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./apisix
         dockerfile: apisix/Dockerfile.apisix-dashboard-manager
@@ -130,9 +130,9 @@ jobs:
         # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
         password: ${{ secrets.PASSWORD }}
         # Docker repository to tag the image with
-        repository: adockero/apisix-dashboard-manager
+        repository: adockero/apisix-dashboard
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: 1.5
+        tags: manager-1.5
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./apisix
         dockerfile: apisix/Dockerfile.apisix-dashboard-manager
