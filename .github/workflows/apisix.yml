@@ -66,7 +66,7 @@ jobs:
         # Always attempt to pull a newer version of the image
         always_pull: true
         # 构建参数
-        build_args: GIT_BRANCH=master
+        # build_args: GIT_BRANCH=master
         # Adds labels with git repository information to the built image
         add_git_labels: true  
         
@@ -84,11 +84,11 @@ jobs:
         tags: manager-1.5
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./apisix
-        dockerfile: apisix/Dockerfile.apisix-dashboard-manager
+        dockerfile: apisix/Dockerfile.apisix-dashboard-manager-1.5
         # Always attempt to pull a newer version of the image
         always_pull: true
         # 构建参数
-        build_args: GIT_BRANCH=v1.5
+        # build_args: GIT_BRANCH=v1.5
         # Adds labels with git repository information to the built image
         add_git_labels: true  
 
