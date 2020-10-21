@@ -1,4 +1,4 @@
-name: nginx-构建和提交docker
+name: apisix-构建和提交docker
 
 on:
   push:
