@@ -12,7 +12,7 @@ FROM golang:1.13.8 AS build-env
 
 WORKDIR /go/src/github.com/apisix/manager-api
 COPY --from=git /apisix-dashboard/api /go/src/github.com/apisix/manager-api
-RUN mkdir /go/manager-api \
+RUN ls -al && mkdir /go/manager-api \
     && mkdir /go/manager-api/build-tools \
     && go env -w GOPROXY=https://goproxy.io,direct \
     && export GOPROXY=https://goproxy.io \
