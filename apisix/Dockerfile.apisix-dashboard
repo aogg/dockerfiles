@@ -1,6 +1,10 @@
 FROM git as git
 
-RUN cd / && git clone https://github.com/apache/apisix-dashboard.git
+ARG GIT_BRANCH=master
+
+RUN cd / && git clone https://github.com/apache/apisix-dashboard.git \
+  && git checkout -b ${GIT_BRANCH} origin/${GIT_BRANCH}
+
   
 # 构建前端html
 FROM node:12 as builder
