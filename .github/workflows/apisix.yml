@@ -61,7 +61,7 @@ jobs:
         # Docker repository to tag the image with
         repository: adockero/apisix-dashboard
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: manager-latest
+        tags: manager-latest,manager
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./apisix
         dockerfile: apisix/Dockerfile.apisix-dashboard-manager
