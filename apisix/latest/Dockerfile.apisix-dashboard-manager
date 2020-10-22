@@ -41,6 +41,7 @@ FROM alpine:3.11
 
 WORKDIR /go/manager-api
 COPY --from=build-env /go/manager-api/ /go/manager-api/
+COPY ../scripts/build.sh /root/manager-api/build.sh
 COPY --from=build-env /usr/share/zoneinfo/Hongkong /etc/localtime
 
 RUN apk update  \

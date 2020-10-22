@@ -28,7 +28,7 @@ FROM alpine:3.11
 # 路径貌似只能是之前的路径
 WORKDIR /root/manager-api/
 COPY --from=build-env /root/manager-api/* /root/manager-api/
-COPY ./build.sh /root/manager-api/build.sh
+COPY ../scripts/build.sh /root/manager-api/build.sh
 COPY --from=build-env /usr/share/zoneinfo/Hongkong /etc/localtime
 
 RUN chmod +x ./build.sh \
@@ -50,4 +50,4 @@ ENV MYSQL_SERVER_ADDRESS=mysql:3306 \
     APISIX_API_KEY=edd1c9f034335f136f87ad84b625c8f1 \
     APISIX_DEBUG_URL=http://apisix:9080/
 
-CMD ["/bin/ash", "-c", "./build.sh"]
+CMD ["/bin/ash", "-c", "/root/manager-api//build.sh"]
