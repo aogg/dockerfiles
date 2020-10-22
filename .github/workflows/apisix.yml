@@ -10,11 +10,8 @@ on:
 
 
 jobs:
-  pre_job:
-    runs-on: ubuntu-latest
   
   setup-build-publish:
-    needs: pre_job
     runs-on: ubuntu-latest
     name: 构建和推送docker镜像
     steps:
