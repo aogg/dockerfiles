@@ -4,6 +4,7 @@
 
 pwd=`pwd`
 
+# @see https://github.com/apache/apisix-dashboard/blob/master/api/conf/conf_preview.json
 sed -i -e "s%#mysqlAddress#%`echo $MYSQL_SERVER_ADDRESS`%g" ${pwd}/conf.json
 sed -i -e "s%#mysqlUser#%`echo $MYSQL_USER`%g" ${pwd}/conf.json
 sed -i -e "s%#mysqlPWD#%`echo $MYSQL_PASSWORD`%g" ${pwd}/conf.json
