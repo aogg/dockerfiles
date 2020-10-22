@@ -27,13 +27,11 @@ FROM alpine:3.11
 
 # 路径貌似只能是之前的路径
 WORKDIR /root/manager-api/
-COPY --from=build-env /root/manager-api/build.sh /root/manager-api/build.sh
-COPY --from=build-env /root/manager-api/conf.json /root/manager-api/conf.json
-COPY --from=build-env /root/manager-api/manager-api /root/manager-api/manager-api
+COPY --from=build-env /root/manager-api/* /root/manager-api/*
+COPY ./build.sh /root/manager-api/build.sh
 COPY --from=build-env /usr/share/zoneinfo/Hongkong /etc/localtime
 
-RUN chmod +x /root/manager-api/build.sh \
-   && apk update  \
+RUN apk update  \
    && apk add ca-certificates \
    && update-ca-certificates \
    && apk add --no-cache libc6-compat \
