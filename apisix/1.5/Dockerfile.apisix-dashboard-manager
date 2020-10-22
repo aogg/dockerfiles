@@ -27,8 +27,8 @@ FROM alpine:3.11
 
 # 路径貌似只能是之前的路径
 WORKDIR /root/manager-api/
-COPY --from=build-env /root/manager-api/* ./*
-COPY ./build.sh ./build.sh
+COPY --from=build-env /root/manager-api/* /root/manager-api/*
+COPY ./build.sh /root/manager-api/build.sh
 COPY --from=build-env /usr/share/zoneinfo/Hongkong /etc/localtime
 
 RUN chmod +x ./build.sh \
