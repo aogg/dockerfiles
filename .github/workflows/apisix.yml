@@ -62,8 +62,8 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: manager-1.5
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        path: ./apisix
-        dockerfile: apisix/Dockerfile.apisix-dashboard-manager-1.5
+        path: ./apisix/1.5
+        dockerfile: apisix/1.5/Dockerfile.apisix-dashboard-manager
         # Always attempt to pull a newer version of the image
         always_pull: true
         # 构建参数

@@ -31,7 +31,8 @@ COPY --from=build-env /root/manager-api/* ./*
 COPY ./build.sh ./build.sh
 COPY --from=build-env /usr/share/zoneinfo/Hongkong /etc/localtime
 
-RUN apk update  \
+RUN chmod +x ./build.sh \
+   && apk update  \
    && apk add ca-certificates \
    && update-ca-certificates \
    && apk add --no-cache libc6-compat \
