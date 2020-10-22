@@ -17,7 +17,7 @@ RUN mkdir /root/manager-api \
     && export GOPROXY=https://goproxy.io \
     && go build -o /root/manager-api/manager-api \
     && mv /go/src/github.com/apisix/manager-api/build.sh /root/manager-api/ \
-    && confJsonName=$([ $GIT_BRANCH=='master-20201020' ] && echo '/conf/conf_preview.json' || echo 'conf.json' ) \
+    && confJsonName=$([ $GIT_BRANCH=='master-20201020' ] && echo 'conf/conf_preview.json' || echo 'conf.json' ) \
     && mv /go/src/github.com/apisix/manager-api/${confJsonName} /root/manager-api/ \
     && rm -rf /go/src/github.com/apisix/manager-api \
     && rm -rf /etc/localtime \
