@@ -73,6 +73,27 @@ jobs:
         add_git_labels: true  
 
 
+    - name: apisix-dashboard-manager-master-20201020
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: adockero
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD }}
+        # Docker repository to tag the image with
+        repository: adockero/apisix-dashboard
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: manager-master-20201020
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./apisix/
+        dockerfile: apisix/latest/Dockerfile.apisix-dashboard-manager
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # 构建参数
+        build_args: GIT_BRANCH=master-20201020
+        # Adds labels with git repository information to the built image
+        add_git_labels: true  
+
 
    # apisix-dashboard
 
@@ -98,7 +119,31 @@ jobs:
         build_args: GIT_BRANCH=master
         # Adds labels with git repository information to the built image
         add_git_labels: true  
+
         
+
+    - name: apisix-dashboard-master-20201020
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: adockero
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD }}
+        # Docker repository to tag the image with
+        repository: adockero/apisix-dashboard
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: master-20201020
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./apisix
+        dockerfile: apisix/Dockerfile.apisix-dashboard
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # 构建参数
+        build_args: GIT_BRANCH=master-20201020
+        # Adds labels with git repository information to the built image
+        add_git_labels: true  
+
+
         
     # - name: apisix-dashboard-v1.5
     #   uses: docker/build-push-action@v1.1.0
