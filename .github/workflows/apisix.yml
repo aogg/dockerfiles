@@ -2,7 +2,7 @@ name: apisix-构建和提交docker
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths: 
       - "apisix/**"
       - ".github/workflows/apisix.yml"
