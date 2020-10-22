@@ -42,12 +42,12 @@ RUN chmod +x ./build.sh \
 
 EXPOSE 8080
 
-ENV MYSQL_SERVER_ADDRESS mysql:3306
-ENV MYSQL_USER apisix-dashboard-manager
-ENV MYSQL_PASSWORD apisix-dashboard-manager
-ENV SYSLOG_HOST 127.0.0.1
-ENV APISIX_BASE_URL http://apisix:9080/apisix/admin
-ENV APISIX_API_KEY edd1c9f034335f136f87ad84b625c8f1
-ENV APISIX_DEBUG_URL http://apisix:9080/
+ENV MYSQL_SERVER_ADDRESS=mysql:3306 \
+    MYSQL_USER=apisix-dashboard-manager \
+    MYSQL_PASSWORD=apisix-dashboard-manager \
+    SYSLOG_HOST=127.0.0.1 \
+    APISIX_BASE_URL=http://apisix:9080/apisix/admin \
+    APISIX_API_KEY=edd1c9f034335f136f87ad84b625c8f1 \
+    APISIX_DEBUG_URL=http://apisix:9080/
 
 CMD ["/bin/ash", "-c", "./build.sh"]
