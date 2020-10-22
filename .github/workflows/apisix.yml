@@ -86,7 +86,7 @@ jobs:
         tags: manager-master-20201020
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./apisix/
-        dockerfile: apisix/latest/Dockerfile.apisix-dashboard-manager
+        dockerfile: apisix/1.5/Dockerfile.apisix-dashboard-manager
         # Always attempt to pull a newer version of the image
         always_pull: true
         # 构建参数
