@@ -26,13 +26,13 @@ RUN mkdir /root/manager-api \
 FROM alpine:3.11
 
 # 路径貌似只能是之前的路径
-WORKDIR /go/src/github.com/apisix/manager-api/
-COPY --from=build-env /root/manager-api/build.sh /go/src/github.com/apisix/manager-api/build.sh
-COPY --from=build-env /root/manager-api/conf.json /go/src/github.com/apisix/manager-api/conf/conf.json
+WORKDIR /root/manager-api/
+COPY --from=build-env /root/manager-api/build.sh /root/manager-api/build.sh
+COPY --from=build-env /root/manager-api/conf.json /root/manager-api/conf.json
 COPY --from=build-env /root/manager-api/manager-api /root/manager-api/manager-api
 COPY --from=build-env /usr/share/zoneinfo/Hongkong /etc/localtime
 
-RUN chmod +x /go/src/github.com/apisix/manager-api/build.sh \
+RUN chmod +x /root/manager-api/build.sh \
    && apk update  \
    && apk add ca-certificates \
    && update-ca-certificates \
@@ -51,4 +51,4 @@ ENV APISIX_BASE_URL http://apisix:9080/apisix/admin
 ENV APISIX_API_KEY edd1c9f034335f136f87ad84b625c8f1
 ENV APISIX_DEBUG_URL http://apisix:9080/
 
-CMD ["/bin/ash", "-c", "/go/src/github.com/apisix/manager-api/build.sh"]
+CMD ["/bin/ash", "-c", "/root/manager-api/build.sh"]
