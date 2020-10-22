@@ -42,6 +42,7 @@ FROM alpine:3.11
 WORKDIR /go/manager-api
 COPY --from=build-env /go/manager-api/ /go/manager-api/
 COPY ./scripts/build.sh /root/manager-api/build.sh
+COPY ./scripts/conf.json /root/manager-api/conf.json
 COPY --from=build-env /usr/share/zoneinfo/Hongkong /etc/localtime
 
 RUN apk update  \
@@ -66,6 +67,7 @@ ENV MYSQL_SERVER_ADDRESS=mysql:3306 \
     SYSLOG_HOST=127.0.0.1 \
     APISIX_BASE_URL=http://apisix:9080/apisix/admin \
     APISIX_API_KEY=edd1c9f034335f136f87ad84b625c8f1 \
-    APISIX_DEBUG_URL=http://apisix:9080/
+    APISIX_DEBUG_URL=http://apisix:9080/ \
+    APIX_ETCD_ENDPOINTS=etcd:2379
 
 CMD ["/bin/ash", "-c", "/go/manager-api/build.sh"]

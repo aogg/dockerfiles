@@ -11,6 +11,11 @@ sed -i -e "s%#syslogAddress#%`echo $SYSLOG_HOST`%g" ${pwd}/conf.json
 sed -i -e "s%#apisixBaseUrl#%`echo $APISIX_BASE_URL`%g" ${pwd}/conf.json
 sed -i -e "s%#apisixApiKey#%`echo $APISIX_API_KEY`%g" ${pwd}/conf.json
 
+# dashboard的登录和账号密码
+sed -i -e "s%#apisixDashboardUsername#%`echo ${APISIX_DASHBOARD_USERNAME:-admin}`%g" ${pwd}/conf.json
+sed -i -e "s%#apisixDashboardPassword#%`echo ${APISIX_DASHBOARD_PASSWORD:-admin}`%g" ${pwd}/conf.json
+
+
 mkdir -p /go/src/github.com/apisix/manager-api/conf
 cp -a ${pwd}/conf.json /go/src/github.com/apisix/manager-api/conf
 
