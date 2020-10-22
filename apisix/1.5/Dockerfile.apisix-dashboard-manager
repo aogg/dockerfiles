@@ -30,6 +30,7 @@ FROM alpine:3.11
 WORKDIR /root/manager-api/
 COPY --from=build-env /root/manager-api/* /root/manager-api/
 COPY ./scripts/build.sh /root/manager-api/build.sh
+COPY ./scripts/conf.json /root/manager-api/conf.json
 COPY --from=build-env /usr/share/zoneinfo/Hongkong /etc/localtime
 
 RUN chmod +x ./build.sh \
