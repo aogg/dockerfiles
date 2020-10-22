@@ -40,7 +40,7 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: manager-1.5
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        path: ./apisix/1.5
+        path: ./apisix/
         dockerfile: apisix/1.5/Dockerfile.apisix-dashboard-manager
         # Always attempt to pull a newer version of the image
         always_pull: true
@@ -63,7 +63,7 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: manager-latest,manager
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        path: ./apisix/latest
+        path: ./apisix/
         dockerfile: apisix/latest/Dockerfile.apisix-dashboard-manager
         # Always attempt to pull a newer version of the image
         always_pull: true
