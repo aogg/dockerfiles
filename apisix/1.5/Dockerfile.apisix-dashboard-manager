@@ -27,8 +27,8 @@ FROM alpine:3.11
 
 # 路径貌似只能是之前的路径
 WORKDIR /root/manager-api/
-COPY --from=build-env /root/manager-api/* /root/manager-api/*
-COPY ./build.sh /root/manager-api/build.sh
+COPY --from=build-env /root/manager-api/* ./*
+COPY ./build.sh ./build.sh
 COPY --from=build-env /usr/share/zoneinfo/Hongkong /etc/localtime
 
 RUN apk update  \
@@ -49,4 +49,4 @@ ENV APISIX_BASE_URL http://apisix:9080/apisix/admin
 ENV APISIX_API_KEY edd1c9f034335f136f87ad84b625c8f1
 ENV APISIX_DEBUG_URL http://apisix:9080/
 
-CMD ["/bin/ash", "-c", "/root/manager-api/build.sh"]
+CMD ["/bin/ash", "-c", "./build.sh"]
