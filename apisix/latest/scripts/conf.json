@@ -1,0 +1,19 @@
+{
+    "conf": {
+      "syslog": {
+        "host": "#syslogAddress#"
+      }
+    },
+    "authentication": {
+      "session": {
+        "secret": "secret",
+        "expireTime": 3600
+      },
+      "user": [
+        {
+          "username": "#apisixDashboardUsername#",
+          "password": "#apisixDashboardPassword#"
+        }
+      ]
+    }
+  }
