@@ -1,8 +1,8 @@
 # apisix相关容器
 
-![最近镜像构建状态]](https://github.com/aogg/dockerfiles/workflows/apisix-%E6%9E%84%E5%BB%BA%E5%92%8C%E6%8F%90%E4%BA%A4docker/badge.svg)
+![最近镜像构建状态](https://github.com/aogg/dockerfiles/workflows/apisix-%E6%9E%84%E5%BB%BA%E5%92%8C%E6%8F%90%E4%BA%A4docker/badge.svg)
 
-1、latest对应master分支（2版本），1.5分支版本是目前无法提交
+1、latest对应master分支（2版本），1.5分支版本（不可用）官方应该是没有独立的dashboard的
 2、整体dashboard架构，apisix-dashboard的前端dashboard和后端manager
 
 
