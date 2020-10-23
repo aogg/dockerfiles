@@ -20,8 +20,8 @@ fi
 sed -i -e "s%#apisixDashboardUsername#%`echo ${APISIX_DASHBOARD_USERNAME:-admin}`%g" ${pwd}/conf.json
 sed -i -e "s%#apisixDashboardPassword#%`echo ${APISIX_DASHBOARD_PASSWORD:-admin}`%g" ${pwd}/conf.json
 
-
-cp ${pwd}/conf.json ${pwd}/api/conf/conf.json
+# 环境变量非local的时候就是${pwd}/conf.json
+cp ${pwd}/conf.json /go/src/github.com/apisix/manager-api/conf/conf.json
 
 cd /go/manager-api
 exec ./manager-api
