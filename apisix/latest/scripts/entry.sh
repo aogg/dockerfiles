@@ -23,4 +23,5 @@ sed -i -e "s%#apisixDashboardPassword#%`echo ${APISIX_DASHBOARD_PASSWORD:-admin}
 
 cp ${pwd}/conf.json ${pwd}/api/conf/conf.json
 
+cd /go/manager-api
 exec ./manager-api

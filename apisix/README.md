@@ -9,4 +9,6 @@
 # 当前项目核心
 
 1、apisix-dashboard登录用户可控制账号名和密码，没有view用户
-2、不需要本地构建容器，直接使用[hub.docker.com](https://hub.docker.com/repository/docker/adockero/apisix-dashboard)提供的容器
+2、非固定ip的demo。
+3、全面的`docker env`，可通过`docker image inspect adockero/apisix-dashboard:manager`查看
+4、不需要本地构建容器，直接使用[hub.docker.com](https://hub.docker.com/repository/docker/adockero/apisix-dashboard)提供的容器
