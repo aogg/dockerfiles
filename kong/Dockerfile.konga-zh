@@ -8,5 +8,5 @@ RUN /bin/bash /app/lang/dockerstart.sh start
 
 FROM pantsel/konga 
 
-COPY --from=konga-plugin /app/assets /app
+COPY --from=konga-plugin /app/assets /app/assets
 
