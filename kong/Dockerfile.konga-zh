@@ -3,7 +3,9 @@ FROM jsonljd/konga-lang-plugin as builder
 
 COPY --from=pantsel/konga /app/assets /app/assets
 
-RUN /bin/bash /app/lang/dockerstart.sh start
+RUN /bin/bash /app/lang/dockerstart.sh start \
+    && (/bin/bash /app/lang/dockerstart.sh start \
+    || cat /app/assets/js/app/core/layout/partials/footer.html)
 
 
 # FROM pantsel/konga 
