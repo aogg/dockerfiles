@@ -4,7 +4,7 @@ FROM jsonljd/konga-lang-plugin as builder
 COPY --from=pantsel/konga /app/assets /app/assets
 
 RUN /bin/bash /app/lang/dockerstart.sh start \
-    && mkdir -p /app/assets \
+    && mkdir -p /tmp/assets \
     && mv /app/assets/* /tmp/assets
 
 
