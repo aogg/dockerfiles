@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths: 
+      - "skywalking/**"
+      - ".github/workflows/skywalking.yml"
+      - "!**.md"
 
 
 jobs:

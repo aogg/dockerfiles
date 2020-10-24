@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths: 
+      - "nginx/**"
+      - ".github/workflows/nginx.yml"
+      - "!**.md"
 
 
 jobs:
