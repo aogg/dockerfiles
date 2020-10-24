@@ -1,3 +1,7 @@
+# 已抛弃
+1、位于2.0这个版本中，bug太多
+2、已转kong
+
 # apisix相关容器
 
 ![最近镜像构建状态](https://github.com/aogg/dockerfiles/workflows/apisix-%E6%9E%84%E5%BB%BA%E5%92%8C%E6%8F%90%E4%BA%A4docker/badge.svg)
