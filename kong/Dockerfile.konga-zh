@@ -1,0 +1,13 @@
+FROM pantsel/konga as konga
+
+FROM jsonljd/konga-lang-plugin as konga-plugin
+
+COPY --from=konga /app/assets /app/assets
+
+RUN /app/lang/dockerstart.sh start
+
+
+FROM pantsel/konga 
+
+COPY --from=konga-plugin /app/assets /app
+
