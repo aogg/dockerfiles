@@ -1,10 +1,9 @@
-FROM pantsel/konga as konga
 
 FROM jsonljd/konga-lang-plugin as konga-plugin
 
-COPY --from=konga /app/assets /app/assets
+COPY --from=pantsel/konga:latest /app/assets /app/assets
 
-RUN id && /bin/bash /app/lang/dockerstart.sh start
+RUN /bin/bash /app/lang/dockerstart.sh start
 
 
 FROM pantsel/konga 
