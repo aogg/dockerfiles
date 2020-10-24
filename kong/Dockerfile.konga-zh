@@ -4,7 +4,7 @@ FROM jsonljd/konga-lang-plugin as konga-plugin
 
 COPY --from=konga /app/assets /app/assets
 
-RUN /app/lang/dockerstart.sh start
+RUN id && /bin/bash /app/lang/dockerstart.sh start
 
 
 FROM pantsel/konga 
