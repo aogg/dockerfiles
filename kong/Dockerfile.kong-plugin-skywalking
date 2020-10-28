@@ -2,18 +2,20 @@
 
 FROM kong
 
+USER root
 
 RUN cd /tmp/ \
     && git clone https://github.com/polaris-liu/kong-plugin-skywalking \
     && mv /tmp/kong-plugin-skywalking/kong /usr/local/kong/ \
-    && rm -fR /tmp/kong-plugin-skywalking
+    && rm -fR /tmp/kong-plugin-skywalking \
+    # 处理权限
+    && chown -R kong:0 /usr/local/kong && \
+    chown kong:0 /usr/local/bin/kong && \
+    chmod -R g=u /usr/local/kong && \
+# 处理kong.conf
+    && echo 'plugins = bundled,skywalking' > /etc/kong/kong.conf
     
 
-USER root
-
-# 不用copy，省点
-# 处理kong.conf
-RUN echo 'plugins = bundled,skywalking' > /etc/kong/kong.conf
 
 USER kong
 
