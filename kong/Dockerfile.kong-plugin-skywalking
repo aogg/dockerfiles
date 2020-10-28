@@ -2,13 +2,19 @@
 
 FROM kong
 
+
 RUN cd /tmp/ \
     && git clone https://github.com/polaris-liu/kong-plugin-skywalking \
-    && mv /tmp/kong-plugin-skywalking/kong/plugins /usr/local/kong/ \
-    # 处理kong.conf
-    && echo 'plugins = bundled,skywalking' > /etc/kong/kong.conf
+    && mv /tmp/kong-plugin-skywalking/kong/plugins /usr/local/kong/
+    
 
+USER root
 
+# 不用copy，省点
+# 处理kong.conf
+RUN echo 'plugins = bundled,skywalking' > /etc/kong/kong.conf
+
+USER kong
 
 
 
