@@ -12,7 +12,7 @@ RUN cd /tmp/ \
     && chown -R kong:0 /usr/local/kong && \
     chown kong:0 /usr/local/bin/kong && \
     chmod -R g=u /usr/local/kong && \
-# 处理kong.conf
+    # 处理kong.conf
     && echo 'plugins = bundled,skywalking' > /etc/kong/kong.conf
     
 
