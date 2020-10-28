@@ -13,7 +13,7 @@ services:
 
   kong:
     image: "${KONG_DOCKER_TAG:-kong:latest}"
-    # user: "${KONG_USER:-kong}"
+    # image: "${KONG_DOCKER_TAG:-adockero/kong-plugins:skywalking}"
     environment:
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_ERROR_LOG: /dev/stderr
