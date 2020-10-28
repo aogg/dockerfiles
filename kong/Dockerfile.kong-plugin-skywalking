@@ -5,7 +5,8 @@ FROM kong
 
 RUN cd /tmp/ \
     && git clone https://github.com/polaris-liu/kong-plugin-skywalking \
-    && mv /tmp/kong-plugin-skywalking/kong/plugins /usr/local/kong/
+    && mv /tmp/kong-plugin-skywalking/kong/plugins /usr/local/kong/ \
+    && rm -fR /tmp/kong-plugin-skywalking
     
 
 USER root
