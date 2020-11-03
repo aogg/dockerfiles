@@ -5,7 +5,7 @@ ARG LANG=zh_CN.utf8
 RUN echo $LANG \
   && if [[ $LANG == 'zh_CN.utf8' ]]; then sed -i 's/http.\{0,1\}\:\/\/[^\/]\{1,\}/https\:\/\/mirrors.aliyun.com/g' /etc/apt/sources.list;fi \
   && apt update \
-  && apt-get install -y locales \
+  && apt-get install -y locales inetutils-ping vim \
 	&& localedef -i zh_CN -c -f UTF-8 -A /usr/share/locale/locale.alias zh_CN.UTF-8
 
 ENV LANG=${LANG:-zh_CN.utf8}
