@@ -1,0 +1,7 @@
+FROM adockero/whistle
+
+COPY docker_cmd.sh /
+
+RUN chmod +x docker_cmd.sh
+
+CMD docker_cmd.sh
