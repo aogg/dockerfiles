@@ -4,4 +4,17 @@ COPY docker_cmd.sh /
 
 RUN chmod +x docker_cmd.sh
 
+
+ENV admin_username=admin \
+    admin_password=admin \
+    guest_username=guest \
+    guest_password=guest \
+    ui_port=8999 \
+    proxy_port=8899 \
+    more_options=""
+
+
+
+
+
 CMD docker_cmd.sh
