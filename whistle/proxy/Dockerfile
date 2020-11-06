@@ -1,6 +1,7 @@
 FROM adockero/whistle
 
 COPY docker_cmd.sh /usr/local/bin/
+COPY .whistle.js /usr/local/lib/node_modules/whistle/
 
 
 ENV ADMIN_USERNAME=admin \
@@ -9,7 +10,8 @@ ENV ADMIN_USERNAME=admin \
     GUEST_PASSWORD=guest \
     UI_PORT=8999 \
     PROXY_PORT=8899 \
-    MORE_OPTIONS=""
+    MORE_OPTIONS="" \
+    LOCAL_RULE=''
 
 
 
