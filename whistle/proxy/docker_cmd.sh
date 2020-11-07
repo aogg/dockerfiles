@@ -1,7 +1,6 @@
 #!/usr/bin/env ash 
 
-if [-z $PROXY_ADDR];then
-
+if [ -z $PROXY_ADDR ];then
     PROXY_ADDR='* '$PROXY_ADDR' reqHeaders://`host=${reqHeaders.host}`'
 fi;
 
