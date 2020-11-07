@@ -1,7 +1,7 @@
 #!/usr/bin/env ash 
 
 if [ -n "$PROXY_ADDR" ];then
-    PROXY_ADDR='\* '$PROXY_ADDR' reqHeaders://\`host=${reqHeaders.host}\`'
+    PROXY_ADDR='\* '$PROXY_ADDR' reqHeaders://\\`host=\${reqHeaders.host}\\`'
 fi;
 
 rulesString=$LOCAL_RULE'\n\n'$PROXY_ADDR
