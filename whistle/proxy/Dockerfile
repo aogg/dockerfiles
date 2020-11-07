@@ -11,7 +11,8 @@ ENV ADMIN_USERNAME=admin \
     UI_PORT=8999 \
     PROXY_PORT=8899 \
     MORE_OPTIONS="" \
-    LOCAL_RULE=''
+    LOCAL_RULE='' \
+    PROXY_ADDR='nginx'
 
 
 

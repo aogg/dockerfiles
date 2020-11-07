@@ -1,6 +1,12 @@
 #!/usr/bin/env ash 
 
-sed -i -e "s%#localRules#%`echo $LOCAL_RULE`%g" /usr/local/lib/node_modules/whistle/.whistle.js
+if [-z $PROXY_ADDR];then
+
+    PROXY_ADDR='* '$PROXY_ADDR' reqHeaders://`host=${reqHeaders.host}`'
+fi;
+
+rulesString=$LOCAL_RULE'\n\n'$PROXY_ADDR
+sed -i -e "s%#localRules#%`echo $rulesString`%g" /usr/local/lib/node_modules/whistle/.whistle.js
 
 
 
