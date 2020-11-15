@@ -1,6 +1,6 @@
 
 
-FROM kong
+FROM adockero/kong
 
 USER root
 

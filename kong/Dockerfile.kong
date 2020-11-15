@@ -1,0 +1,7 @@
+FROM kong
+
+USER root
+
+RUN echo 'lua_ssl_trusted_certificate = /etc/ssl/certs/ca-certificates.crt' > /etc/kong/kong.conf
+
+USER kong
