@@ -1,6 +1,6 @@
 #!/usr/bin/env ash 
 
-#SSHD
+# SSHD
 # generate fresh rsa key
 ssh-keygen -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa
 # generate fresh dsa key
