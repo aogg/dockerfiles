@@ -12,4 +12,4 @@ ENV SSHD_PASSWORD=''
 ADD docker-entrypoint.sh /
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ""
+CMD []

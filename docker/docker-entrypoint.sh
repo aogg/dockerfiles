@@ -21,10 +21,19 @@ fi
 /usr/sbin/sshd -p ${SSHD_PORT}
 
 
+
 if [ -f /usr/local/bin/dockerd-entrypoint.sh ];then
-    /usr/local/bin/dockerd-entrypoint.sh "$@"
+    if [ -z "$@"];then
+        /usr/local/bin/dockerd-entrypoint.sh
+    else
+        /usr/local/bin/dockerd-entrypoint.sh "$@"
+    fi
 else
-    /usr/local/bin/docker-entrypoint.sh "$@"
+    if [ -z "$@"];then
+        /usr/local/bin/docker-entrypoint.sh
+    else
+        /usr/local/bin/docker-entrypoint.sh "$@"
+    fi
 fi
 
 
