@@ -1,5 +1,5 @@
 ARG VERSION=latest
-FROM docker:{$VERSION}
+FROM docker:${VERSION}
 
 
 RUN apk --update add openssh git &&\
