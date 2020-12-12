@@ -2,6 +2,7 @@ ARG VERSION=latest
 FROM docker:${VERSION}
 
 
+# @see https://github.com/danielguerra69/docker-sshd/blob/master/Dockerfile
 RUN apk --update add openssh git &&\
     rm -rf /tmp/* /var/cache/apk/*
 

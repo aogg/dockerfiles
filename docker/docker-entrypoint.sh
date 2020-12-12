@@ -15,6 +15,7 @@ sed -i "s/\(#\s*\)PasswordAuthentication.*/PasswordAuthentication yes/g" /etc/ss
 sed -i "s/#AuthorizedKeysFile/AuthorizedKeysFile/g" /etc/ssh/sshd_config
 
 if [ -n "$SSHD_PASSWORD" ];then
+    echo '设置密码';
     echo root:${SSHD_PASSWORD}|chpasswd
 fi
 
