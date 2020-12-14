@@ -1,0 +1,11 @@
+ARG VERSION=latest
+FROM docker:${VERSION}
+
+ENV HTTP_PROXY=''
+ENV HTTPS_PROXY=''
+
+# configure container
+ADD docker-entrypoint.pull.sh /
+
+ENTRYPOINT ["/docker-entrypoint.pull.sh"]
+CMD []
