@@ -8,8 +8,8 @@ echo '[Service]' > /etc/systemd/system/docker.service.d/http-proxy.conf
 if [ -n "$PULL_HTTP_PROXY" ];then
     echo 'Environment="HTTP_PROXY='${PULL_HTTP_PROXY}'"' >> /etc/systemd/system/docker.service.d/http-proxy.conf
 fi
-if [ -n "$PULL_HTTP_PROXY" ];then
-    echo 'Environment="HTTPS_PROXY='${PULL_HTTP_PROXY}'"' >> /etc/systemd/system/docker.service.d/http-proxy.conf
+if [ -n "$PULL_HTTPS_PROXY" ];then
+    echo 'Environment="HTTPS_PROXY='${PULL_HTTPS_PROXY}'"' >> /etc/systemd/system/docker.service.d/http-proxy.conf
 fi
 
 
