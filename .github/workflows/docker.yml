@@ -22,51 +22,6 @@ jobs:
 
 
       
-              
-    - name: docker-pull-latest
-      uses: docker/build-push-action@v1.1.0
-      with:
-        # Username used to log in to a Docker registry. If not set then no login will occur
-        username: adockero
-        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
-        password: ${{ secrets.PASSWORD }}
-        # Docker repository to tag the image with
-        repository: adockero/docker
-        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: pull
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        path: ./docker/
-        dockerfile: docker/Dockerfile.pull
-        # Always attempt to pull a newer version of the image
-        always_pull: true
-        # 构建参数
-        build_args: VERSION=latest
-        # Adds labels with git repository information to the built image
-        add_git_labels: true  
-   
-        
-              
-    - name: docker-dind-pull-latest
-      uses: docker/build-push-action@v1.1.0
-      with:
-        # Username used to log in to a Docker registry. If not set then no login will occur
-        username: adockero
-        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
-        password: ${{ secrets.PASSWORD }}
-        # Docker repository to tag the image with
-        repository: adockero/docker
-        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: dind-pull
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        path: ./docker/
-        dockerfile: docker/Dockerfile.pull
-        # Always attempt to pull a newer version of the image
-        always_pull: true
-        # 构建参数
-        build_args: VERSION=dind
-        # Adds labels with git repository information to the built image
-        add_git_labels: true  
-   
 
 
               
