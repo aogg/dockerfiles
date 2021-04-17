@@ -56,7 +56,7 @@ jobs:
         # Docker repository to tag the image with
         repository: adockero/skywalking-oap-server
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: laster,mysql
+        tags: latest,mysql
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./skywalking/skywalking-oap-server
         dockerfile: skywalking/skywalking-oap-server/Dockerfile
