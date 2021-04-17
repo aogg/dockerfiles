@@ -49,7 +49,7 @@ jobs:
 
 
               
-    - name: nginx-openresty
+    - name: tensorflow-build-Ubuntu18.04-CPU-2.2.0
       uses: docker/build-push-action@v1.1.0
       with:
         # Username used to log in to a Docker registry. If not set then no login will occur
@@ -59,7 +59,7 @@ jobs:
         # Docker repository to tag the image with
         repository: adockero/tensorflow-build
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: tf2.2.1-py3.8,latest
+        tags: Ubuntu18.04-CPU-2.2.0,latest
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./tensorflow-build
         dockerfile: tensorflow-build/Dockerfile
