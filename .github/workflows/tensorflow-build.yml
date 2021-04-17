@@ -1,0 +1,76 @@
+name: tensorflow-build-构建和提交docker
+
+on:
+  push:
+    branches:
+      - main
+    paths: 
+      - "tensorflow-build/**"
+      - ".github/workflows/tensorflow-build.yml"
+      - "!**.md"
+
+
+jobs:
+  pre_job:
+    runs-on: ubuntu-latest
+    # Map a step output to a job output
+    outputs:
+      should_skip_local: ${{ steps.skip_check_local.outputs.should_skip }}
+      should_skip: ${{ steps.skip_check_docs.outputs.should_skip }}
+
+
+    steps:
+      - id: skip_check_docs
+        name: 跳过文档
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          github_token: ${{ github.token }}
+          paths_ignore: '["**/README.md", "**/docs/**"]'
+  
+      - id: skip_check_local
+        name: 跳过指定路径
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          github_token: ${{ github.token }}
+          paths: '["tensorflow-build/**", ".github/workflows/tensorflow-build.yml"]'
+  
+  setup-build-publish:
+    needs: pre_job
+    runs-on: ubuntu-latest
+    name: 构建和推送docker镜像
+    if: ${{ needs.pre_job.outputs.should_skip == 'false' && needs.pre_job.outputs.should_skip_local == 'false' }}
+    steps:
+    
+    - name: Checkout
+      # 使用action库  actions/checkout获取源码
+      uses: actions/checkout@v2.3.2
+
+
+
+
+              
+    - name: nginx-openresty
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: adockero
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD }}
+        # Docker repository to tag the image with
+        repository: adockero/tensorflow-build
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: tf2.2.1-py3.8,latest
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./tensorflow-build
+        dockerfile: tensorflow-build/Dockerfile
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # 构建参数
+        # build_args: arg1=value1,arg2=value2
+        # Adds labels with git repository information to the built image
+        add_git_labels: true  
+   
+   
+
+
+
