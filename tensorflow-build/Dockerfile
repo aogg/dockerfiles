@@ -22,7 +22,7 @@
 # @see https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/dockerfiles/dockerfiles/cpu.Dockerfile
 # @see https://github.com/lakshayg/tensorflow-build
 
-ARG UBUNTU_VERSION=18.04
+ARG UBUNTU_VERSION=20.04
 
 FROM ubuntu:${UBUNTU_VERSION} as base
 
@@ -55,7 +55,7 @@ RUN ln -s $(which python3) /usr/local/bin/python
 # Installs the latest version by default.
 ARG TF_PACKAGE=tensorflow
 ARG TF_PACKAGE_VERSION=
-ARG TF_BUILD_DOWNLOAD='https://github.com/lakshayg/tensorflow-build/releases/download/tf2.2.0-py3.7-ubuntu18.04/tensorflow-2.2.0-cp37-cp37m-linux_x86_64.whl'
+ARG TF_BUILD_DOWNLOAD='https://github.com/lakshayg/tensorflow-build/releases/download/tf2.4.0-ubuntu20.04-python3.8.5/tensorflow-2.4.1-cp38-cp38-linux_x86_64.whl'
 RUN python3 -m pip install --no-cache-dir --upgrade ${TF_BUILD_DOWNLOAD} --user
 
 COPY bashrc /etc/bash.bashrc
