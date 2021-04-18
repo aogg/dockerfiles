@@ -56,6 +56,6 @@ RUN ln -s $(which python3) /usr/local/bin/python
 ARG TF_PACKAGE=tensorflow
 ARG TF_PACKAGE_VERSION=
 ARG TF_BUILD_DOWNLOAD='https://github.com/lakshayg/tensorflow-build/releases/download/tf2.2.0-py3.7-ubuntu18.04/tensorflow-2.2.0-cp37-cp37m-linux_x86_64.whl'
-RUN python3 -m pip install --no-cache-dir --upgrade ${TF_PACKAGE}${TF_PACKAGE_VERSION:+==${TF_PACKAGE_VERSION}}
+RUN python3 -m pip install --no-cache-dir --upgrade ${TF_BUILD_DOWNLOAD} --user
 
 COPY bashrc /etc/bash.bashrc
