@@ -40,7 +40,7 @@ RUN apt-get update && apt install --no-install-recommends --no-install-suggests 
 # RUN apt-get update && apt-get install -y
 
 RUN python3 -m pip --no-cache-dir install --upgrade \
-    "pip<20.3" \
+    "pip<21.3" \
     setuptools
 
 # Some TF tools expect a "python" binary
