@@ -1,7 +1,6 @@
-FROM debian
+FROM alpine
 
-RUN apt-get update && apt-get install -y qemu-utils && rm -rf /var/lib/apt/lists/*
+RUN apk add --update qemu-img 
 
-WORKDIR /tmp
-ENTRYPOINT ["qemu-img"]
+ENTRYPOINT ["/usr/bin/qemu-img"]
 CMD ["--help"]
