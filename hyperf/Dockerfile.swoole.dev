@@ -1,0 +1,23 @@
+ARG BASE_FORM=hyperf/hyperf:7.3-alpine-v3.11
+# hyperf/hyperf:7.4-alpine-v3.11-dev
+
+
+FROM ${BASE_FORM}-dev as build
+
+RUN git clone https://github.com/swoole/yasd \
+    && apk add --no-cache boost boost-dev \
+    && cd yasd \
+    && phpize --clean && \
+    phpize && \
+    ./configure && \
+    make clean && \
+    make && \
+    make install
+
+FROM ${BASE_FORM}-swoole as finish
+
+COPY --from=build /usr/lib/php7/modules/yasd.so /usr/lib/php7/modules/yasd.so
+
+RUN echo "extension=yasd.so" > /etc/php7/conf.d/20_yasd.ini
+
+
