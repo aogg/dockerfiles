@@ -18,6 +18,7 @@ FROM ${BASE_FORM}-swoole as finish
 
 COPY --from=build /usr/lib/php7/modules/yasd.so /usr/lib/php7/modules/yasd.so
 
-RUN echo "extension=yasd.so" > /etc/php7/conf.d/20_yasd.ini
+RUN echo "extension=yasd.so" > /etc/php7/conf.d/20_yasd.ini \
+    && apk add --no-cache boost
 
 
