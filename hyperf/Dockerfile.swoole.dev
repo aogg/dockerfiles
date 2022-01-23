@@ -1,4 +1,4 @@
-ARG BASE_FORM=hyperf/hyperf:7.3-alpine-v3.11
+ARG BASE_FORM=hyperf/hyperf:7.4-alpine-v3.11
 # hyperf/hyperf:7.4-alpine-v3.11-dev
 
 
