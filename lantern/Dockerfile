@@ -1,4 +1,4 @@
-FROM ubuntu:20.10
+FROM ubuntu
 
 ARG VERSION=6.9.11
 
