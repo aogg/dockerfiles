@@ -10,6 +10,7 @@ ENV SSHD_PORT=22
 ENV SSHD_PASSWORD=''
 
 # configure container
+ADD ../common/open-sshd-passwd.sh /
 ADD docker-entrypoint.sshd.sh /
 
 ENTRYPOINT ["/docker-entrypoint.sshd.sh"]

@@ -1,0 +1,11 @@
+ARG BASE_FORM=adockero/hyperf:7.4-alpine-v3.11-swoole-dev
+# hyperf/hyperf:7.4-alpine-v3.11-dev
+
+
+FROM ${BASE_FORM}
+
+
+ADD ../common/open-sshd-passwd.sh /
+
+
+CMD bash -c "bash /open-sshd-passwd.sh && tail -f /etc/hosts"
