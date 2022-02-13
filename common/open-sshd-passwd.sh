@@ -19,4 +19,4 @@ if [ -n "$SSHD_PASSWORD" ];then
     echo root:${SSHD_PASSWORD}|chpasswd
 fi
 
-sshd -p ${SSHD_PORT}
+`which sshd` -p ${SSHD_PORT}
