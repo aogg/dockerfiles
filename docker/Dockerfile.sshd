@@ -11,7 +11,7 @@ ENV SSHD_PASSWORD=''
 
 # configure container
 # 留意path要./，不能指定到下层文件夹
-ADD ../common/open-sshd-passwd.sh /
+ADD ./common/open-sshd-passwd.sh /
 ADD ./docker/docker-entrypoint.sshd.sh /
 
 ENTRYPOINT ["/docker-entrypoint.sshd.sh"]

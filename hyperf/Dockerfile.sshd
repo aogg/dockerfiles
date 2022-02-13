@@ -11,7 +11,7 @@ ENV SSHD_PASSWORD=''
 
 
 # 留意path要./，不能指定到下层文件夹
-ADD ../common/open-sshd-passwd.sh /
+ADD ./common/open-sshd-passwd.sh /
 
 
 CMD bash -c "bash /open-sshd-passwd.sh && tail -f /etc/hosts"
