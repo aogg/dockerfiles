@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths: 
       - "hyperf/**"
+      - "common/**"
       - ".github/workflows/hyperf.yml"
       - "!**.md"
 
