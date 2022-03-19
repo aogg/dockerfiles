@@ -1,0 +1,126 @@
+name: sshd-构建和提交docker
+
+on:
+  push:
+    branches: [main]
+    paths: 
+      - "sshd/**"
+      - ".github/workflows/sshd.yml"
+      - "!**.md"
+
+jobs:
+  
+  setup-build-publish:
+    runs-on: ubuntu-latest
+    name: 构建和推送docker镜像
+    steps:
+    
+    - name: Checkout
+      # 使用action库  actions/checkout获取源码
+      uses: actions/checkout@v2.3.2
+
+
+
+              
+    - name: sshd-latest
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: adockero
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD }}
+        # Docker repository to tag the image with
+        repository: adockero/sshd
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: latest
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./
+        dockerfile: sshd/Dockerfile
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # 构建参数
+        # build_args: MORE_APK=GIT
+        # Adds labels with git repository information to the built image
+        add_git_labels: true  
+
+              
+    - name: sshd-git-latest
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: adockero
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD }}
+        # Docker repository to tag the image with
+        repository: adockero/sshd
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: git
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./
+        dockerfile: sshd/Dockerfile
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # 构建参数
+        build_args: MORE_APK=GIT
+        # Adds labels with git repository information to the built image
+        add_git_labels: true  
+
+
+
+# ##########  jsh  ###########################
+      
+              
+    - name: sshd-jsh-latest
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: adockero
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD }}
+        # Docker repository to tag the image with
+        repository: adockero/sshd
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: jsh
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./
+        dockerfile: sshd/Dockerfile.jsh
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # 构建参数
+        build_args: FROM_ARG=adockero/sshd
+        # Adds labels with git repository information to the built image
+        add_git_labels: true          
+
+
+
+              
+    - name: sshd-git-jsh-latest
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: adockero
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD }}
+        # Docker repository to tag the image with
+        repository: adockero/sshd
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: jsh-git
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./
+        dockerfile: sshd/Dockerfile.jsh
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # 构建参数
+        build_args: FROM_ARG=adockero/sshd:git
+        # Adds labels with git repository information to the built image
+        add_git_labels: true     
+
+
+
+
+
+
+
+
+
+
