@@ -23,4 +23,5 @@ if [ -n "$SSHD_PASSWORD" ];then
     echo root:${SSHD_PASSWORD}|chpasswd
 fi
 
-`which sshd` -p ${SSHD_PORT} "$@"
+# -e 显示详细信息
+`which sshd` -e -p ${SSHD_PORT} "$@"
