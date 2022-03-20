@@ -2,9 +2,13 @@
 
 # SSHD
 # generate fresh rsa key
-ssh-keygen -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa
+if [ ! -f /etc/ssh/ssh_host_rsa_key ];then
+    ssh-keygen -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa
+fi
 # generate fresh dsa key
+if [ ! -f /etc/ssh/ssh_host_dsa_key ];then
 ssh-keygen -f /etc/ssh/ssh_host_dsa_key -N '' -t dsa
+fi
 #prepare run dir
 mkdir -p /var/run/sshd
 # prepare config file for key based auth
@@ -19,4 +23,4 @@ if [ -n "$SSHD_PASSWORD" ];then
     echo root:${SSHD_PASSWORD}|chpasswd
 fi
 
-`which sshd` -p ${SSHD_PORT}
+`which sshd` -p ${SSHD_PORT} "$@"

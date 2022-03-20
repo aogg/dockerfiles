@@ -6,9 +6,9 @@ ARG MORE_APK
 RUN apk add --no-cache openssh $MORE_APK;
 
 ENV SSHD_PORT=22
-ENV SSHD_PASSWORD=''
+ENV SSHD_PASSWORD='root'
 
 # 留意path要./，不能指定到下层文件夹
 ADD ./common/open-sshd-passwd.sh /
 
-CMD ["/docker-entrypoint.sshd.sh"]
+CMD ["/docker-sshd.passwd.sh", "-D"]
