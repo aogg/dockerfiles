@@ -8,7 +8,7 @@ ENV SSHD_OPEN_JSH=1
 ADD ./common/open-sshd-jsh.sh /
 
 # --no-cache没有/var/cache/apk
-RUN open-sshd-jsh.sh
+RUN /open-sshd-jsh.sh
 
 
 
