@@ -8,7 +8,7 @@ on:
       - ".github/workflows/nohost.yml"
       - "!**.md"
   schedule: 
-    - cron: '0 2 2 * *' # Weekly on Sundays at 02:00 
+    - cron: '0 2 */7 * *' # Weekly on Sundays at 02:00 
 
 jobs:
   
