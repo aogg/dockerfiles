@@ -7,8 +7,8 @@ on:
       - "lantern/**"
       - ".github/workflows/lantern.yml"
       - "!**.md"
-  schedule: 
-    - cron: '0 0 */1 * *' # Weekly on Sundays at 02:00 
+ # schedule: 
+ #   - cron: '0 0 */1 * *' # Weekly on Sundays at 02:00 
 
 jobs:
   
