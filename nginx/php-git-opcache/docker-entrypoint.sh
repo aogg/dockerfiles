@@ -18,11 +18,11 @@ fi;
 
 # 监听
 mkdir -p /mnt;
-touch /mnt/git-inotify;
+touch /mnt/git-inotify.txt;
 
-ash /inotify-php-git-opcache.sh /mnt/git-inotify &
+ash /inotify-php-git-opcache.sh /mnt/git-inotify.txt &
 # 立即更新
-echo '' >> /mnt/git-inotify;
+echo '' >> /mnt/git-inotify.txt;
 
 
-tail -f /mnt/git-inotify;
+tail -f /mnt/git-inotify.txt;
