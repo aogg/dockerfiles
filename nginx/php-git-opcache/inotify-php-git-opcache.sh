@@ -45,6 +45,7 @@ echo '更新后日志: '$(git log --oneline --decorate|grep tag|head -1)
 
 
 cp -f /opcacheUpdate.php $GIT_DIR_USER/opcacheUpdate.php;
+chmod 777 $GIT_DIR_USER/opcacheUpdate.php;
 curl localhost/opcacheUpdate.php;
 rm -f $GIT_DIR_USER/opcacheUpdate.php;
 

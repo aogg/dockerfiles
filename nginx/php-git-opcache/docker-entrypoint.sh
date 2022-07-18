@@ -9,6 +9,11 @@ sed -e 's#--git-dir--#'$GIT_DIR'#' /etc/nginx/conf.d/default.conf > /etc/nginx/c
 nginx &;
 
 
+# 创建用户$GIT_DIR_USER
+if [ -z "$(id $GIT_DIR_USER 2>/dev/null)" ]; then
+    adduser -S -D -H -u $GIT_DIR_USER -h /var/cache/$GIT_DIR_USER -s /sbin/nologin -G $GIT_DIR_USER -g $GIT_DIR_USER $GIT_DIR_USER
+fi;
+
 
 # 监听
 mkdir -p /mnt;
