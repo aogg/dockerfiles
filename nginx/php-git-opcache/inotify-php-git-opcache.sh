@@ -2,7 +2,7 @@
 
 
 # src=/data/www/
-/usr/local/bin/inotifywait -mrq --timefmt '%d/%m/%y %H:%M' --format '%T %w%f%e' -e modify,delete,create,attrib $1 |  while read file
+inotifywait -mrq --timefmt '%d/%m/%y %H:%M' --format '%T %w%f%e' -e modify,delete,create,attrib $1 |  while read file
 do
       echo "  ${file} inotifywait"
       tag=$(cat $file);

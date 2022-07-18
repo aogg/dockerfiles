@@ -22,5 +22,8 @@ COPY ./inotify-php-git-opcache.sh /inotify-php-git-opcache.sh
 COPY ./opcacheUpdate.php /opcacheUpdate.php
 
 
+VOLUME [ "/mnt/git-inotify" ]
+
+
 CMD [ "/docker-entrypoint.sh" ]
 
