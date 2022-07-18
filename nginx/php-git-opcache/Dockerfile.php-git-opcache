@@ -10,8 +10,8 @@ ENV GIT_DIR=/app \
     PHP_HOST_PORT='php:9000'
 
 
-RUN apk add --no-cache git inotify-tools openssh nginx \
-    && sed -e 's#StrictHostKeyChecking .*#StrictHostKeyChecking no#' /etc/ssh/ssh_config  > /etc/ssh/ssh_config
+RUN apk add --no-cache git inotify-tools openssh nginx
+    # && sed -e 's#StrictHostKeyChecking .*#StrictHostKeyChecking no#' /etc/ssh/ssh_config  > /etc/ssh/ssh_config
 
 
 
@@ -20,6 +20,8 @@ COPY ./default.conf /etc/nginx/conf.d/default.conf.bak
 COPY ./docker-entrypoint.sh /docker-entrypoint.sh
 COPY ./inotify-php-git-opcache.sh /inotify-php-git-opcache.sh
 COPY ./opcacheUpdate.php /opcacheUpdate.php
+COPY ./ssh_config /etc/ssh/sshd_config
+
 
 
 # VOLUME [ "/mnt/git-inotify" ]
