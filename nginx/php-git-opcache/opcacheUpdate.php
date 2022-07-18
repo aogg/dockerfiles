@@ -1,6 +1,11 @@
 <?php
 /** @noinspection PhpComposerExtensionStubsInspection */
 
+if (!function_exists('opcache_invalidate')) {
+    echo '没有开启opcache';
+}
+
+
 echo __FILE__ . PHP_EOL;
 opcache_invalidate(__FILE__, true);
 opcache_compile_file(__FILE__);
