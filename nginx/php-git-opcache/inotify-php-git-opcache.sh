@@ -39,6 +39,7 @@ echo '当前日志: '$(git log --oneline --decorate|grep tag|head -1)
 currentTag=$(git log --oneline --decorate|grep tag|head -1|sed -e 's/.*tag: \([0-9.]*\).*/\1/');
 echo '当前标签: '$currentTag
 git diff $currentTag $tag --name-only|sed -e 's#\(.*\)#'$(pwd)'/\1#' > /tmp/git_pull_files.log
+chmod 777 /tmp/git_pull_files.log;
 
 su $GIT_DIR_USER /bin/ash  -c "echo '开始更新代码' && git checkout $tag;git status";
 echo '更新后日志: '$(git log --oneline --decorate|grep tag|head -1)
@@ -46,7 +47,7 @@ echo '更新后日志: '$(git log --oneline --decorate|grep tag|head -1)
 
 cp -f /opcacheUpdate.php $GIT_DIR_USER/opcacheUpdate.php;
 chmod 777 $GIT_DIR_USER/opcacheUpdate.php;
-curl localhost/opcacheUpdate.php;
+curl --data-binary "@/tmp/git_pull_files.log" localhost/opcacheUpdate.php;
 rm -f $GIT_DIR_USER/opcacheUpdate.php;
 
 

@@ -20,13 +20,17 @@ if (
     return;
 }
 
-$file = '/tmp/git_pull_files.log';
-if (!is_file($file) || !is_readable($file)) {
-    echo '文件不存在' . PHP_EOL;
-    return;
+if (!empty($_POST)) {
+    $content = file_get_contents('php://input');
+}else{
+    $file = '/tmp/git_pull_files.log';
+    if (!is_file($file) || !is_readable($file)) {
+        echo '文件不存在' . PHP_EOL;
+        return;
+    }
+    
+    $content = file_get_contents($file);
 }
-
-$content = file_get_contents($file);
 echo '------git更新内容-------start' . PHP_EOL;
 echo $content;
 echo '------git更新内容-------end' . PHP_EOL;
