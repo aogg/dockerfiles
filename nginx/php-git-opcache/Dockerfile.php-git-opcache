@@ -20,7 +20,7 @@ COPY ./default.conf /etc/nginx/conf.d/default.conf.bak
 COPY ./docker-entrypoint.sh /docker-entrypoint.sh
 COPY ./inotify-php-git-opcache.sh /inotify-php-git-opcache.sh
 COPY ./opcacheUpdate.php /opcacheUpdate.php
-COPY ./ssh_config /etc/ssh/sshd_config
+COPY ./ssh_config /etc/ssh/ssh_config
 
 
 
