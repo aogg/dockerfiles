@@ -17,6 +17,7 @@ RUN apk add --no-cache git inotify-tools openssh
 
 
 COPY ./default.conf /etc/nginx/conf.d/default.conf.bak
+COPY ../common/create-user.sh /create-user.sh
 COPY ./docker-entrypoint.sh /docker-entrypoint.sh
 COPY ./inotify-php-git-opcache.sh /inotify-php-git-opcache.sh
 COPY ./opcacheUpdate.php /opcacheUpdate.php

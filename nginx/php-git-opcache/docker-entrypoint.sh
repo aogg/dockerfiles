@@ -10,12 +10,7 @@ nginx &
 
 
 # 创建用户$GIT_DIR_USER
-if [ -z "$(id $GIT_DIR_USER 2>/dev/null)" ]; then
-    addgroup $GIT_DIR_USER;
-    adduser -S -D -u $GIT_DIR_USER -h /var/cache/$GIT_DIR_USER -s /bin/ash -G $GIT_DIR_USER -g $GIT_DIR_USER $GIT_DIR_USER;
-    # adduser -S -D -H -u $GIT_DIR_USER -h /var/cache/$GIT_DIR_USER -s /sbin/nologin -G $GIT_DIR_USER -g $GIT_DIR_USER $GIT_DIR_USER
-fi;
-
+/create-user.sh $GIT_DIR_USER
 
 # 监听
 mkdir -p /mnt;
