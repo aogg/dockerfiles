@@ -19,7 +19,7 @@ RUN yum install -y epel-release && yum install -y git inotify-tools openssh-clie
 
 
 COPY ./nginx/php-git-opcache/default.conf /etc/nginx/conf.d/default.conf.bak
-COPY ./create-user.sh /create-user.sh
+COPY ./common/create-user.sh /create-user.sh
 COPY ./nginx/php-git-opcache/docker-entrypoint.sh /docker-entrypoint.sh
 COPY ./nginx/php-git-opcache/inotify-php-git-opcache.sh /inotify-php-git-opcache.sh
 COPY ./nginx/php-git-opcache/opcacheUpdate.php /opcacheUpdate.php
