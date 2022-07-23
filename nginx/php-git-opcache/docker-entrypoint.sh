@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/bin/sh
 
 
 
@@ -21,7 +21,7 @@ fi;
 mkdir -p /mnt;
 touch /mnt/git-inotify.txt;
 
-ash /inotify-php-git-opcache.sh /mnt/git-inotify.txt &
+/inotify-php-git-opcache.sh /mnt/git-inotify.txt &
 # 立即更新
 echo '' >> /mnt/git-inotify.txt;
 

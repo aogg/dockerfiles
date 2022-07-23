@@ -45,11 +45,9 @@ jobs:
       # 使用action库  actions/checkout获取源码
       uses: actions/checkout@v2.3.2
 
-
-
     
            
-    - name: nginx-php-git-opcache
+    - name: nginx-php-git-opcache-centos7
       uses: docker/build-push-action@v1.1.0
       with:
         # Username used to log in to a Docker registry. If not set then no login will occur
@@ -59,10 +57,33 @@ jobs:
         # Docker repository to tag the image with
         repository: adockero/nginx
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: php-git-opcache
+        tags: php-git-opcache-centos7
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./nginx/php-git-opcache
-        dockerfile: nginx/php-git-opcache/Dockerfile.php-git-opcache
+        dockerfile: nginx/php-git-opcache/Dockerfile.php-git-opcache.centos
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # Comma-delimited list of build-time variables
+        # build_args: BASE_FORM=nginx:alpine
+        # Adds labels with git repository information to the built image
+        add_git_labels: true  
+
+    
+           
+    - name: nginx-php-git-opcache-alpine
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: adockero
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD }}
+        # Docker repository to tag the image with
+        repository: adockero/nginx
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: php-git-opcache-alpine
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./nginx/php-git-opcache
+        dockerfile: nginx/php-git-opcache/Dockerfile.php-git-opcache.alpine
         # Always attempt to pull a newer version of the image
         always_pull: true
         # Comma-delimited list of build-time variables
