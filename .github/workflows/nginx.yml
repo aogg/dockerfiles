@@ -6,6 +6,7 @@ on:
       - main
     paths: 
       - "nginx/**"
+      - "common/**"
       - ".github/workflows/nginx.yml"
       - "!**.md"
 
@@ -59,7 +60,7 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: php-git-opcache-centos7
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        path: ./nginx/php-git-opcache
+        path: ./
         dockerfile: nginx/php-git-opcache/Dockerfile.php-git-opcache.centos
         # Always attempt to pull a newer version of the image
         always_pull: true
@@ -82,7 +83,7 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: php-git-opcache-alpine
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        path: ./nginx/php-git-opcache
+        path: ./
         dockerfile: nginx/php-git-opcache/Dockerfile.php-git-opcache.alpine
         # Always attempt to pull a newer version of the image
         always_pull: true
