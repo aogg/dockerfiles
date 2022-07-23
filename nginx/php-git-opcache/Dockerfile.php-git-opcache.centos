@@ -1,5 +1,5 @@
 
-ARG BASE_FORM=centos7
+ARG BASE_FORM=centos:7
 
 FROM ${BASE_FORM}
 
