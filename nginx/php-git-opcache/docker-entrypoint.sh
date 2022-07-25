@@ -16,9 +16,17 @@ nginx &
 mkdir -p /mnt;
 touch /mnt/git-inotify.txt;
 
+if [ -n "$GIT_AUTO_PULL_FALSE" ];then
+
+/inotify-php-opcache.sh /mnt/git_pull_files.log &
+# 立即更新
+echo '' >> /mnt/git_pull_files.log;
+else
+
 /inotify-php-git-opcache.sh /mnt/git-inotify.txt &
 # 立即更新
 echo '' >> /mnt/git-inotify.txt;
+fi;
 
 
 tail -f /mnt/git-inotify.txt;
