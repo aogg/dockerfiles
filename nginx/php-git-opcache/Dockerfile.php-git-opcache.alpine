@@ -11,7 +11,8 @@ ENV GIT_DIR_ENV=/app \
     PHP_HOST_PORT='php:9000'
 
 
-RUN apk add --no-cache git inotify-tools openssh
+RUN apk add --no-cache git inotify-tools openssh \
+    && git config --global --add safe.directory "*"
     # && sed -e 's#StrictHostKeyChecking .*#StrictHostKeyChecking no#' /etc/ssh/ssh_config  > /etc/ssh/ssh_config
 
 

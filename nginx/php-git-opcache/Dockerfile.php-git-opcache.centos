@@ -12,7 +12,8 @@ ENV GIT_DIR_ENV=/app \
 
 
 RUN yum install -y epel-release && yum install -y git inotify-tools openssh-clients nginx \
-    && yum clean all -y
+    && yum clean all -y \
+    && git config --global --add safe.directory "*"
     # && sed -e 's#StrictHostKeyChecking .*#StrictHostKeyChecking no#' /etc/ssh/ssh_config  > /etc/ssh/ssh_config
 
 
