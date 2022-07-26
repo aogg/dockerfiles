@@ -13,9 +13,9 @@ do
 
 
 
-if [ -n "$UPDATE_BEFORE_SHELL_STRING"];then
+if [ -n "$UPDATE_BEFORE_SHELL_STRING" ];then
     echo $UPDATE_BEFORE_SHELL_STRING;
-    su  $GIT_DIR_USER_ENV /bin/sh  -c $UPDATE_BEFORE_SHELL_STRING;
+    su  $GIT_DIR_USER_ENV /bin/sh  -c "eval $UPDATE_BEFORE_SHELL_STRING";
 fi;
 
 
@@ -30,9 +30,9 @@ curl --data-binary "@"$inotifywaitFile localhost/opcacheUpdate.php;
 rm -f $GIT_DIR_USER_ENV/opcacheUpdate.php;
 
 
-if [ -n "$UPDATE_AFTER_SHELL_STRING"];then
+if [ -n "$UPDATE_AFTER_SHELL_STRING" ];then
     echo $UPDATE_AFTER_SHELL_STRING;
-    su  $GIT_DIR_USER_ENV /bin/sh  -c $UPDATE_AFTER_SHELL_STRING;
+    su  $GIT_DIR_USER_ENV /bin/sh  -c "eval $UPDATE_AFTER_SHELL_STRING";
 fi;
 
 
