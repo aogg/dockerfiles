@@ -3,6 +3,7 @@
 
 function startCode()
 {
+    tag=$1;
 
 echo '' > /tmp/git_pull_files.log;
 
@@ -19,7 +20,7 @@ echo '当前标签: '$currentTag
 git diff $currentTag $tag --name-only|sed -e 's#\(.*\)#'$(pwd)'/\1#' >> /tmp/git_pull_files.log;
 chmod 777 /tmp/git_pull_files.log;
 
-su $GIT_DIR_USER_ENV /bin/sh  -c "echo '开始更新代码' && git checkout $1;git status";
+su $GIT_DIR_USER_ENV /bin/sh  -c "echo '开始更新代码' && git checkout $tag;git status";
 echo '更新后日志: '$(git log --oneline --decorate|grep tag|head -1)
 
 
@@ -27,7 +28,8 @@ echo '更新后日志: '$(git log --oneline --decorate|grep tag|head -1)
 
 cp -f /opcacheUpdate.php $GIT_DIR_ENV/opcacheUpdate.php;
 chmod 777 $GIT_DIR_ENV/opcacheUpdate.php;
-curl --data-binary "@/tmp/git_pull_files.log" http://localhost/opcacheUpdate.php;
+curl --data-binary "@/tmp/git_pull_files.log" http://localhost/opcacheUpdate.php > /tmp/curl.log;
+tail /tmp/curl.log;
 rm -f $GIT_DIR_ENV/opcacheUpdate.php;
 
 
@@ -60,7 +62,7 @@ su  $GIT_DIR_USER_ENV /bin/sh  -c "git status;git reset --hard;";
 su $GIT_DIR_USER_ENV /bin/sh  -c "git fetch;";
 
     
-    if [ -n $(git tag | grep -w "$tag")  ]; then
+    if [ -n "$(git tag | grep -w "$tag")" ]; then
         echo '开始更新，更新后，标签为--'$tag;
         startCode $tag;
     else
