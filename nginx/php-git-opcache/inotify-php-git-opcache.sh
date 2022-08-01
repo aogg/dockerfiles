@@ -6,6 +6,7 @@ function startCode()
     tag=$1;
 
 echo '' > /tmp/git_pull_files.log;
+chmod 777 /tmp/git_pull_files.log;
 
 if [ -n "$UPDATE_BEFORE_SHELL_STRING" ];then
     echo $UPDATE_BEFORE_SHELL_STRING;
@@ -18,7 +19,6 @@ echo '当前日志: '$(git log --oneline --decorate|grep tag|head -1)
 currentTag=$(git log --oneline --decorate|grep tag|head -1|sed -e 's/.*tag: \([0-9.]*\).*/\1/');
 echo '当前标签: '$currentTag
 git diff $currentTag $tag --name-only|sed -e 's#\(.*\)#'$(pwd)'/\1#' >> /tmp/git_pull_files.log;
-chmod 777 /tmp/git_pull_files.log;
 
 su $GIT_DIR_USER_ENV /bin/sh  -c "echo '开始更新代码' && git checkout $tag;git status";
 echo '更新后日志: '$(git log --oneline --decorate|grep tag|head -1)
