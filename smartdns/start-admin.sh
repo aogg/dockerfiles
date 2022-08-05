@@ -1,5 +1,9 @@
 #!/bin/sh
 
+if [ -z "$LOG_LEVEL" ];then
+	LOG_LEVEL='error';
+fi;
+
 touch /smartdns.resolv.conf;
 sed -i -e "s%--logLevel--%`echo $LOG_LEVEL`%g" /config-admin.conf
 
