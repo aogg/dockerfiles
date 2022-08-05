@@ -16,13 +16,12 @@ FROM alpine
 COPY --from=builder /smartdns/usr/sbin/smartdns /bin/smartdns
 RUN chmod +x /bin/smartdns
 
-ADD start.sh /start.sh
-ADD config.conf /config.conf
+ADD start-admin.sh /start-admin.sh
+ADD config-admin.conf /config-admin.conf
 
 WORKDIR /
 
-VOLUME ["/smartdns"]
 
 EXPOSE 53
 
-CMD ["/start.sh"]
+CMD ["/start-admin.sh"]
