@@ -12,7 +12,7 @@ nginx &
 # 创建用户$GIT_DIR_USER
 /create-user.sh $GIT_DIR_USER_ENV
 # 处理.ssh/known_hosts
-if [-d /var/cache/$GIT_DIR_USER_ENV ]; then
+if [ -d /var/cache/$GIT_DIR_USER_ENV ]; then
     if [ ! -f /var/cache/$GIT_DIR_USER_ENV/.ssh/known_hosts ];then
         mkdir -p /var/cache/$GIT_DIR_USER_ENV/.ssh;
         touch /var/cache/$GIT_DIR_USER_ENV/.ssh/known_hosts;
@@ -21,7 +21,7 @@ if [-d /var/cache/$GIT_DIR_USER_ENV ]; then
     fi;
 fi
 
-if [-d /home/$GIT_DIR_USER_ENV ]; then
+if [ -d /home/$GIT_DIR_USER_ENV ]; then
     if [ ! -f /home/$GIT_DIR_USER_ENV/.ssh/known_hosts ];then
         mkdir -p /home/$GIT_DIR_USER_ENV/.ssh;
         touch /home/$GIT_DIR_USER_ENV/.ssh/known_hosts;
