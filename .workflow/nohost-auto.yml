@@ -1,0 +1,27 @@
+version: '1.0'
+name: nohost-auto
+displayName: nohost--自动编译
+triggers:
+  trigger: auto
+stages:
+  - name: compile
+    displayName: 编译
+    strategy: naturally
+    trigger: auto
+    steps:
+      - step: build@docker
+        name: build_docker
+        displayName: 镜像构建
+        type: cert
+        certificate: dc247ce0-1bc8-013b-c877-22e60d5c136d
+        tag: latest
+        dockerfile: ./nohost/Dockerfile
+        context: ''
+        artifacts: []
+        isCache: false
+        notify: []
+        strategy:
+          retry: '0'
+          expression: []
+strategy:
+  blocking: true
