@@ -2,7 +2,7 @@ version: '1.0'
 name: nohost-auto
 displayName: nohost--自动编译
 triggers:
-  trigger: auto
+  trigger: manual
 stages:
   - name: compile
     displayName: 编译
