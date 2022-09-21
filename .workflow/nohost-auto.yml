@@ -3,6 +3,10 @@ name: nohost-auto
 displayName: nohost--自动编译
 triggers:
   trigger: manual
+  push:
+    branches:
+      precise:
+        - main
 stages:
   - name: compile
     displayName: 编译
