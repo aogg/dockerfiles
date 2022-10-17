@@ -49,6 +49,7 @@ jobs:
     - name: mycat2-latest-ali
       uses: docker/build-push-action@v1.1.0
       with:
+        registry: registry.cn-shenzhen.aliyuncs.com
         # Username used to log in to a Docker registry. If not set then no login will occur
         username: ${{ secrets.USERNAME_ALI }}
         # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
