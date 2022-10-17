@@ -1,4 +1,4 @@
-name: hyperf-构建和提交docker
+name: mycat-构建和提交docker
 
 on:
   push:
