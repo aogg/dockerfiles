@@ -44,5 +44,27 @@ jobs:
         # Adds labels with git repository information to the built image
         add_git_labels: true  
    
+           
+           
+    - name: mycat2-latest-ali
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: ${{ secrets.USERNAME_ALI }}
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD_ALI }}
+        # Docker repository to tag the image with
+        repository: adockero/mycat
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: mycat2-latest,latest
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./
+        dockerfile: mycat/Dockerfile
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # 构建参数
+        # build_args: BASE_FORM=hyperf/hyperf:7.4-alpine-v3.11-swoole
+        # Adds labels with git repository information to the built image
+        add_git_labels: true  
    
    
