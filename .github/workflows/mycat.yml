@@ -33,7 +33,7 @@ jobs:
         # Docker repository to tag the image with
         repository: adockero/mycat
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: latest
+        tags: mycat2-latest,latest
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./
         dockerfile: mycat/Dockerfile
