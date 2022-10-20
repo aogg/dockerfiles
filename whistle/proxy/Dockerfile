@@ -12,6 +12,7 @@ ENV ADMIN_USERNAME=admin \
     PROXY_PORT=8899 \
     MORE_OPTIONS="" \
     LOCAL_RULE='' \
+    WHISTLE_MORE_ARGS='' \
     PROXY_ADDR='nginx'
 
 
