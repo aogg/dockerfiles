@@ -1,0 +1,71 @@
+name: nginx-构建和提交docker
+
+on:
+  push:
+    branches:
+      - main
+    paths: 
+      - "openresty-proxy/**"
+      - ".github/workflows/openresty-proxy.yml"
+      - "!**.md"
+
+
+jobs:
+  
+  setup-build-publish:
+    runs-on: ubuntu-latest
+    name: 构建和推送docker镜像
+    steps:
+    
+    - name: Checkout
+      # 使用action库  actions/checkout获取源码
+      uses: actions/checkout@v2.3.2
+
+    
+
+
+
+           
+    - name: openresty-proxy
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: adockero
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD }}
+        # Docker repository to tag the image with
+        repository: adockero/nginx
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: proxy-container
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./openresty-proxy
+        dockerfile: openresty-proxy/Dockerfile
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # Comma-delimited list of build-time variables
+        # build_args: BASE_FORM=adockero/php-nginx:7.4-alpine-base-fpm
+        # Adds labels with git repository information to the built image
+        add_git_labels: true  
+
+    
+    # 和上面一样
+    - name: latest
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: adockero
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD }}
+        # Docker repository to tag the image with
+        repository: adockero/openresty-proxy
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: latest
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./openresty-proxy
+        dockerfile: openresty-proxy/Dockerfile
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # Comma-delimited list of build-time variables
+        # build_args: BASE_FORM=adockero/php-nginx:7.4-alpine-base-fpm
+        # Adds labels with git repository information to the built image
+        add_git_labels: true             
