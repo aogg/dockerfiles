@@ -36,7 +36,7 @@ jobs:
         # Docker repository to tag the image with
         repository: adockero/ansible
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: latest-tools,latest
+        tags: latest-tools,latest,2.13-tools
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./ansible/
         dockerfile: ansible/Dockerfile
