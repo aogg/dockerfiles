@@ -1,0 +1,9 @@
+ARG FROM_ARG=adockero/sshd
+
+ARG APK_ARG=
+
+
+FROM $FROM_ARG
+
+
+RUN apk add --no-cache $APK_ARG
