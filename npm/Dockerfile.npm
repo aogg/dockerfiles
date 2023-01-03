@@ -1,7 +1,7 @@
 
 ARG FROM_ARG=node
 
-ARG NPM_ARG=
+ARG NPM_ARG=cnpm
 
 
 FROM $FROM_ARG
