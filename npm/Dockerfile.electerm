@@ -1,0 +1,16 @@
+
+
+
+FROM node
+
+
+RUN mkdir -p /data/ &&\
+    git clone https://github.com/electerm/electerm && \
+    cd electerm && \
+    npm i
+
+
+WORKDIR /data/
+
+CMD npm start
+

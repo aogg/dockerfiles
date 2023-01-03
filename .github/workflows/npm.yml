@@ -42,7 +42,7 @@ jobs:
         # Always attempt to pull a newer version of the image
         always_pull: true
         # 构建参数
-        build_args: FROM_ARG=node,NPM_ARG=electerm
+        # build_args: FROM_ARG=node,NPM_ARG=electerm
         # Adds labels with git repository information to the built image
         add_git_labels: true          
 
