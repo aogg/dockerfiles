@@ -35,7 +35,7 @@ jobs:
         # Docker repository to tag the image with
         repository: adockero/electerm
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: rsync
+        tags: latest
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./
         dockerfile: npm/Dockerfile.npm
