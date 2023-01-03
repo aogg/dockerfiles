@@ -1,5 +1,5 @@
 
-
+# 作废，不支持浏览器运行
 
 FROM node:16
 
@@ -8,12 +8,13 @@ RUN mkdir -p /data/ &&\
     cd /data/ && \
     git clone https://github.com/electerm/electerm && \
     cd electerm && \
-    cp .sample.env .env
+    cp .sample.env .env && \
+    sed -i s/127.0.0.1/0.0.0.0/ .env
 
 RUN cd /data/electerm && npm i
 
 
-WORKDIR /data/
+WORKDIR /data/electerm
 
 CMD npm start
 
