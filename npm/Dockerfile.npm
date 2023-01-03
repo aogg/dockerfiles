@@ -1,0 +1,11 @@
+
+ARG FROM_ARG=node
+
+ARG NPM_ARG=
+
+
+FROM $FROM_ARG
+
+
+RUN npm i -g $NPM_ARG
+
