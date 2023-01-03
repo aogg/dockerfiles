@@ -7,6 +7,6 @@ ARG NPM_ARG=cnpm
 FROM $FROM_ARG
 
 
-RUN npm i -g $NPM_ARG \
-    || cat /root/.npm/_logs/*
+RUN npm i -g electerm \
+    || ( cat /root/.npm/_logs/* && exit 1)
 
