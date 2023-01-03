@@ -38,7 +38,7 @@ jobs:
         tags: latest
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./
-        dockerfile: npm/Dockerfile.npm
+        dockerfile: npm/Dockerfile.electerm
         # Always attempt to pull a newer version of the image
         always_pull: true
         # 构建参数
