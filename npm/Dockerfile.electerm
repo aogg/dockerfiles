@@ -1,13 +1,16 @@
 
 
 
-FROM node
+FROM node:16
 
 
 RUN mkdir -p /data/ &&\
+    cd /data/ && \
     git clone https://github.com/electerm/electerm && \
     cd electerm && \
-    npm i
+    cp .sample.env .env
+
+RUN cd /data/electerm && npm i
 
 
 WORKDIR /data/
