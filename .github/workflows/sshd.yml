@@ -120,7 +120,7 @@ jobs:
 
   setup-build-publish-v3:
     runs-on: ubuntu-latest
-    name: 构建和推送docker镜像
+    name: 构建和推送docker镜像v3
     steps:
     
     - name: 更新代码
@@ -139,10 +139,8 @@ jobs:
     - name: sshd-rsync-latest
       uses: docker/build-push-action@v3
       with:
-        # Docker repository to tag the image with
-        repository: adockero/sshd
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: rsync
+        tags: adockero/sshd:rsync
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: .
         file: sshd/Dockerfile.apk
