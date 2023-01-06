@@ -1,10 +1,9 @@
 ARG FROM_ARG=adockero/sshd
 
-ARG APK_ARG
-
 
 FROM $FROM_ARG
 
+ARG APK_ARG
 
 RUN echo $APK_ARG && \
     apk add --no-cache $APK_ARG && \
