@@ -6,5 +6,7 @@ ARG APK_ARG=
 FROM $FROM_ARG
 
 
-RUN apk add --no-cache $APK_ARG
+RUN echo $APK_ARG && \
+    apk add --no-cache $APK_ARG && \
+    (which $APK_ARG || echo $APK_ARG)
 
