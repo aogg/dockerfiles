@@ -1,11 +1,7 @@
 #!/bin/sh
 
 # CREATE_USER=$GIT_DIR_USER
-if [ -n "$1" ];then
-    CREATE_USER=$1;
-elif [ -z "$CREATE_USER" ];then
-    exit;
-fi
+CREATE_USER=$1;
 
 # 创建用户$CREATE_USER
 if [ -z "$(id $CREATE_USER 2>/dev/null)" ]; then

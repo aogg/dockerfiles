@@ -125,7 +125,6 @@ jobs:
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: adockero/sshd:rsync
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: .
         file: sshd/Dockerfile.apk
         # Always attempt to pull a newer version of the image
@@ -146,17 +145,11 @@ jobs:
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: adockero/sshd:user
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: .
         file: sshd/Dockerfile.user
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
-        # 构建参数
-        # build-args: |
-        #   FROM_ARG=adockero/sshd
-        #   APK_ARG=rsync
-        # Adds labels with git repository information to the built image
         labels: true   
 
 

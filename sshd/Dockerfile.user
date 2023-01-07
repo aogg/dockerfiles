@@ -1,9 +1,9 @@
-FROM adockero:sshd
+FROM adockero/sshd
 
 
-ADD ./common/create-user.sh /
+ADD ./common/create-user-id.sh /
 
-RUN echo 'create-user.sh; /open-sshd-passwd.sh -D' > /start.sh && \
+RUN echo 'create-user-id.sh; /open-sshd-passwd.sh -D' > /start.sh && \
     chmod +x /start.sh
 
 
