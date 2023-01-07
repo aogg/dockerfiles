@@ -10,6 +10,8 @@ if [ -z "$(id $CREATE_USER 2>/dev/null)" ]; then
         adduser -S -D -u $CREATE_USER_ID -h /var/cache/$CREATE_USER -s /bin/sh -G $CREATE_GROUP_ID -g $CREATE_GROUP $CREATE_USER;
         # adduser -S -D -H -u $CREATE_USER -h /var/cache/$CREATE_USER -s /sbin/nologin -G $CREATE_USER -g $CREATE_USER $CREATE_USER
 
+        echo $CREATE_USER:$CREATE_USER|chpasswd
+
     elif [ -n "$(cat /etc/os-release|grep centos)" ];then
     # 未写
         # groupadd -g $CREATE_USER ${CREATE_USER}-group
