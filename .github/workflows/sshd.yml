@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths: 
       - "sshd/**"
+      - "common/**"
       - ".github/workflows/sshd.yml"
       - "!**.md"
 
