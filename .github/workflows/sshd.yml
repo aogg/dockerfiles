@@ -116,30 +116,11 @@ jobs:
         password: ${{ secrets.PASSWORD }}
 
 
-# ##########  user  ###########################
-
-    - name: sshd-user-latest
-      uses: docker/build-push-action@v3
-      with:
-        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: adockero/sshd:user
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        context: .
-        file: sshd/Dockerfile.user
-        # Always attempt to pull a newer version of the image
-        pull: true
-        push: true
-        # 构建参数
-        # build-args: |
-        #   FROM_ARG=adockero/sshd
-        #   APK_ARG=rsync
-        # Adds labels with git repository information to the built image
-        labels: true   
 
 
 # ##########  rsync  ###########################
 
-    - name: sshd-rsync-latest
+    - name: sshd-rsync
       uses: docker/build-push-action@v3
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
@@ -157,6 +138,26 @@ jobs:
         # Adds labels with git repository information to the built image
         labels: true   
 
+
+# ##########  user  ###########################
+
+    - name: sshd-user
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/sshd:user
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: .
+        file: sshd/Dockerfile.user
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        # build-args: |
+        #   FROM_ARG=adockero/sshd
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true   
 
 
 # ##########  jsh  ###########################
