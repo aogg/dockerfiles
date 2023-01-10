@@ -43,7 +43,7 @@ jobs:
         # Always attempt to pull a newer version of the image
         always_pull: true
         # 构建参数
-        build_args: BASE_FORM=2.13-tools
+        build_args: BASE_FORM=2.13-tools,APK_ADD=sshpass
         # Adds labels with git repository information to the built image
         add_git_labels: true  
 
