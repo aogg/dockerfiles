@@ -22,54 +22,58 @@ jobs:
       uses: actions/checkout@v2.3.2
 
 
-      
-      
-              
-    - name: docker-tags-ubuntu
-      uses: docker/build-push-action@v1.1.0
+
+# ##########  v3版本  ###########################
+    -  
+      name: 登录 Docker Hub
+      uses: docker/login-action@v2
       with:
-        # Username used to log in to a Docker registry. If not set then no login will occur
         username: adockero
-        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
         password: ${{ secrets.PASSWORD }}
-        # Docker repository to tag the image with
-        repository: adockero/docker
-        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: ubuntu
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        path: ./
-        dockerfile: docker/Dockerfile.ubuntu
-        # Always attempt to pull a newer version of the image
-        always_pull: true
-        # 构建参数
-        # build_args: VERSION=dind
-        # Adds labels with git repository information to the built image
-        add_git_labels: true  
 
+        
+# ############## ubuntu - end  ########################
 
-      
-              
     - name: docker-ubuntu
-      uses: docker/build-push-action@v1.1.0
+      uses: docker/build-push-action@v3
       with:
-        # Username used to log in to a Docker registry. If not set then no login will occur
-        username: adockero
-        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
-        password: ${{ secrets.PASSWORD }}
-        # Docker repository to tag the image with
-        repository: adockero/docker-ubuntu
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: latest
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        path: ./
-        dockerfile: docker/Dockerfile.ubuntu
+        tags: adockero/docker:ubuntu,adockero/docker-ubuntu:latest
+        context: .
+        file: sshd/Dockerfile.ubuntu
         # Always attempt to pull a newer version of the image
-        always_pull: true
+        pull: true
+        push: true
         # 构建参数
-        # build_args: VERSION=dind
+        build-args: |
+          APT_ARGS=docker.io
         # Adds labels with git repository information to the built image
-        add_git_labels: true  
-              
+        labels: true         
+      
+
+    - name: docker-ubuntu-ssh
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/docker:ubuntu-ssh,adockero/docker-ubuntu:ssh
+        context: .
+        file: sshd/Dockerfile.ubuntu
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        build-args: |
+          APT_ARGS=docker.io ssh
+        # Adds labels with git repository information to the built image
+        labels: true         
+      
+                            
+
+
+# ############## ubuntu - end  ########################
+
+
+
     - name: docker-dind-sshd-latest
       uses: docker/build-push-action@v1.1.0
       with:
