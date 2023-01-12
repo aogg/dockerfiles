@@ -1,9 +1,11 @@
-ARG FROM_BASE=adockero/docker:sshd
+ARG FROM_BASE=adockero/docker:ubuntu-ssh
 FROM ${FROM_BASE}
 
 
-ENV SSHD_OPEN_JSH=1
+ENV SSHD_PORT=22
+ENV SSHD_PASSWORD=''
 
-# configure container
-# 留意path要./，不能指定到下层文件夹
-ADD ./common/open-sshd-jsh-2.sh /open-sshd-jsh.sh
+
+ADD ./common/open-sshd-passwd.sh /
+
+CMD sh -c "/open-sshd-passwd.sh; dockerd"
