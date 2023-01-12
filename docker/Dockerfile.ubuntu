@@ -4,7 +4,7 @@ FROM ${FROM_BASE}
 
 
 RUN apt update && \
-    apt install docker.io \
+    apt install -y docker.io \
   # 删除
 #   && apt remove --purge --auto-remove -y patch gcc libpcre3-dev make zlibc openssl \
   && rm -rf /var/lib/apt/lists/*
