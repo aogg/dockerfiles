@@ -3,6 +3,10 @@
 /open-sshd-passwd.sh
 
 
+if [ -f /open-sshd-jsh.sh ];then
+    /open-sshd-jsh.sh;
+    rm /open-sshd-jsh.sh;
+fi
 
 if [ -f /usr/local/bin/dockerd-entrypoint.sh ];then
     if [ -z "$@" ];then
