@@ -121,9 +121,9 @@ jobs:
         add_git_labels: true  
    
    
-# ############## jsh ########################
+# ############## dind-sshd-ubuntu ########################
               
-    - name: docker-dind-sshd-jsh-latest
+    - name: docker-dind-sshd-ubuntu-latest
       uses: docker/build-push-action@v1.1.0
       with:
         # Username used to log in to a Docker registry. If not set then no login will occur
@@ -136,7 +136,7 @@ jobs:
         tags: dind-sshd-ubuntu
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./
-        dockerfile: docker/Dockerfile.sshd.jsh
+        dockerfile: docker/Dockerfile.dind.sshd
         # Always attempt to pull a newer version of the image
         always_pull: true
         # 构建参数
