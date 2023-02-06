@@ -2,6 +2,7 @@
 FROM docker:dind
 
 RUN echo '开始' && (dockerd-entrypoint.sh &) \
+    && id \
     && sleep 2 \
     && apk add --no-cache make git \
     && cd / \
