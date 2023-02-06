@@ -1,7 +1,9 @@
 
 FROM docker:dind
 
-RUN apk add --no-cache make git \
+RUN echo '开始' && (dockerd-entrypoint.sh &) \
+    && sleep 2 \
+    && apk add --no-cache make git \
     && cd / \
     && git clone --recurse-submodules https://github.com/gotoz/runq.git \
     && cd runq \
