@@ -4,5 +4,5 @@ FROM adockero/gvisor
 COPY daemon.json /etc/docker/daemon.json
 
 RUN echo '开始' \
-    && apk add --no-cache qemu-kvm qemu-system-x86_64 \
+    && apk add --no-cache qemu qemu-system-x86_64 \
     && echo '结束'

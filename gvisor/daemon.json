@@ -1,5 +1,8 @@
 {
     "runtimes": {
+        "runsc": {
+            "path": "/usr/local/bin/runsc"
+        },
         "runsc-ptrace": {
             "path": "/usr/local/bin/runsc",
             "runtimeArgs": [
