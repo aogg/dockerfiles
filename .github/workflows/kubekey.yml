@@ -29,14 +29,14 @@ jobs:
         username: adockero
         password: ${{ secrets.PASSWORD }}
 
-    - name: 构建镜像  kubekey-sshd-notInstallKk-latest
+    - name: 构建镜像  kubekey-sshd-notCluster-latest
       uses: docker/build-push-action@v3
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: adockero/kubekey:sshd.notInstallKk
+        tags: adockero/kubekey:sshd.notCluster
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./kubekey
-        file: {context}/Dockerfile.sshd.notInstallKk
+        file: {context}/Dockerfile.sshd.notCluster
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
