@@ -1,0 +1,13 @@
+
+FROM takeyamajp/ubuntu-sshd
+
+
+    #    -e ROOT_PASSWORD=root \  
+
+
+RUN apt update \
+    && apt install sudo conntrack socat \
+    && rm -rf  /var/lib/apt/lists/* \
+    && echo '结束'
+
+
