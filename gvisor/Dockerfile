@@ -1,6 +1,9 @@
 
 FROM adockero/docker:dind-sshd
 
+RUN echo '调试代码' && \
+    echo '调试结束'
+
 RUN echo '安装' \
   && ARCH=$(uname -m) && \
   URL=https://storage.googleapis.com/gvisor/releases/release/latest/${ARCH} && \
