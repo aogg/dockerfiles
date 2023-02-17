@@ -6,7 +6,7 @@ FROM takeyamajp/ubuntu-sshd
 
 
 RUN apt update \
-    && apt install sudo conntrack socat \
+    && apt install -y sudo conntrack socat \
     && rm -rf  /var/lib/apt/lists/* \
     && echo '结束'
 
