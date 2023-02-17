@@ -36,7 +36,7 @@ jobs:
         tags: adockero/gvisor:dind-sshd,adockero/gvisor
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./gvisor
-        file: "./gvisor/Dockerfile.sshd.notCluster"
+        # file: "./gvisor/Dockerfile.sshd.notCluster"
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
