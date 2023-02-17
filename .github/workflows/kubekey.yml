@@ -36,7 +36,7 @@ jobs:
         tags: adockero/kubekey:sshd.notInstallKk
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./kubekey
-        file: Dockerfile.sshd.notInstallKk
+        file: {context}/Dockerfile.sshd.notInstallKk
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
