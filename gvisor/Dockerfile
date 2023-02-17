@@ -1,8 +1,6 @@
 
 FROM adockero/docker:dind-sshd
 
-RUN echo '调试代码' && \
-    echo '调试结束'
 
 RUN echo '安装' \
   && ARCH=$(uname -m) && \
@@ -13,5 +11,5 @@ RUN echo '安装' \
     -c containerd-shim-runsc-v1.sha512 && \
   rm -f *.sha512 && \
   chmod a+rx runsc containerd-shim-runsc-v1 && \
-  sudo mv runsc containerd-shim-runsc-v1 /usr/local/bin && \
+  mv runsc containerd-shim-runsc-v1 /usr/local/bin && \
   echo '结束'
