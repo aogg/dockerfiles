@@ -1,6 +1,8 @@
 
 FROM docker:dind
 
+# github-ci编译报错，无法实时编译需要虚拟机相关的
+
 RUN echo '开始' && (dockerd-entrypoint.sh &) \
     && id \
     && sleep 2 \
