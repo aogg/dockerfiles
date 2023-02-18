@@ -1,0 +1,7 @@
+
+ARG FROM_ARG=node:11-alpine
+
+FROM ${FROM_ARG}
+
+
+RUN apk add openrc --no-cache

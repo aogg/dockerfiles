@@ -1,0 +1,49 @@
+name: node-构建和提交docker
+
+on:
+  push:
+    branches: [main]
+    paths: 
+      - "node/**"
+      - ".github/workflows/node.yml"
+      - "!**.md"
+
+jobs:
+
+  # 并发构建
+  setup-build-publish-v3:
+    runs-on: ubuntu-latest
+    name: 构建和推送docker镜像v3
+    steps:
+    
+    - name: 更新代码
+      # 使用action库  actions/checkout获取源码
+      uses: actions/checkout@v3
+
+
+# ##########  rsync  ###########################
+    -  
+      name: 登录 Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: adockero
+        password: ${{ secrets.PASSWORD }}
+
+    - name: 构建镜像  adockero/node-service:node-11-alpine
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/node-service:node-11-alpine
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./node
+        file: "./node/Dockerfile.service"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        build-args: |
+          FROM_ARG=node:11-alpine
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true          
+
