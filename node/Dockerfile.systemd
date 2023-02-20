@@ -5,7 +5,7 @@ FROM ${FROM_ARG}
 
 ARG NODE_VERSION=14
 
-RUN echo ${NODE_VERSION} \
+RUN echo "NODE_VERSION="${NODE_VERSION} \
     && apt update \
     && apt install -y curl \
     && curl -sL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
