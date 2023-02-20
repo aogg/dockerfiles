@@ -3,9 +3,10 @@ ARG FROM_ARG=jrei/systemd-ubuntu:20.04
 
 FROM ${FROM_ARG}
 
-ARG NODE_VERSION=11
+ARG NODE_VERSION=14
 
-RUN apt update \
+RUN echo ${NODE_VERSION} \
+    && apt update \
     && apt install -y curl \
     && curl -sL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
     && apt install -y node \
