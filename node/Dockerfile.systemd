@@ -6,6 +6,7 @@ FROM ${FROM_ARG}
 ARG NODE_VERSION=11
 
 RUN apt update \
+    && apt install curl \
     && curl -sL https://deb.nodesource.com/setup_${NODE_VERSION}.x | sudo -E bash - \
     && apt install -y node \
     && rm -rf  /var/lib/apt/lists/* \
