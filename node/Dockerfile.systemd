@@ -7,7 +7,7 @@ ARG NODE_VERSION=14
 
 RUN echo "NODE_VERSION="${NODE_VERSION} \
     && apt update \
-    && apt install -y curl \
+    && apt install -y curl rsyslog \
     && curl -sL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
     && echo '安装nodejs' \
     && apt install -y nodejs \
