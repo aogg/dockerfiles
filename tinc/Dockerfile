@@ -11,7 +11,9 @@ RUN echo "deb http://http.debian.net/debian experimental main" >> /etc/apt/sourc
     echo 'start install' && apt search libssl \
     DEBIAN_FRONTEND=noninteractive apt-get install -y net-tools libssl && \
     echo 'start install tinc' && \
+    mkdir -p /etc/tinc/nets.boot && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y -t experimental tinc && \
+    echo 'end install tinc' && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 EXPOSE 655/tcp 655/udp
