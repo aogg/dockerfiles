@@ -53,7 +53,7 @@ EOF
 fi
 
 
-tinc start -D -U nobody
+exec tinc start -d 2 -D -U nobody
 
 
 
