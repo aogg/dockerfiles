@@ -35,6 +35,8 @@ else
 ifconfig \$INTERFACE ${NODE_IP} netmask ${NETMASK}
 EOF
 
+    sed -i s/Port.*// /etc/tinc/hosts/tinc_server
+
     cat <<EOF >> /etc/tinc/hosts/tinc_server
 Port=${PORT}
 Subnet=${NODE_IP}/32
