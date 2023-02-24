@@ -27,14 +27,14 @@ else
     # 服务端
     NODE_IP=${NODE_IP:-10.0.0.1}
 
-    tinc init
+    tinc init tinc-server-host-docker-name
 
     cat <<EOF > /etc/tinc/tinc-up
     #!/bin/sh
     ifconfig \$INTERFACE ${NODE_IP} netmask ${NETMASK}
 EOF
 
-    cat <<EOF >> /etc/tinc/hosts/onyx
+    cat <<EOF >> /etc/tinc/hosts/tinc-server-host-docker-name
     Port=${PORT}
     Subnet=${NODE_IP}/32
     Address=0.0.0.0
