@@ -43,7 +43,10 @@ EOF
 
     echo 'Here is the INVITE_URL variable on the client side';
     echo '下面是客户端的INVITE_URL变量';
-    tinc invite ${NODE_NAME}
+    echo 'tinc invite ${NODE_NAME}'
+    if [[ -z "${NODE_NAME}" ]];then
+        tinc invite ${NODE_NAME}
+    fi
 
 
 fi
