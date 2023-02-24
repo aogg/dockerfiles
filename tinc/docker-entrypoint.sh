@@ -8,7 +8,9 @@ ETH0_IP=${ETH0_IP:-0.0.0.0}
 if [[ "${INVITE_URL}" ]];then
     # 客户端
 
-    tinc join $INVITE_URL
+    if [[ ! -f /etc/tinc/hosts/${NODE_NAME} ]];then
+        tinc join $INVITE_URL
+    fi
 
 
 
