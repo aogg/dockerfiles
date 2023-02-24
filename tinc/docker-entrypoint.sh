@@ -3,6 +3,7 @@
 
 NETMASK=${NETMASK:-255.255.255.0}
 PORT=${PORT:-655}
+ETH0_IP=${ETH0_IP:-0.0.0.0}
 
 if [[ "${INVITE_URL}" ]];then
     # 客户端
@@ -13,14 +14,14 @@ if [[ "${INVITE_URL}" ]];then
 
     # 配置地址
     cat <<EOF > /etc/tinc/tinc-up
-    #!/bin/sh
-    ifconfig \$INTERFACE ${NODE_IP} netmask ${NETMASK}
+#!/bin/sh
+ifconfig \$INTERFACE ${NODE_IP} netmask ${NETMASK}
 EOF
 
     # Port 0 表示随机选择 - 不使用固定端口避免被检测
     cat <<EOF >> /etc/tinc/hosts/${NODE_NAME}
-    Port=${PORT}
-    Subnet=${NODE_IP}/32
+Port=${PORT}
+Subnet=${NODE_IP}/32
 EOF
 
 else
@@ -30,14 +31,14 @@ else
     tinc init tinc_server
 
     cat <<EOF > /etc/tinc/tinc-up
-    #!/bin/sh
-    ifconfig \$INTERFACE ${NODE_IP} netmask ${NETMASK}
+#!/bin/sh
+ifconfig \$INTERFACE ${NODE_IP} netmask ${NETMASK}
 EOF
 
     cat <<EOF >> /etc/tinc/hosts/tinc_server
-    Port=${PORT}
-    Subnet=${NODE_IP}/32
-    Address=${ETH0_IP}
+Port=${PORT}
+Subnet=${NODE_IP}/32
+Address=${ETH0_IP}
 EOF
 
 
