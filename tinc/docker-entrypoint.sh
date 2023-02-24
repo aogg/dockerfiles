@@ -27,7 +27,7 @@ else
     # 服务端
     NODE_IP=${NODE_IP:-10.0.0.1}
 
-    tinc init tinc_server
+    tinc -n tinc_nat init tinc_server
 
     cat <<EOF > /etc/tinc/tinc-up
     #!/bin/sh
@@ -45,14 +45,14 @@ EOF
     echo '下面是客户端的INVITE_URL变量';
     echo 'tinc invite ${NODE_NAME}'
     if [[ -z "${NODE_NAME}" ]];then
-        tinc invite ${NODE_NAME}
+        tinc -n tinc_nat invite ${NODE_NAME}
     fi
 
 
 fi
 
 
-tinc start -D -U nobody
+tinc -n tinc_nat start -D -U nobody
 
 
 
