@@ -53,7 +53,8 @@ EOF
 fi
 
 
-exec tinc start -d 2 -D -U nobody
+# 不允许join -U nobody
+exec tinc start -d 2 -D
 
 
 
