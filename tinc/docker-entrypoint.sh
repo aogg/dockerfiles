@@ -8,7 +8,7 @@ ETH0_IP=${ETH0_IP:-0.0.0.0}
 if [[ "${INVITE_URL}" ]];then
     # 客户端
 
-    tinc join 172.26.176.66:655/3lgvQXL5ZUW31LHnY4D3G8OC63UcOn9b7_U5lUifTcSpKwBT
+    tinc join $INVITE_URL
 
 
 
