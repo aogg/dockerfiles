@@ -15,6 +15,7 @@ RUN echo '开始' \
     && echo "FROM_ARG="${FROM_ARG} \
     && apt update \
     && apt install -y wget \
+    && apt-get install -y apt-transport-https ca-certificates \
     && wget https://repo.zabbix.com/zabbix/${ZABBIX_VERSION_BIG}/ubuntu/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}%2Bubuntu${FROM_ARG}_all.deb \
     && dpkg -i zabbix-release_${ZABBIX_VERSION}+ubuntu${FROM_ARG}_all.deb \
     && rm zabbix-release_${ZABBIX_VERSION}+ubuntu${FROM_ARG}_all.deb \
