@@ -7,14 +7,17 @@ FROM ubuntu:${FROM_ARG}
 ARG FROM_ARG
 
 ARG ZABBIX_VERSION=6.2-4
+# 没有-的
+ARG ZABBIX_VERSION_BIG=6.2
 
 RUN echo '开始' \
-    && echo ZABBIX_VERSION=${ZABBIX_VERSION} \
+    && echo "ZABBIX_VERSION="${ZABBIX_VERSION} \
+    && echo "FROM_ARG="${FROM_ARG} \
     && apt update \
     && apt install -y wget \
-    && wget https://repo.zabbix.com/zabbix/${ZABBIX_VERSION}/ubuntu/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}%2Bubuntu${FROM_ARG}_all.deb \
-    && dpkg -i zabbix-release_${ZABBIX_VERSION}+ubuntu${FROM_ARG}_all.deb \
-    && rm zabbix-release_${ZABBIX_VERSION}+ubuntu${FROM_ARG}_all.deb \
+    && wget https://repo.zabbix.com/zabbix/${ZABBIX_VERSION_BIG}/ubuntu/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}%2Bubuntu${FROM_ARG}_all.deb \
+    && dpkg -i zabbix-release_${ZABBIX_VERSION_BIG}+ubuntu${FROM_ARG}_all.deb \
+    && rm zabbix-release_${ZABBIX_VERSION_BIG}+ubuntu${FROM_ARG}_all.deb \
     && apt update \
     && apt install -y zabbix-agent \
     && mkdir -p /etc/zabbix && \
