@@ -28,7 +28,7 @@ EOF
 
 else
     # 服务端
-    NODE_IP=${NODE_IP:-10.0.0.1}
+    NODE_IP=${NODE_IP:-10.5.5.1}
 
     tinc init tinc_server
 
