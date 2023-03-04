@@ -16,8 +16,8 @@ RUN echo '开始' \
     && apt update \
     && apt install -y wget \
     && wget https://repo.zabbix.com/zabbix/${ZABBIX_VERSION_BIG}/ubuntu/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}%2Bubuntu${FROM_ARG}_all.deb \
-    && dpkg -i zabbix-release_${ZABBIX_VERSION_BIG}+ubuntu${FROM_ARG}_all.deb \
-    && rm zabbix-release_${ZABBIX_VERSION_BIG}+ubuntu${FROM_ARG}_all.deb \
+    && dpkg -i zabbix-release_${ZABBIX_VERSION}+ubuntu${FROM_ARG}_all.deb \
+    && rm zabbix-release_${ZABBIX_VERSION}+ubuntu${FROM_ARG}_all.deb \
     && apt update \
     && apt install -y zabbix-agent \
     && mkdir -p /etc/zabbix && \
