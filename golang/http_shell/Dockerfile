@@ -14,4 +14,6 @@ ENV PATH=$PATH:/usr/bin
 
 COPY --from=builder /http_shell /http_shell
 
+EXPOSE 8080/TCP
+
 CMD /http_shell
