@@ -1,0 +1,38 @@
+
+
+ARG FROM_ARG=16.04
+
+FROM ubuntu:${FROM_ARG}
+
+ARG FROM_ARG
+
+ARG ZABBIX_VERSION=6.2-4
+
+RUN echo '开始' \
+    && echo ZABBIX_VERSION=${ZABBIX_VERSION} \
+    && apt update \
+    && apt install -y wget \
+    && wget https://repo.zabbix.com/zabbix/${ZABBIX_VERSION}/ubuntu/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}%2Bubuntu${FROM_ARG}_all.deb \
+    && dpkg -i zabbix-release_${ZABBIX_VERSION}+ubuntu${FROM_ARG}_all.deb \
+    && rm zabbix-release_${ZABBIX_VERSION}+ubuntu${FROM_ARG}_all.deb \
+    && apt update \
+    && apt install -y zabbix-agent \
+    && mkdir -p /etc/zabbix && \
+    mkdir -p /etc/zabbix/zabbix_agentd.d && \
+    mkdir -p /var/lib/zabbix && \
+    mkdir -p /var/lib/zabbix/enc && \
+    mkdir -p /var/lib/zabbix/modules && \
+    apt-get -y autoremove && \
+    apt-get -y clean && \
+    rm -rf /var/lib/apt/lists/* \
+    && echo '结束'
+
+EXPOSE 10050/TCP
+
+WORKDIR /var/lib/zabbix
+
+COPY ["docker-entrypoint.sh", "/usr/bin/"]
+
+ENTRYPOINT /usr/bin/docker-entrypoint.sh
+
+CMD ["/usr/sbin/zabbix_agentd", "--foreground", "-c", "/etc/zabbix/zabbix_agentd.conf"]
