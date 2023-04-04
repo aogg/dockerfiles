@@ -4,11 +4,15 @@ ARG VERSION=latest
 
 ENV WHISTLE_VERSION=${VERSION}}
 
-RUN apk add --no-cache procps \
+RUN apk add --no-cache procps supervisor \
     && if [ $VERSION = "latest" ];then npm install -g whistle; fi \
     && if [ $VERSION != "latest" ];then npm install -g whistle @${VERSION};fi \
     && whistle status
 
 COPY docker-entrypoint.sh /usr/local/bin/
+COPY whistle.ini /etc/supervisor.d/whistle.ini
+
+# 父级有
+# ENTRYPOINT ["docker-entrypoint.sh"]
 
 CMD []
