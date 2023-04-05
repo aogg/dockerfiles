@@ -6,7 +6,7 @@ echo "数据目录在: /root/.WhistleAppData/.whistle/";
 
 
 if [ "${1#-}" != "${1}" ] || [ -z "$(command -v "${1}")" ]; then
-  # w2 start "$@"
+  w2 start "$@"
 
   tail -f /.dockerenv
 
