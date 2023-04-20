@@ -23,7 +23,7 @@ jobs:
 
 # ##########  执行  ###########################
 
-    - uses: sudosubin/git-clone-action@v1
+    - uses: sudosubin/git-clone-action@v1.0.1
       name: 下载代码
       with:
         # Repository owner and name. Ex: sudosubin/git-clone-action
