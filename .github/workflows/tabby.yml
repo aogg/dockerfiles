@@ -29,6 +29,8 @@ jobs:
         # Repository owner and name. Ex: sudosubin/git-clone-action
         # Default: ${{ github.repository }}
         repository: 'Eugeny/tabby-web'
+        # Relative path from current directory, where to clone.
+        path: 'tabby-web'
         
     - name: 调试
       run: pwd && ls -al ./
