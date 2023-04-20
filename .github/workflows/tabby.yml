@@ -1,0 +1,64 @@
+name: tabby-构建和提交docker
+
+on:
+  push:
+    branches: [main]
+    paths: 
+      # - "zabbix/**"
+      - ".github/workflows/tabby.yml"
+      - "!**.md"
+
+jobs:
+
+  # 并发构建
+  setup-build-publish-v3:
+    runs-on: ubuntu-latest
+    name: 构建和推送docker镜像v3
+    steps:
+    
+    - name: 更新代码
+      # 使用action库  actions/checkout获取源码
+      uses: actions/checkout@v3
+
+
+# ##########  执行  ###########################
+
+    - uses: sudosubin/git-clone-action@v1
+      name: 下载代码
+      with:
+        # Repository owner and name. Ex: sudosubin/git-clone-action
+        # Default: ${{ github.repository }}
+        repository: 'Eugeny/tabby-web'
+        
+    - name: 调试
+      run: pwd && ls -al ./
+
+
+
+    - name: 登录 Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: adockero
+        password: ${{ secrets.PASSWORD }}
+
+
+    - name: 构建镜像  adockero/tabby-web
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/tabby-web
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./tabby-web
+        file: "./tabby-web/Dockerfile"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        # build-args: |
+        #   FROM_ARG=16.04
+        #   ZABBIX_VERSION_BIG=6.2
+        #   ZABBIX_VERSION=6.2-4
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true          
+
