@@ -9,8 +9,11 @@ if [ -n "$SOCKS_PORT" ];then
     if [ -z "$(cat /etc/proxychains/proxychains.conf|grep -e '^socks5')" ];then
         echo "socks5 ${SOCKS_HOST} "$SOCKS_PORT >> /etc/proxychains/proxychains.conf
     fi
-    exec proxychains sshpass "$@"
 fi
 
 
-exec sshpass "$@"
+if [ -n "$SOCKS_EXEC" ];then
+    exec proxychains sshpass "$@"
+else
+    exec sshpass "$@"
+fi 
