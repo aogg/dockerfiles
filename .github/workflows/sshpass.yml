@@ -34,7 +34,7 @@ jobs:
       uses: docker/build-push-action@v3
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: adockero/sshpass,adockero/sshpass:proxychains
+        tags: adockero/sshpass
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./sshpass
         # file: "./gvisor/Dockerfile.sshd.notCluster"
@@ -48,3 +48,22 @@ jobs:
         # Adds labels with git repository information to the built image
         labels: true          
 
+
+
+    - name: 构建镜像  sshpass
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/sshpass:proxychains
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./sshpass
+        # file: "./gvisor/Dockerfile.sshd.notCluster"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        # build-args: |
+        #   FROM_ARG=adockero/sshd
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true          
