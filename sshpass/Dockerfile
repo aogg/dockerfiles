@@ -1,6 +1,6 @@
 FROM ictu/sshpass
 
-RUN apk add proxychains
+RUN apk update && apk add proxychains
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 
