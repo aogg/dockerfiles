@@ -4,6 +4,12 @@ ARG FROM_ARG=selenium/standalone-chrome
 
 FROM ${FROM_ARG}
 
+
+USER root
+
 RUN apt update \
     && apt install -y python3-pip \
     && rm -rf /var/lib/apt/lists/*
+
+
+USER seluser
