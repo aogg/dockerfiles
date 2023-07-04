@@ -1,0 +1,7 @@
+FROM alpine
+
+RUN apk add --update qemu-img 
+
+# CMD ["/usr/bin/qemu-img"]
+# CMD ["--help"]
+CMD tail -f /etc/hosts
