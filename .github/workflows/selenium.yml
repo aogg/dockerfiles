@@ -50,11 +50,11 @@ jobs:
       
 
 
-    - name: 构建镜像  adockero/selenium-chrome-pip:selenium
+    - name: 构建镜像  adockero/selenium-chrome-pip:standalone-selenium
       uses: docker/build-push-action@v3
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: adockero/selenium-chrome-pip:selenium
+        tags: adockero/selenium-chrome-pip:standalone-selenium
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./selenium
         file: "./selenium/Dockerfile.selenium"
