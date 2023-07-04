@@ -7,8 +7,8 @@ FROM ${FROM_ARG}
 
 # USER root
 
-RUN pip install -i  selenium \
-    && pip install -i pytest
+RUN pip install  selenium \
+    && pip install pytest
 
 
 # USER seluser
