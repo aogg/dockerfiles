@@ -7,8 +7,7 @@ FROM ${FROM_ARG}
 
 # USER root
 
-RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple selenium \
-    && pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pytest
+RUN pip install -i  selenium pytest
 
 
 # USER seluser
