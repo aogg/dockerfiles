@@ -35,8 +35,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
     }
     log.Printf("执行的命令: %s", cmd)
 
-    // 执行Shell命令
-    cmdExec := exec.Command(cmd)
+    // 执行Shell命令，必须sh
+    // 请确保将 "your-command" 替换为实际的命令，并将 "arg1", "arg2" 替换为实际的命令参数（如果有的话）。
+    cmdExec := exec.Command("sh", "-c", cmd)
     var out bytes.Buffer
     var stderr bytes.Buffer
     cmdExec.Stdout = &out
