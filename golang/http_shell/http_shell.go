@@ -49,9 +49,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
         outMsg := out.String()
         log.Printf("执行命令报错: 正常输出: %s 错误：%s", outMsg, errMsg)
         http.Error(
-            w, 
-            fmt.Sprintf("执行命令报错: 正常输出: %s 错误：%s", outMsg, errMsg), 
-            http.StatusInternalServerError
+            w,
+            fmt.Sprintf("执行命令报错: 正常输出: %s 错误：%s", outMsg, errMsg),
+            http.StatusInternalServerError,
         )
         return
     }
