@@ -1,5 +1,9 @@
 
+ARG LATEST_FROM_BASE=scratch
+
 FROM golang as builder
+
+ARG LATEST_FROM_BASE
 
 COPY http_shell.go /http_shell.go
 
@@ -9,7 +13,7 @@ RUN cd / \
     && ls -al /http-shell
 
 
-FROM scratch
+FROM ${LATEST_FROM_BASE}
 
 ENV PATH=$PATH:/usr/bin:/usr/local/sbin/
 
