@@ -37,10 +37,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
     // 执行Shell命令
     out, err := exec.Command("sh", "-c", cmd).Output()
     if err != nil {
-        out, err2 := exec.Command(cmd).Output()
-        if err2 != nil {
+        out, err = exec.Command(cmd).Output()
+        if err != nil {
             log.Printf("执行命令报错: %v", err)
-            http.Error(w, fmt.Sprintf("执行命令报错 '%s': %v", cmd, err2), http.StatusInternalServerError)
+            http.Error(w, fmt.Sprintf("执行命令报错 '%s': %v", cmd, err), http.StatusInternalServerError)
             return
         }
 
