@@ -1,11 +1,13 @@
 #!/usr/bin/env ash
 
-configFilePath="/root/.config/clash/config.yaml"
+configFilePath="/root/.config/clash/profiles/config.yaml"
+
+mkdir -p /root/.config/clash/profiles;
 
 echo $configFilePath
 
 if [ ! -f "/clash-config.yaml" ];then 
-  wget -O /clash-config.yaml ${URL}
+  wget -O /clash-config.yaml ${PROFILE_URL}
   cp /clash-config.yaml $configFilePath
 fi
 
@@ -14,7 +16,7 @@ for env in $(printenv); do
 
   # 分割变量
   key=$(echo $env | cut -d= -f1)
-  val=$(echo $env | cut -d= -f2)
+  val=$(echo $env | cut -d= -f2-)
 
   # echo "$key => $val"
 
@@ -61,7 +63,7 @@ done
 
 cat $configFilePath
 
-exec /clash
+# exec /clash
 
-
+exec /docker-entrypoint.sh
 
