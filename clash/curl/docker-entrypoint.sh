@@ -42,7 +42,7 @@ for env in $(printenv); do
 
     echo "sed -i -e $sedRule  $configFilePath";
 
-    sed -i -e $sedRule  $configFilePath
+    sed -i -e "$sedRule"  $configFilePath
   fi
 
 done
