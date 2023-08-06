@@ -24,7 +24,12 @@ for env in $(printenv); do
     key="${key#CLASH_}"
 
     # 提取数字部分到spaceNum
-    spaceNum=${key%%_*}
+    # spaceNum=${key%%_*}
+    spaceNum=$(echo $key | cut -d_ -f1)
+
+    
+    # 去除数字
+    key="${key#${spaceNum}_}"
     
     # 小写
     # key="${key,,}"
@@ -33,12 +38,17 @@ for env in $(printenv); do
     # 替换下划线为中杠
     key="${key//_/-}"
 
-    sed -i -e "s%^\(\s\{$spaceNum\}\)[#;]*\(\s*\)$key\s*:.*%\1\2`echo $key`: `echo $val`%g" $configFilePath
+    sedRule="s%^\(\s\{$spaceNum\}\)[#;]*\(\s*\)$key\s*:.*%\1`echo $key`: `echo $val`%g"
+
+    echo "sed -i -e $sedRule  $configFilePath";
+
+    sed -i -e $sedRule  $configFilePath
   fi
 
 done
 
 
+cat $configFilePath
 
 exec /clash
 
