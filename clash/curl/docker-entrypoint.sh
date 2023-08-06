@@ -27,7 +27,7 @@ for env in $(printenv); do
     # 替换下划线为中杠
     key="${key//_/-}"
 
-    sed -i -e "s%[#\s;]+$key\s*: %`echo $key`:`echo $val`%g" $configFilePath
+    sed -i -e "s%\(\s*\)[#;]*\(\s*\)$key\s*:.*%\1\2`echo $key`:`echo $val`%g" $configFilePath
   fi
 
 done
