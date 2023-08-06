@@ -38,8 +38,16 @@ for env in $(printenv); do
     # 替换下划线为中杠
     key="${key//_/-}"
 
-    sedRule="s%^\(\s\{$spaceNum\}\)[#;]*\(\s*\)$key\s*:.*%\1`echo $key`: `echo $val`%g"
+    echo '替换已启用的';
+    sedRule="s%^\(\s\{$spaceNum\}\)$key\s*:.*%\1`echo $key`: `echo $val`%g"
 
+    echo "sed -i -e $sedRule  $configFilePath";
+
+    sed -i -e "$sedRule"  $configFilePath
+    
+    echo '替换被注释的';
+    sedRule="s%^\(\s\{$spaceNum\}\)[#;]\s*$key\s*:.*%\1`echo $key`: `echo $val`%g"
+    
     echo "sed -i -e $sedRule  $configFilePath";
 
     sed -i -e "$sedRule"  $configFilePath
