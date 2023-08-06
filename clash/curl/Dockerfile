@@ -10,7 +10,7 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 
 ENTRYPOINT [ "/docker-entrypoint.sh" ]
 
-
+RUN apk add --no-cache yq
 
 
 

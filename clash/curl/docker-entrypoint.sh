@@ -18,39 +18,42 @@ for env in $(printenv); do
 
   # echo "$key => $val"
 
-  # 判断key变量是否存在ClASH_这个前置
-  if echo "$key" | grep -q "^CLASH_"; then
+  # 判断key变量是否存在CLASH_YQ_这个前置
+  if echo "$key" | grep -q "^CLASH_YQ_"; then
+
+    yq -i "$val" $configFilePath
+
     # 去掉CLASH_前缀
-    key="${key#CLASH_}"
+    # key="${key#CLASH_YQ_}"
 
-    # 提取数字部分到spaceNum
-    # spaceNum=${key%%_*}
-    spaceNum=$(echo $key | cut -d_ -f1)
+    # # 提取数字部分到spaceNum
+    # # spaceNum=${key%%_*}
+    # spaceNum=$(echo $key | cut -d_ -f1)
 
     
-    # 去除数字
-    key="${key#${spaceNum}_}"
+    # # 去除数字
+    # key="${key#${spaceNum}_}"
     
-    # 小写
-    # key="${key,,}"
-    key=$(echo "$key" | tr 'A-Z' 'a-z')
+    # # 小写
+    # # key="${key,,}"
+    # key=$(echo "$key" | tr 'A-Z' 'a-z')
 
-    # 替换下划线为中杠
-    key="${key//_/-}"
+    # # 替换下划线为中杠
+    # key="${key//_/-}"
 
-    echo '替换已启用的';
-    sedRule="s%^\(\s\{$spaceNum\}\)$key\s*:.*%\1`echo $key`: `echo $val`%g"
+    # echo '替换已启用的';
+    # sedRule="s%^\(\s\{$spaceNum\}\)$key\s*:.*%\1`echo $key`: `echo $val`%g"
 
-    echo "sed -i -e $sedRule  $configFilePath";
+    # echo "sed -i -e $sedRule  $configFilePath";
 
-    sed -i -e "$sedRule"  $configFilePath
+    # sed -i -e "$sedRule"  $configFilePath
     
-    echo '替换被注释的';
-    sedRule="s%^\(\s\{$spaceNum\}\)[#;]\s*$key\s*:.*%\1`echo $key`: `echo $val`%g"
+    # echo '替换被注释的';
+    # sedRule="s%^\(\s\{$spaceNum\}\)[#;]\s*$key\s*:.*%\1`echo $key`: `echo $val`%g"
     
-    echo "sed -i -e $sedRule  $configFilePath";
+    # echo "sed -i -e $sedRule  $configFilePath";
 
-    sed -i -e "$sedRule"  $configFilePath
+    # sed -i -e "$sedRule"  $configFilePath
   fi
 
 done
