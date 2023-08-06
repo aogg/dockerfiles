@@ -1,6 +1,9 @@
 #!/usr/bin/env ash
 
 configFilePath="/root/.config/clash/config.yaml"
+
+echo $configFilePath
+
 if [ ! -f "/clash-config.yaml" ];then 
   wget -O /clash-config.yaml ${URL}
   cp /clash-config.yaml $configFilePath
@@ -19,6 +22,9 @@ for env in $(printenv); do
   if echo "$key" | grep -q "^CLASH_"; then
     # 去掉CLASH_前缀
     key="${key#CLASH_}"
+
+    # 提取数字部分到spaceNum
+    spaceNum=${key%%_*}
     
     # 小写
     # key="${key,,}"
@@ -27,7 +33,7 @@ for env in $(printenv); do
     # 替换下划线为中杠
     key="${key//_/-}"
 
-    sed -i -e "s%\(\s*\)[#;]*\(\s*\)$key\s*:.*%\1\2`echo $key`:`echo $val`%g" $configFilePath
+    sed -i -e "s%^\(\s\{$spaceNum\}\)[#;]*\(\s*\)$key\s*:.*%\1\2`echo $key`: `echo $val`%g" $configFilePath
   fi
 
 done
