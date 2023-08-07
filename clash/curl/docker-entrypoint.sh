@@ -1,8 +1,9 @@
 #!/usr/bin/env ash
 
-configFilePath="/root/.config/clash/profiles/config.yaml"
+# configFilePath="/root/.config/clash/profiles/config.yaml"
+configFilePath="/root/.config/clash/config.yaml"
 
-mkdir -p /root/.config/clash/profiles;
+# mkdir -p /root/.config/clash/profiles;
 
 echo $configFilePath
 

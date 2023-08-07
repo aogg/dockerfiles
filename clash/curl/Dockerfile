@@ -1,6 +1,6 @@
 
 
-FROM adockero/clash
+FROM dreamacro/clash
 
 
 RUN apk add --no-cache yq
@@ -9,9 +9,10 @@ RUN apk add --no-cache yq
 
 # EXPOSE 7890
 
-COPY docker-entrypoint.sh /curl-docker-entrypoint.sh
+COPY docker-entrypoint.sh /docker-entrypoint.sh
 
-ENTRYPOINT [ "/curl-docker-entrypoint.sh" ]
+# ENTRYPOINT [ "/curl-docker-entrypoint.sh" ]
+ENTRYPOINT [ "/docker-entrypoint.sh" ]
 
 
 
