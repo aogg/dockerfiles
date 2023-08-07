@@ -8,7 +8,7 @@ configFilePath="/root/.config/clash/config.yaml"
 echo $configFilePath
 
 if [ ! -f "/clash-config.yaml" ];then 
-  wget -O /clash-config.yaml ${PROFILE_URL}
+  wget -O /clash-config.yaml ${URL}
   cp /clash-config.yaml $configFilePath
 fi
 
@@ -64,7 +64,11 @@ done
 
 cat $configFilePath
 
-# exec /clash
 
-exec /docker-entrypoint.sh
+((sleep 2 && /proxies-select.sh) &)
+
+
+exec /clash
+
+# exec /docker-entrypoint.sh
 
