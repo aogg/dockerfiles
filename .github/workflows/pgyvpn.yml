@@ -38,7 +38,7 @@ jobs:
         tags: adockero/gpyvpn:tinyproxy
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./gpyvpn
-        file: "./node/Dockerfile"
+        file: "./gpyvpn/Dockerfile"
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
