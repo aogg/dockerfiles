@@ -13,6 +13,7 @@ RUN apk add --no-cache tinyproxy \
     && ln -s /usr/bin/tinyproxy /usr/sbin/
 
 
+ENTRYPOINT [ "/docker-entrypoint.sh" ]
 
 
 
