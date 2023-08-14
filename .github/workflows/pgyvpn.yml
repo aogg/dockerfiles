@@ -1,11 +1,11 @@
-name: gpyvpn-构建和提交docker
+name: pgyvpn-构建和提交docker
 
 on:
   push:
     branches: [main]
     paths: 
-      - "gpyvpn/**"
-      - ".github/workflows/gpyvpn.yml"
+      - "pgyvpn/**"
+      - ".github/workflows/pgyvpn.yml"
       - "!**.md"
 
 jobs:
@@ -31,14 +31,14 @@ jobs:
 # ##########  构建  ###########################
 
 
-    - name: 构建镜像  adockero/gpyvpn:tinyproxy
+    - name: 构建镜像  adockero/pgyvpn:tinyproxy
       uses: docker/build-push-action@v3
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: adockero/gpyvpn:tinyproxy
+        tags: adockero/pgyvpn:tinyproxy
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        context: ./gpyvpn
-        file: "./gpyvpn/Dockerfile"
+        context: ./pgyvpn
+        file: "./pgyvpn/Dockerfile"
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
