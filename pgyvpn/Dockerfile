@@ -1,8 +1,4 @@
 
-
-
-
-
 FROM bestoray/pgyvpn
 
 
