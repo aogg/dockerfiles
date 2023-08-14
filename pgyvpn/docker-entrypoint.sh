@@ -5,6 +5,6 @@
 
 /usr/share/pgyvpn/script/pgystart &
 
-exec /docker-tinyproxy-run.sh
+exec /docker-tinyproxy-run.sh "$@"
 
 
