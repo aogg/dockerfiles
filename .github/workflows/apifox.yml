@@ -31,11 +31,11 @@ jobs:
 # ##########  构建  ###########################
 
 
-    - name: 构建镜像  adockero/apifox
+    - name: 构建镜像  adockero/apifox-cli
       uses: docker/build-push-action@v3
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: adockero/apifox
+        tags: adockero/apifox-cli
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./apifox
         file: "./apifox/Dockerfile"
