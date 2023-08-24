@@ -1,4 +1,7 @@
-FROM node
+
+ARG FROM_ARGS=node
+
+FROM ${FROM_ARGS}
 
 RUN mkdir /webdriverio \
     && cd /webdriverio \

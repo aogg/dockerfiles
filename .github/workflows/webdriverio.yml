@@ -31,6 +31,24 @@ jobs:
 # ##########  构建  ###########################
 
 
+    - name: 构建镜像  adockero/webdriverio:alpine
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        # tags: adockero/docker:ubuntu-ssh,adockero/docker-ubuntu:ssh
+        tags: adockero/webdriverio:alpine
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./webdriverio
+        file: "./webdriverio/Dockerfile"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        build-args: FROM_ARGS=node:alpine
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true  
+
     - name: 构建镜像  adockero/webdriverio
       uses: docker/build-push-action@v3
       with:
@@ -44,10 +62,11 @@ jobs:
         pull: true
         push: true
         # 构建参数
-        # build-args: NODE_VERSION=14
+        build-args: FROM_ARGS=node
         #   APK_ARG=rsync
         # Adds labels with git repository information to the built image
         labels: true    
+
 
     # - name: 构建镜像  adockero/node-service:node-11-alpine
     #   uses: docker/build-push-action@v3
