@@ -5,6 +5,8 @@ ARG FROM_ARG=selenium/standalone-chrome
 FROM ${FROM_ARG}
 
 
+ARG USER_ARG=seluser
+
 USER root
 
 RUN apt update \
@@ -12,4 +14,5 @@ RUN apt update \
     && rm -rf /var/lib/apt/lists/*
 
 
-USER seluser
+USER $USER_ARG
+
