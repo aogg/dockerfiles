@@ -48,7 +48,7 @@ jobs:
         pull: true
         push: true
         # 构建参数
-        build-args: 
+        build-args: |
           FROM_ARG=kasmweb/chrome:1.13.0
           USER_ARG=kasm-user
         #   APK_ARG=rsync
