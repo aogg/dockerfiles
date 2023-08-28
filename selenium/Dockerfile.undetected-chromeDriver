@@ -1,0 +1,17 @@
+
+ARG FROM_ARG=adockero/selenium-chrome-pip:kasmweb-1.13.0-selenium
+
+
+FROM ${FROM_ARG}
+
+USER root
+
+ARG USER_ARG=kasm-user
+
+RUN pip install  selenium \
+    && pip install pytest \
+    && pip install undetected-chromedriver
+
+
+
+USER $USER_ARG

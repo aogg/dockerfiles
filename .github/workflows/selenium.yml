@@ -56,6 +56,25 @@ jobs:
         labels: true    
       
 
+    - name: 构建镜像  adockero/selenium-chrome-pip:kasmweb-1.13.0-selenium-undetected-chromeDriver
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/selenium-chrome-pip:kasmweb-1.13.0-selenium-undetected-chromeDriver
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./selenium
+        file: "./selenium/Dockerfile.undetected-chromeDriver"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        build-args: FROM_ARG=adockero/selenium-chrome-pip:kasmweb-1.13.0
+        # build-args: FROM_ARG=selenium/standalone-chrome
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true    
+
+        
 
     - name: 构建镜像  adockero/selenium-chrome-pip:kasmweb-1.13.0-selenium
       uses: docker/build-push-action@v3
