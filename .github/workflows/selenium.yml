@@ -64,7 +64,7 @@ jobs:
         tags: adockero/selenium-chrome-pip:kasmweb-1.13.0-selenium
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./selenium
-        file: "./selenium/Dockerfile.selenium"
+        file: "./selenium/Dockerfile.chromeDriver"
         # Always attempt to pull a newer version of the image
         pull: true
         push: true

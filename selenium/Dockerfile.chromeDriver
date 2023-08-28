@@ -1,0 +1,23 @@
+
+ARG FROM_ARG=adockero/selenium-chrome-pip:kasmweb-1.13.0-selenium
+
+
+FROM ${FROM_ARG}
+
+USER root
+
+ARG USER_ARG=kasm-user
+
+RUN pip install  selenium \
+    && pip install pytest \
+    && echo '安装chromeDriver' \
+    && mkdir -p /home/${USER_ARG}/.config/google-chrome/Default/ \
+    && touch /home/${USER_ARG}/.config/google-chrome/Default/Preferences \
+    && version=$(chrome --version | grep -oE "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+") \
+    && wget https://chromedriver.storage.googleapis.com/{version}/chromedriver_linux64.zip \
+    && unzip chromedriver_linux64.zip -d /usr/bin \
+    && rm chromedriver_linux64.zip
+
+
+
+USER $USER_ARG
