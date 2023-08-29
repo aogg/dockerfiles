@@ -20,7 +20,8 @@ USER root
 RUN mkdir -p /getCookie/ \
     && cd /getCookie \
     && chown -R kasm-user:kasm-user /getCookie \
-    && wget https://raw.githubusercontent.com/requireCool/stealth.min.js/main/stealth.min.js
+    && wget https://raw.githubusercontent.com/requireCool/stealth.min.js/main/stealth.min.js \
+    && chown -R kasm-user:kasm-user stealth.min.js 
 
 WORKDIR /getCookie
 
