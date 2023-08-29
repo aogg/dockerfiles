@@ -12,6 +12,7 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN apk add --no-cache tinyproxy \
     && ln -s /usr/bin/tinyproxy /usr/sbin/
 
+EXPOSE 8888
 
 ENTRYPOINT [ "/docker-entrypoint.sh" ]
 
