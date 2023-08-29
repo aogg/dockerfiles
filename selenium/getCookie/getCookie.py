@@ -272,6 +272,9 @@ class TestStartQq:
                    breakBool=1
                    break
 
+        if breakBool:
+           break
+        
         # time.sleep(1)
         if if_find_elements:
             # 点击元素
