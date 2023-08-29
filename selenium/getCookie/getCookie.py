@@ -357,6 +357,7 @@ class TestStartQq:
     file_path = os.getenv("COOKIE_FILE_PATH")
 
     if file_path:
+      print("写入文件地址" + file_path)
       with open(file_path, "w") as f:
         f.write(cookie_str)  
     else:

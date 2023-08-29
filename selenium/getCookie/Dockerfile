@@ -28,7 +28,8 @@ WORKDIR /getCookie
 COPY --chown=kasm-user:kasm-user docker-cmd.sh /docker-cmd.sh
 
 
-ENTRYPOINT [ "/usr/bin/bash" ]
+# ENTRYPOINT [ "/usr/bin/bash" ]
+ENTRYPOINT [  ]
 CMD [ "/docker-cmd.sh" ]
 
 # 截图存储目录
