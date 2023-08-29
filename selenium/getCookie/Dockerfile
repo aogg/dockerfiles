@@ -31,15 +31,15 @@ ENTRYPOINT [ "/usr/bin/bash" ]
 CMD [ "/docker-cmd.sh" ]
 
 # 截图存储目录
-ENV DATA_DIR
+ENV DATA_DIR ""
 # 获取哪个网站的cookie
-ENV URL
+ENV URL ""
 # 需要点击进入的按钮xpath
-ENV FIND_ELEMENTS_XPATH
+ENV FIND_ELEMENTS_XPATH ""
 # 如果存在cookie的key就直接跳出
-ENV IF_COOKIE_KEY
+ENV IF_COOKIE_KEY ""
 # 保存cookie的值到文件
-ENV COOKIE_FILE_PATH
+ENV COOKIE_FILE_PATH ""
 
 # vnc密码--上层
 # ENV VNC_PW
