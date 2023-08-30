@@ -274,7 +274,7 @@ class TestStartQq:
 
         if breakBool:
            break
-        
+
         # time.sleep(1)
         if if_find_elements:
             # 点击元素
@@ -364,7 +364,11 @@ class TestStartQq:
       with open(file_path, "w") as f:
         f.write(cookie_str)  
     else:
+      print('---------------------------------------')
+      print('---------------------------------------')
       print("cookie"+"_env " + cookie_str)
+      print('---------------------------------------')
+      print('---------------------------------------')
 
 
 

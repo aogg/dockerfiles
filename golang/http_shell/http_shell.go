@@ -49,6 +49,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
     if err != nil {
         errMsg := stderr.String()
         outMsg := out.String()
+        log.Println("----------执行命令---报错-------")
         log.Printf("执行命令报错: 正常输出: %s 错误：%s", outMsg, errMsg)
         http.Error(
             w,
@@ -58,6 +59,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    log.Println("----------执行命令---完毕-------")
     // 将命令输出返回给客户端
     fmt.Fprintf(w, "%s", out)
 }
