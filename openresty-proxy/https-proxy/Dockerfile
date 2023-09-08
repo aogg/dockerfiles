@@ -1,10 +1,11 @@
 
+FROM adockero/openssl:crt as builder
 
 FROM openresty/openresty:alpine
 
 
-COPY --from=adockero/openssl:crt /openssl/server.crt /etc/nginx/server.crt
-COPY --from=adockero/openssl:crt /openssl/server.key /etc/nginx/server.key
+COPY --from=builder /openssl/server.crt /etc/nginx/server.crt
+COPY --from=builder /openssl/server.key /etc/nginx/server.key
 
 COPY ./lua.https.proxy.conf /etc/nginx/conf.d/lua.https.proxy.conf
 
