@@ -31,15 +31,15 @@ jobs:
 # ##########  构建  ###########################
 
 
-    - name: 构建镜像  adockero/openssl
+    - name: 构建镜像  adockero/openssl:crt
       uses: docker/build-push-action@v3
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         # tags: adockero/docker:ubuntu-ssh,adockero/docker-ubuntu:ssh
-        tags: adockero/openssl
+        tags: adockero/openssl:crt
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./openssl/create-crt/
-        file: "./openssl/create-crt//Dockerfile"
+        file: "./openssl/create-crt/Dockerfile"
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
