@@ -30,6 +30,22 @@ jobs:
 
 # ##########  构建  ###########################
 
+    - name: 构建镜像  adockero/pgyvpn:tinyproxy-2.2.2
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/pgyvpn:tinyproxy-2.2.2
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./pgyvpn/pgyvpn-2.2.2
+        file: "./pgyvpn/pgyvpn-2.2.2/Dockerfile"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        # build-args: NODE_VERSION=14
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true    
 
     - name: 构建镜像  adockero/pgyvpn:tinyproxy
       uses: docker/build-push-action@v3
