@@ -1,0 +1,22 @@
+
+FROM adockero/pgyvpn:2.2.2
+
+
+COPY --from=monokal/tinyproxy /opt/docker-tinyproxy/run.sh /docker-tinyproxy-run.sh
+
+# COPY --chmod 0755 docker-entrypoint.sh /docker-entrypoint.sh
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+
+# 通过代理来使用
+
+RUN apk add --no-cache tinyproxy \
+    && ln -s /usr/bin/tinyproxy /usr/sbin/
+
+EXPOSE 8888
+
+ENTRYPOINT [ "/docker-entrypoint.sh" ]
+
+
+
+
+
