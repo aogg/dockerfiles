@@ -9,7 +9,9 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 
 # 通过代理来使用
 
-RUN apk add --no-cache tinyproxy \
+RUN apt update \
+    && apt install -y tinyproxy \
+    && rm -rf  /var/lib/apt/lists/* \
     && ln -s /usr/bin/tinyproxy /usr/sbin/
 
 EXPOSE 8888
