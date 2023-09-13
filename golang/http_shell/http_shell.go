@@ -5,6 +5,7 @@ import (
     "log"
     "encoding/base64"
     "net/http"
+    "net/url"
     "os/exec"
     "bytes"
 )
@@ -15,6 +16,19 @@ func handler(w http.ResponseWriter, r *http.Request) {
     cmd := r.FormValue("cmd")
     // 有+号需要请求端urlencode
     cmdBase64 := r.FormValue("cmd-base64")
+    cmdBaseUrl64 := r.FormValue("cmd-base64-url")
+
+    
+    if cmdBaseUrl64 != "" {
+        		// URL解码
+		cmdURLDecoded, cmdURLDecodedErr := url.QueryUnescape(cmdBaseUrl64)
+		if cmdURLDecodedErr != nil {
+			http.Error(w, fmt.Sprintf("URL解码错误 cmd-base64-url='%s', 错误信息:  %v", cmdBaseUrl64, cmdURLDecodedErr), http.StatusBadRequest)
+			return
+		}
+        cmdBase64 = cmdURLDecoded
+
+    }
 
     // curl "172.17.0.2:8080" -d "cmd-base64=$(echo docker ps|base64)"
     if cmdBase64 != "" {
