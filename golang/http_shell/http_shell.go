@@ -23,6 +23,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
         		// URL解码
 		cmdURLDecoded, cmdURLDecodedErr := url.QueryUnescape(cmdBaseUrl64)
 		if cmdURLDecodedErr != nil {
+            log.Printf("URL解码错误 cmd-base64-url='%s', 错误信息:  %v", cmdBaseUrl64, cmdURLDecodedErr)
 			http.Error(w, fmt.Sprintf("URL解码错误 cmd-base64-url='%s', 错误信息:  %v", cmdBaseUrl64, cmdURLDecodedErr), http.StatusBadRequest)
 			return
 		}
@@ -35,6 +36,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
         cmd2, baseErr := base64.StdEncoding.DecodeString(cmdBase64)
 
         if baseErr != nil {
+            log.Printf("base64错误 cmd-base64='%s', 错误信息: %v", cmdBase64, baseErr)
             http.Error(
                 w, 
                 fmt.Sprintf("base64错误 cmd-base64='%s', 错误信息: %v", cmdBase64, baseErr), 
@@ -45,6 +47,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
     }
 
     if cmd == "" {
+        log.Println("缺少执行命令 'cmd'")
         http.Error(w, "缺少执行命令 'cmd'", http.StatusBadRequest)
         return
     }
