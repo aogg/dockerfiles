@@ -8,7 +8,7 @@ FROM python:3
 
 RUN pip install --no-cache-dir pocoui \
     && pip install --no-cache-dir airtest \
-    echo "结束"
+    && echo "结束"
 
 
 
