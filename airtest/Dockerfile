@@ -21,7 +21,7 @@ RUN pip install --no-cache-dir pocoui \
 
 
 RUN apt update \
-    && apt install -y adb \
+    && apt install -y adb libgl1-mesa-glx \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && apt-get clean \
     && echo "结束"
