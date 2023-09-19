@@ -27,8 +27,8 @@ RUN apt update \
     && echo "结束"
 
 
-
-
+# 保存授权
+VOLUME [ "/root/.android/" ]
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 
