@@ -1,0 +1,15 @@
+
+
+FROM alekslitvinenk/openvpn
+
+
+
+
+
+RUN sed -i "s/udp/tcp/g" /opt/Dockovpn/start.sh \
+    && sed -i "s/udp/tcp/g" /opt/Dockovpn/config/* \
+    && sed -i "s/udp/tcp/g" /etc/openvpn/server.conf
+
+
+
+
