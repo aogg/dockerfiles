@@ -8,7 +8,7 @@ fi
 
 # 需要tcp
 # http-proxy 192.168.4.1 1080
-if [ -z "$HTTP_PROXY" ];then
+if [ -z "$OPENVPN_HTTP_PROXY" ];then
   echo "http-proxy $HTTP_PROXY" >> /vpn/vpn.conf
 fi
 
