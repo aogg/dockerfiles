@@ -49,7 +49,7 @@ jobs:
         # Adds labels with git repository information to the built image
         labels: true    
 
-
+#--------------------客户端--start--------------------------------------------
 
     - name: 构建镜像  adockero/openvpn:dockovpn-client
       uses: docker/build-push-action@v3
@@ -68,6 +68,30 @@ jobs:
         #   APK_ARG=rsync
         # Adds labels with git repository information to the built image
         labels: true   
+
+
+    - name: 构建镜像  adockero/openvpn:dockovpn-client-git
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        # tags: adockero/docker:ubuntu-ssh,adockero/docker-ubuntu:ssh
+        tags: adockero/openvpn:dockovpn-client-git,adockero/dockovpn-tcp:client-git
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./openvpn/DockOvpn/client/git
+        file: "./openvpn/DockOvpn/client/git/Dockerfile"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        # build-args: NODE_VERSION=14
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true   
+
+#--------------------客户端--end--------------------------------------------
+
+
+
 
     # - name: 构建镜像  adockero/node-service:node-11-alpine
     #   uses: docker/build-push-action@v3
