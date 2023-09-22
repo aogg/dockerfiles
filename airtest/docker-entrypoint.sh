@@ -19,4 +19,8 @@ fi
 
 
 
-exec $@
+$@
+
+adb disconnect ${array_device}
+
+echo '-------------容器结束-----------------------------'
