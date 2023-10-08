@@ -38,7 +38,7 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: adockero/hosts-http
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        context: ./golang/http_shell
+        context: ./golang/http_hosts
         file: "./golang/http_hosts/Dockerfile"
         # Always attempt to pull a newer version of the image
         # pull: true
