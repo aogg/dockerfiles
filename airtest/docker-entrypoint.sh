@@ -10,17 +10,17 @@ echo "adb can be used now"
 
 
 # Connect device via wireless
-if [ "${REMOTE_ADB}" = true ]; then
-	echo "Connect device via wireless"
-	# Avoid lost connection
-	/wireless_autoconnect.sh && \
-	/wireless_connect.sh
-fi
+# if [ "${REMOTE_ADB}" = true ]; then
+# 	echo "Connect device via wireless"
+# 	# Avoid lost connection
+# 	/wireless_autoconnect.sh && \
+# 	/wireless_connect.sh
+# fi
 
 
 
 $@
 
-adb disconnect ${array_device}
+# adb disconnect ${array_device}
 
 echo '-------------容器结束-----------------------------'

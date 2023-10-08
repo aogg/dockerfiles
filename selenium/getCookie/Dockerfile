@@ -2,8 +2,12 @@
 FROM adockero/selenium-chrome-pip:kasmweb-1.13.0-selenium
 
 
-# docker rm -f debug-selenium-www.openfrp.net;\
-# docker run -t --rm --name debug-selenium-www.openfrp.net --network common-all -u root --entrypoint /bin/bash \
+# The container is now accessible via a browser : https://IP_OF_SERVER:6901
+
+# User : kasm_user
+# Password: password
+# docker rm -f debug-selenium-nowsecure.nl;\
+# docker run -t --rm --name debug-selenium-nowsecure.nl --network common-all -u root --entrypoint /bin/bash \
 # --shm-size=512m \
 # --add-host challenges.cloudflare.com:162.159.9.55 \
 # -e URL="https://nowsecure.nl/" \
@@ -11,7 +15,7 @@ FROM adockero/selenium-chrome-pip:kasmweb-1.13.0-selenium
 # -p 6901:6901 \
 # -e VNC_PW=123 \
 # -e FIND_ELEMENTS='*[@id="challenge-stage"]/div/label' \
-# -v /data/docker/selenium/www.openfrp.net/:/data/docker/selenium/ \
+# -v /data/docker/selenium/nowsecure.nl/:/data/docker/selenium/ \
 # adockero/selenium-chrome-pip:kasmweb-1.13.0-selenium \
 # -c '((/dockerstartup/kasm_default_profile.sh /dockerstartup/vnc_startup.sh /dockerstartup/kasm_startup.sh --wait &); sleep 6 && python3 /data/docker/selenium/getCookie-origin-remote.py) 2>&1'
 

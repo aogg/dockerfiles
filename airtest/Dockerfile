@@ -11,8 +11,8 @@ ENV REMOTE_ADB true
 ENV REMOTE_ADB_POLLING_SEC 5
 
 
-COPY wireless_autoconnect.sh /wireless_autoconnect.sh
-COPY wireless_connect.sh /wireless_connect.sh
+# COPY wireless_autoconnect.sh /wireless_autoconnect.sh
+# COPY wireless_connect.sh /wireless_connect.sh
 
 
 RUN pip install --no-cache-dir pocoui \
