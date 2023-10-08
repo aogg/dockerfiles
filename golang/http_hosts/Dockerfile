@@ -21,7 +21,8 @@ COPY --from=builder /http-hosts /http-hosts
 
 EXPOSE 8080/TCP
 
-RUN mkdir /data/
+COPY data/ /data/
+# RUN mkdir /data/
 
 VOLUME [ "/usr/local/sbin/" ]
 
