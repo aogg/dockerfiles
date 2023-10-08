@@ -30,6 +30,33 @@ jobs:
         password: ${{ secrets.PASSWORD }}
 
 
+#######################  hosts-http   start #########################################
+
+    - name: 构建镜像  hosts-http
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/hosts-http
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./golang/http_shell
+        file: "./golang/http_hosts/Dockerfile"
+        # Always attempt to pull a newer version of the image
+        # pull: true
+        push: true
+        # 构建参数
+        # build-args: |
+          # LATEST_FROM_BASE=alpine
+        #   ZABBIX_VERSION_BIG=6.2
+        #   ZABBIX_VERSION=6.2-4
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true  
+
+#######################  hosts-http   end #########################################
+
+
+#######################  http-shell   start #########################################
+
 
 
     - name: 构建镜像  http-shell:alpine
@@ -78,5 +105,6 @@ jobs:
 
 
 
+#######################  http-shell   end  #########################################
 
 
