@@ -3,10 +3,11 @@ package main
 import (
     "fmt"
     "log"
-    "encoding/base64"
     "net/http"
-    "net/url"
-    "os/exec"
+	"io/ioutil"
+	"os"
+	"regexp"
+	"strings"
     "bytes"
 )
 
