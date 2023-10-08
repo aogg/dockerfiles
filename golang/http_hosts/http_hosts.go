@@ -8,7 +8,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-    "bytes"
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
