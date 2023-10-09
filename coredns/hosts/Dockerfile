@@ -4,12 +4,14 @@ FROM coredns/coredns
 
 
 
-COPY Corefile /etc/coredns/Corefile
-
 
 # /data/hosts
 VOLUME [ "/data/hosts" ]
 VOLUME [ "/etc/coredns/Corefile" ]
+
+
+
+COPY Corefile /etc/coredns/Corefile
 
 EXPOSE 53/udp
 
