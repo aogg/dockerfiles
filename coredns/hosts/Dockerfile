@@ -6,7 +6,8 @@ FROM coredns/coredns
 
 
 # /data/hosts
-VOLUME [ "/data/hosts" ]
+# VOLUME [ "/data/hosts" ]
+VOLUME [ "/data/" ]
 # VOLUME [ "/etc/coredns/Corefile" ]
 VOLUME [ "/etc/coredns/" ]
 
