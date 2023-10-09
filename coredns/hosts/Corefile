@@ -1,13 +1,12 @@
 
 
 .:53 {
-    forward . $FORWARD_ADDR
-    hosts {
-		file $HOSTS_FILE_PATH
-		reload $HOSTS_RELOAD_TIME
-		ttl $HOSTS_TTL_TIME
+    hosts /data/hosts {
+		reload 5s
+		ttl 30
         fallthrough
     }
+    forward . 223.5.5.5
     log
 }
 
