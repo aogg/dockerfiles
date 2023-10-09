@@ -1,0 +1,20 @@
+
+
+.:53 {
+    forward . $FORWARD_ADDR
+    hosts {
+		file $HOSTS_FILE_PATH
+		reload $HOSTS_RELOAD_TIME
+		ttl $HOSTS_TTL_TIME
+        fallthrough
+    }
+    log
+}
+
+
+
+
+
+
+
+
