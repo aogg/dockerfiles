@@ -220,6 +220,28 @@ class TestStartQq:
     # self.saveHtml('sleep-5---get')
 
 
+    # 获取 localStorage
+    # local_storage = self.driver.execute_script("return window.localStorage;")
+
+    # # 输出 localStorage
+    # print("localStorage:")
+    # print(local_storage)
+    # print(self.driver.execute_script("return window.localStorage.getItem('a');"))
+    # print(self.driver.execute_script("return window.localStorage.setItem('ab', '1');"))
+    # print(self.driver.execute_script("return window.localStorage.getItem('ab');"))
+    # print(self.driver.execute_script("return window.localStorage;"))
+    # local_storage = self.driver.execute_script("return window.localStorage;")
+    # print('---------------------------------------')
+    # print('---------------------------------------')
+    # for key, value in local_storage.items():
+    #   print("localStorage"+"_env " + str(key) + " " + str(value))
+    # # for key in local_storage:
+    # #     print("localStorage"+"_env " + key + " " + local_storage[key])
+        
+    # print('---------------------------------------')
+    # print('---------------------------------------')
+
+
     debugSleep = os.getenv('DEBUG_SLEEP')
     if debugSleep:
       #  return dataDir
@@ -374,6 +396,21 @@ class TestStartQq:
       print("cookie"+"_env " + cookie_str)
       print('---------------------------------------')
       print('---------------------------------------')
+
+
+    # 获取 localStorage
+    local_storage = self.driver.execute_script("return window.localStorage;")
+
+    # 输出 localStorage
+    print("localStorage:")
+    print('---------------------------------------')
+    print('---------------------------------------')
+    for key, value in local_storage.items():
+      print("localStorage"+"_env " + str(key) + " " + str(value))
+        
+    print('---------------------------------------')
+    print('---------------------------------------')
+
 
 
 
