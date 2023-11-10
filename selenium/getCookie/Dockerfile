@@ -36,6 +36,8 @@ COPY --chown=kasm-user:kasm-user docker-cmd.sh /docker-cmd.sh
 ENTRYPOINT [  ]
 CMD [ "/docker-cmd.sh" ]
 
+COPY --chown=kasm-user:kasm-user getCookie.py /getCookie/getCookie.py
+
 # 截图存储目录
 ENV DATA_DIR ""
 # 获取哪个网站的cookie
@@ -52,7 +54,6 @@ ENV DEBUG_SLEEP ""
 # vnc密码--上层
 # ENV VNC_PW
 
-COPY --chown=kasm-user:kasm-user getCookie.py /getCookie/getCookie.py
 
 
 USER kasm-user

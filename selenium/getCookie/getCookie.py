@@ -223,6 +223,7 @@ class TestStartQq:
     debugSleep = os.getenv('DEBUG_SLEEP')
     if debugSleep:
       #  return dataDir
+      debugSleep = int(debugSleep)
       time.sleep(debugSleep)
     # return
   
