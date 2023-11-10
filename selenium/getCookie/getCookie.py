@@ -219,7 +219,11 @@ class TestStartQq:
     time.sleep(5)
     # self.saveHtml('sleep-5---get')
 
-    # time.sleep(11118)
+
+    debugSleep = os.getenv('DEBUG_SLEEP')
+    if debugSleep:
+      #  return dataDir
+      time.sleep(debugSleep)
     # return
   
     # self.driver.implicitly_wait(10)

@@ -46,6 +46,8 @@ ENV FIND_ELEMENTS_XPATH ""
 ENV IF_COOKIE_KEY ""
 # 保存cookie的值到文件
 ENV COOKIE_FILE_PATH ""
+# debug等待不执行
+ENV DEBUG_SLEEP ""
 
 # vnc密码--上层
 # ENV VNC_PW
