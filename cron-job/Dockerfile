@@ -29,6 +29,8 @@ ENV NAME aogg
 ENV ACCESS_TOKEN ''
 # 时区
 ENV TIMEZONE Asia/Shanghai
+# 创建任务的多少秒后发送通知
+ENV INC_TIME ''
 
 
 

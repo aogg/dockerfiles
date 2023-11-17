@@ -106,7 +106,11 @@ while true; do
     current_seconds=$(date +%s)
     echo '-----当前秒数-------'$(echo $current_seconds)'------'
     # 计算增加后的时间秒数
-    new_seconds=$(($current_seconds + $SLEEP_TIME + $SLEEP_TIME + 20))
+    if [-z $INC_TIME];then
+        INC_TIME=$(($SLEEP_TIME + $SLEEP_TIME + 100))
+    fi
+
+    new_seconds=$(($current_seconds + $INC_TIME))
 
     # 将新时间秒数转换为小时和分钟
     hours=$(date -d @$new_seconds +%H)
