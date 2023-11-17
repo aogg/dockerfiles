@@ -5,7 +5,12 @@ FROM mikefarah/yq
 
 USER root
 
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl tzdata
+
+RUN ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shanghai > /etc/timezone \
+    && chmod 777 /etc/localtime \
+    && chmod 777 /etc/timezone
+
 
 
 COPY  docker-entrypoint.sh /docker-entrypoint.sh
@@ -16,8 +21,14 @@ ENTRYPOINT [ "/docker-entrypoint.sh" ]
 COPY --chown=yq:yq default.json /default.json
 
 
+# 等待多久检测一次
 ENV SLEEP_TIME 1222
+# 任务名称
 ENV NAME aogg
+# https://console.cron-job.org/  的token
+ENV ACCESS_TOKEN ''
+# 时区
+ENV TIMEZONE Asia/Shanghai
 
 
 

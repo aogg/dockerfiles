@@ -2,7 +2,6 @@
 
 
 # --body-data
-#    --header 'User-Agent: Apifox/1.0.0 (https://apifox.com)' \
         # --post-data STR Send STR using POST method
         # --post-file FILE        Send FILE using POST method
 
@@ -26,6 +25,10 @@ full_title=$(echo 'docker-auto-job-'$NAME)
 json_file=/default.json
 
 yq -o json -i ".job.title = \"$full_title\"" "$json_file"
+yq -o json -i ".job.schedule.timezone = \"$TIMEZONE\"" "$json_file"
+
+ln -snf /usr/share/zoneinfo/$TIMEZONE /etc/localtime
+echo $TIMEZONE > /etc/timezone
 
 cat $json_file
 
