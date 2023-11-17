@@ -106,7 +106,7 @@ while true; do
     current_seconds=$(date +%s)
     echo '-----当前秒数-------'$(echo $current_seconds)'------'
     # 计算增加后的时间秒数
-    if [-z $INC_TIME];then
+    if [ -z $INC_TIME ];then
         INC_TIME=$(($SLEEP_TIME + $SLEEP_TIME + 100))
     fi
 
