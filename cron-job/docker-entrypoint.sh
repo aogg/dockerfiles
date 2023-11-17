@@ -46,6 +46,7 @@ for var in $(env | grep '^yq_' | cut -d '=' -f 1); do
     # echo "eval value=\"\${$var}\""
     # eval "value=\"\${$var}\""
     value=$(env | grep "^${var}" | sed "s/^${var}=//")
+    value=$(echo $value | sed 's/"/\\"/g');
 
     echo '$value =' $value
     # 使用jq工具修改JSON文件中的值
