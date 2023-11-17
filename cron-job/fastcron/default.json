@@ -1,0 +1,10 @@
+{
+    "url": "url",
+    "expression": "*/2 * * * *",
+    "timeout": "20",
+    "httpMethod": "GET",
+    "postData": "",
+    "httpHeaders": "",
+    "notify": true,
+    "name": "docker-auto"
+}
