@@ -1,0 +1,46 @@
+{
+    "job": {
+        "title": "aogg",
+        "url": "https://oapi.dingtalk.com/robot/send?access_token=aa",
+        "enabled": true,
+        "saveResponses": false,
+        "requestTimeout": 30,
+        "redirectSuccess": false,
+        "auth": {
+            "enable": false,
+            "user": "",
+            "password": ""
+        },
+        "notification": {
+            "onFailure": false,
+            "onSuccess": false,
+            "onDisable": true
+        },
+        "requestMethod": 1,
+        "extendedData": {
+            "body": "",
+            "headers": {
+            }
+        },
+        "schedule": {
+            "mdays": [
+                -1
+            ],
+            "wdays": [
+                -1
+            ],
+            "months": [
+                -1
+            ],
+            "hours": [
+                14
+            ],
+            "minutes": [
+                20
+            ],
+            "expiresAt": 0,
+            "timezone": "Asia/Shanghai"
+        },
+        "folderId": 0
+    }
+}
