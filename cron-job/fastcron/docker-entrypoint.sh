@@ -135,6 +135,12 @@ while true; do
         done
     fi
 
+    
+    echo '----------------确认是否已删除----start----'$(date)'-----------------------------'
+        sleep 1
+        execute_with_retry curl --location --request GET "'https://www.fastcron.com/api/v1/cron_list?token=${ACCESS_TOKEN}'"
+    echo '----------------确认是否已删除----end----'$(date)'-----------------------------'
+
     echo '----------------开始创建定时任务-------'$(date)'-----------------------------'
 
     # 设置下一个时间段
@@ -143,7 +149,7 @@ while true; do
     echo '-----当前秒数-------'$(echo $current_seconds)'------'
     # 计算增加后的时间秒数
     if [ -z $INC_TIME ];then
-        INC_TIME=$(($SLEEP_TIME + $SLEEP_TIME + 100))
+        INC_TIME=$(($SLEEP_TIME + $SLEEP_TIME + $SLEEP_TIME + 100))
     fi
 
     new_seconds=$(($current_seconds + $INC_TIME))
