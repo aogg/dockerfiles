@@ -11,9 +11,9 @@ RUN ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shangh
     && chmod 777 /etc/localtime \
     && chmod 777 /etc/timezone
 
+ARG DOCKER_ENTRYPOINT_FILE docker-entrypoint.sh
 
-
-COPY  docker-entrypoint.sh /docker-entrypoint.sh
+COPY  $DOCKER_ENTRYPOINT_FILE /docker-entrypoint.sh
 # COPY --chown=curl_group:curl_user docker-entrypoint.sh /docker-entrypoint.sh
 ENTRYPOINT [ "/docker-entrypoint.sh" ]
 

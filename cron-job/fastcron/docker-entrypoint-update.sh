@@ -5,6 +5,7 @@
         # --post-data STR Send STR using POST method
         # --post-file FILE        Send FILE using POST method
 execute_with_retry_out=''
+send_str=''
 
 execute_with_retry() {
     # command=$1
@@ -32,6 +33,30 @@ execute_with_retry() {
 
     echo "达到最大重试次数，命令执行失败" >&2
     return 1
+}
+
+calculate_time() {
+    # 设置下一个时间段
+    # 获取当前时间的秒数
+    current_seconds=$(date +%s)
+    echo '-----当前秒数-------'$(echo $current_seconds)'------'
+    # 计算增加后的时间秒数
+    if [ -z $INC_TIME ];then
+        INC_TIME=$(($SLEEP_TIME + $SLEEP_TIME + $SLEEP_TIME + 100))
+    fi
+
+    new_seconds=$(($current_seconds + $INC_TIME))
+
+    # 将新时间秒数转换为小时和分钟
+    hours=$(date -d @$new_seconds +%H)
+    minutes=$(date -d @$new_seconds +%M)
+
+    # yq -o json -i ".job.schedule.hours[0] = \"$hours\"" "$json_file"
+    yq -o json -i ".expression = \"${minutes} ${hours} * * *\"" "$json_file"
+
+
+    send_str=$(cat $json_file | sed "s/{{cron_run_date}}/${hours}时${minutes}分/g")
+
 }
 
 
@@ -117,22 +142,66 @@ while true; do
     # 存在就删除
     # 循环遍历每个 jobId 进行处理
     if [ -n "$jobIds" ]; then
+        jobIdsLength=0
+        for jobId in $jobIds; do
+            if [ -n "$jobId" ]; then
+                if [ "$jobId" -gt 0 ]; then
+                    jobIdsLength=$((jobIdsLength + 1))
+                fi
+            fi
+        done
+        echo '数量 jobIdsLength = ' $jobIdsLength
+
+        editBool=0
+        i=1
         for jobId in $jobIds; do
             echo "--------------之前的Id = $jobId"
 
             # 存在就删除
             if [ -n "$jobId" ]; then
                 if [ "$jobId" -gt 0 ]; then
-                    echo '----------------删除之前的-------'$(date)'-----------------------------'
-                    
-                    # 执行删除操作
-                    sleep 1
-                    execute_with_retry curl --location --request POST "'https://www.fastcron.com/api/v1/cron_delete?token=${ACCESS_TOKEN}&id=${jobId}'"
+                    if [ $i -eq $jobIdsLength ]; then
+                        editBool=1
+                        echo '----------------修改之前的-------'$(date)'-----------------------------'
+                        
+                        calculate_time
+                        # todo 
+                        # send_str=$(echo "$send_str" | yq eval '. + {"id": "'${jobId}'"}' -)
+                        send_str=$(echo "$send_str" | yq -o json ".id = \"${jobId}\"")
+
+                        echo '----------------最终发送json----start---'$(date)'-----------------------------'
+                        # cat $json_file
+                        echo -e $send_str
+
+                        echo '----------------最终发送json----end---'$(date)'-----------------------------'
+                        
+                        # 执行删除操作
+                        sleep 1
+                        execute_with_retry curl --location --request POST "'https://www.fastcron.com/api/v1/cron_edit?token=${ACCESS_TOKEN}'"  \
+                        --header "'Content-Type: application/json'" \
+                        --data-raw "'$(echo $send_str)'"
+
+
+                    else
+                        echo '----------------删除之前的-------'$(date)'-----------------------------'
+                        
+                        # 执行删除操作
+                        sleep 1
+                        execute_with_retry curl --location --request POST "'https://www.fastcron.com/api/v1/cron_delete?token=${ACCESS_TOKEN}&id=${jobId}'"
+                    fi
                 # else
                 #     echo "jobId 不大于 0"  
                 fi
             fi
+
+            i=$((i + 1))
         done
+
+        if [ -n "$editBool" ];then
+            echo "----------------开始等待${SLEEP_TIME}-------"$(date)'-----------------------------'
+            sleep $SLEEP_TIME
+            continue
+        fi
     fi
 
     
@@ -143,37 +212,19 @@ while true; do
 
     echo '----------------开始创建定时任务-------'$(date)'-----------------------------'
 
-    # 设置下一个时间段
-    # 获取当前时间的秒数
-    current_seconds=$(date +%s)
-    echo '-----当前秒数-------'$(echo $current_seconds)'------'
-    # 计算增加后的时间秒数
-    if [ -z $INC_TIME ];then
-        INC_TIME=$(($SLEEP_TIME + $SLEEP_TIME + $SLEEP_TIME + 100))
-    fi
+    calculate_time
 
-    new_seconds=$(($current_seconds + $INC_TIME))
-
-    # 将新时间秒数转换为小时和分钟
-    hours=$(date -d @$new_seconds +%H)
-    minutes=$(date -d @$new_seconds +%M)
-
-    # yq -o json -i ".job.schedule.hours[0] = \"$hours\"" "$json_file"
-    yq -o json -i ".expression = \"${minutes} ${hours} * * *\"" "$json_file"
-
-
-    updated_string=$(cat $json_file | sed "s/{{cron_run_date}}/${hours}时${minutes}分/g")
 
     echo '----------------最终发送json----start---'$(date)'-----------------------------'
     # cat $json_file
-    echo -e $updated_string
+    echo -e $send_str
 
     echo '----------------最终发送json----end---'$(date)'-----------------------------'
 
     sleep 1
     execute_with_retry curl --location --request POST "'https://www.fastcron.com/api/v1/cron_add?token=${ACCESS_TOKEN}'"  \
     --header "'Content-Type: application/json'" \
-    --data-raw "'$(echo $updated_string)'"
+    --data-raw "'$(echo $send_str)'"
 
     
     echo "----------------开始等待${SLEEP_TIME}-------"$(date)'-----------------------------'
