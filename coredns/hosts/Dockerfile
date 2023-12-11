@@ -13,6 +13,7 @@ VOLUME [ "/etc/coredns/" ]
 
 
 
+COPY hosts /data/hosts
 COPY Corefile /etc/coredns/Corefile
 
 EXPOSE 53/udp
