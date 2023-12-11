@@ -1,11 +1,15 @@
 
 
 .:53 {
+    errors
+    debug
+
     hosts /data/hosts {
-		reload 5s
-		ttl 30
+        reload 5s
+        ttl 30
         fallthrough
     }
+
     forward . 223.5.5.5
     log
 }
