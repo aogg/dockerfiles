@@ -1,4 +1,4 @@
-FROM debian
+FROM debian:experimental
 
 # see https://github.com/JensErat/docker-tinc/blob/master/Dockerfile
 
