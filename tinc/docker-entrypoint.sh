@@ -58,7 +58,7 @@ fi
 
 
 # 不允许join -U nobody
-exec tinc start -d 2 -D
+exec tinc start -d $LOG_LEVEL -D
 
 
 
