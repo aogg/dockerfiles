@@ -21,8 +21,7 @@ jobs:
       # 使用action库  actions/checkout获取源码
       uses: actions/checkout@v2.3.2
 
-
-    - name: hyperf:8.2-alpine-v3.19-swoole-slim-sshd-dev
+    - name: hyperf:8.2-alpine-v3.19-swoole-slim-env
       uses: docker/build-push-action@v1.1.0
       with:
         # Username used to log in to a Docker registry. If not set then no login will occur
@@ -32,14 +31,35 @@ jobs:
         # Docker repository to tag the image with
         repository: adockero/hyperf
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: 8.2-alpine-v3.19-swoole-slim-sshd-dev
+        tags: 8.2-alpine-v3.19-swoole-slim-env
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./
+        dockerfile: hyperf/Dockerfile.env
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # 构建参数
+        build_args: BASE_FORM=hyperf/hyperf:8.2-alpine-v3.19-swoole-slim
+        # Adds labels with git repository information to the built image
+        add_git_labels: true  
+
+    - name: hyperf:8.2-alpine-v3.19-swoole-slim-env-sshd-dev
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: adockero
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD }}
+        # Docker repository to tag the image with
+        repository: adockero/hyperf
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: 8.2-alpine-v3.19-swoole-slim-env-sshd-dev
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./
         dockerfile: hyperf/Dockerfile.sshd
         # Always attempt to pull a newer version of the image
         always_pull: true
         # 构建参数
-        build_args: BASE_FORM=hyperf/hyperf:8.2-alpine-v3.19-swoole-slim
+        build_args: BASE_FORM=adockero/hyperf:8.2-alpine-v3.19-swoole-slim-env
         # Adds labels with git repository information to the built image
         add_git_labels: true  
    
