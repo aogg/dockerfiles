@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 # 指定要执行的文件夹路径
 folder="$1"
