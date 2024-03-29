@@ -5,7 +5,8 @@
 
 # 完整支持参数传参给mysqldump
 ```bash
-docker run --rm -v $PWD:/mysqldump -e DB_NAME=db_name -e DB_PASS=db_pass -e DB_USER=db_user -e DB_HOST=db_host camil/mysqldump --skip-lock-tables --add-drop-table --extended-insert
+docker run --rm -v $PWD:/mysqldump -e DB_NAME=db_name -e DB_PASS=db_pass -e DB_USER=db_user -e DB_HOST=db_host -e ALL_DATABASES=true -e ASYNC_WAIT=true \
+camil/mysqldump --skip-lock-tables --add-drop-table --extended-insert
 ```
 
 
