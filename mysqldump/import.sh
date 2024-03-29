@@ -63,10 +63,10 @@ else
 
         # 循环检测 mysqldump 进程是否存在
         while check_mysqldump_process; do
-                echo "Waiting for mysqldump process to complete..."
+                echo $(date "+%Y-%m-%d %H:%M:%S")"  Waiting for mysqldump process to complete..."${DB_HOST}
                 sleep 1  # 等待 1 秒后重新检测
         done
 
-        echo "mysqldump process has completed."
+        echo $(date "+%Y-%m-%d %H:%M:%S")"  mysqldump process has completed.  "${DB_HOST}
 
 fi
