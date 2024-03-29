@@ -1,5 +1,6 @@
 # 解决原镜像bug
 1、原镜像camil/mysqldump
+2、原文档说明，https://hub.docker.com/r/camil/mysqldump
 
 
 # 完整支持参数传参给mysqldump
