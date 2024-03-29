@@ -5,6 +5,8 @@ DB_PASS=${DB_PASS:-${MYSQL_ENV_DB_PASS}}
 DB_NAME=${DB_NAME:-${MYSQL_ENV_DB_NAME}}
 DB_HOST=${DB_HOST:-${MYSQL_ENV_DB_HOST}}
 ALL_DATABASES=${ALL_DATABASES}
+ASYNC_WAIT=${ASYNC_WAIT}
+
 
 if [[ ${DB_USER} == "" ]]; then
         echo "Missing DB_USER env variable"
@@ -31,8 +33,40 @@ else
         done`
 for db in $databases; do
           if [[ "$db" != "information_schema.sql" ]] && [[ "$db" != "performance_schema.sql" ]] && [[ "$db" != "mysql.sql" ]] && [[ "$db" != _* ]]; then
-              echo "Importing database: $db"
-              mysql --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" "$db" < /mysqldump/$db.sql
+                echo "Importing database: $db"
+
+                if [[ ${ASYNC_WAIT} == "" ]]; then
+                mysql --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" "$db" < /mysqldump/$db.sql
+                else
+                mysql --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" "$db" < /mysqldump/$db.sql &
+                fi
+
           fi
 done
+fi
+
+
+
+# 结束
+if [[ ${ASYNC_WAIT} == "" ]]; then
+        echo 'finish all';
+else
+
+        # mysqldump 进程的关键字
+        KEYWORD="mysqldump"
+
+        # 检测 mysqldump 进程是否存在的函数
+        check_mysqldump_process() {
+                # 使用 pgrep 命令查找与关键字匹配的进程 ID
+                pgrep -f "$KEYWORD" >/dev/null 2>&1
+        }
+
+        # 循环检测 mysqldump 进程是否存在
+        while check_mysqldump_process; do
+                echo "Waiting for mysqldump process to complete..."
+                sleep 1  # 等待 1 秒后重新检测
+        done
+
+        echo "mysqldump process has completed."
+
 fi
