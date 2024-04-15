@@ -4,7 +4,7 @@ on:
   push:
     paths: 
       - "docker/**"
-      - "common/**"
+      - "common/open-sshd-passwd.sh"
       - ".github/workflows/docker.yml"
       - "!**.md"
   schedule: 
