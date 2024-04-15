@@ -53,7 +53,7 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: adockero/pgyvpn:tinyproxy
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        context: ./pgyvpn
+        context: ./
         file: "./pgyvpn/Dockerfile"
         # Always attempt to pull a newer version of the image
         pull: true
