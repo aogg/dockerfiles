@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: 
       - "pgyvpn/**"
-      - "common/**"
+      - "common/one-exec.sh"
       - ".github/workflows/pgyvpn.yml"
       - "!**.md"
 
