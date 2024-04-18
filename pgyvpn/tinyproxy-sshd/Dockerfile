@@ -1,5 +1,6 @@
 FROM adockero/pgyvpn:tinyproxy
 
+RUN apk add --no-cache openssh
 
 COPY ./common/open-sshd-passwd.sh /open-sshd-passwd.sh
 
