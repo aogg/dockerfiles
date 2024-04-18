@@ -3,6 +3,6 @@
 
 /open-sshd-passwd.sh &
 
-exec /docker-tinyproxy.sh "$@"
+exec /docker-entrypoint.sh "$@"
 
 
