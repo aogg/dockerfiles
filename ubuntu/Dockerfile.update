@@ -1,0 +1,11 @@
+
+ARG FROM_ARG=""
+
+FROM ${FROM_ARG}
+
+
+# --no-cache没有/var/cache/apk
+RUN apt update
+
+
+CMD tail -f /etc/hosts
