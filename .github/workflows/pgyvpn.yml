@@ -31,6 +31,97 @@ jobs:
 
 # ##########  构建  ###########################
 
+
+# ubuntu-------------------------------------------
+    - name: 构建镜像  adockero/pgyvpn:ubuntu
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/pgyvpn:ubuntu
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./
+        file: "./pgyvpn/ubuntu/Dockerfile"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        # build-args: NODE_VERSION=14
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true  
+
+    - name: 构建镜像  adockero/pgyvpn:ubuntu-socat
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/pgyvpn:ubuntu-socat
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./
+        file: "./pgyvpn/ubuntu/Dockerfile.socat"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        # build-args: NODE_VERSION=14
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true  
+
+
+    - name: 构建镜像  adockero/pgyvpn:ubuntu-socat-sshd
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/pgyvpn:ubuntu-socat-sshd
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./
+        file: "./pgyvpn/sshd/Dockerfile.ubuntu.socat"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        # build-args: NODE_VERSION=14
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true  
+
+    - name: 构建镜像  adockero/pgyvpn:ubuntu-tinyproxy
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/pgyvpn:ubuntu-tinyproxy
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./
+        file: "./pgyvpn/ubuntu/Dockerfile.tinyproxy"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        # build-args: NODE_VERSION=14
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true  
+
+    - name: 构建镜像  adockero/pgyvpn:ubuntu-tinyproxy-sshd
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/pgyvpn:ubuntu-tinyproxy-sshd
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./
+        file: "./pgyvpn/sshd/Dockerfile.ubuntu"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        # build-args: NODE_VERSION=14
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true  
+
+# ubuntu-------------------------------------------
+
+
     - name: 构建镜像  adockero/pgyvpn:tinyproxy-2.2.2
       uses: docker/build-push-action@v3
       with:
@@ -73,7 +164,7 @@ jobs:
         tags: adockero/pgyvpn:tinyproxy-sshd
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./
-        file: "./pgyvpn/tinyproxy-sshd/Dockerfile"
+        file: "./pgyvpn/sshd/Dockerfile"
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
@@ -82,60 +173,6 @@ jobs:
         #   APK_ARG=rsync
         # Adds labels with git repository information to the built image
         labels: true  
-
-# ubuntu-------------------------------------------
-    - name: 构建镜像  adockero/pgyvpn:ubuntu
-      uses: docker/build-push-action@v3
-      with:
-        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: adockero/pgyvpn:ubuntu
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        context: ./
-        file: "./pgyvpn/ubuntu/Dockerfile"
-        # Always attempt to pull a newer version of the image
-        pull: true
-        push: true
-        # 构建参数
-        # build-args: NODE_VERSION=14
-        #   APK_ARG=rsync
-        # Adds labels with git repository information to the built image
-        labels: true  
-
-    - name: 构建镜像  adockero/pgyvpn:ubuntu-tinyproxy
-      uses: docker/build-push-action@v3
-      with:
-        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: adockero/pgyvpn:ubuntu-tinyproxy
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        context: ./
-        file: "./pgyvpn/ubuntu/Dockerfile.tinyproxy"
-        # Always attempt to pull a newer version of the image
-        pull: true
-        push: true
-        # 构建参数
-        # build-args: NODE_VERSION=14
-        #   APK_ARG=rsync
-        # Adds labels with git repository information to the built image
-        labels: true  
-
-    - name: 构建镜像  adockero/pgyvpn:ubuntu-tinyproxy-sshd
-      uses: docker/build-push-action@v3
-      with:
-        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: adockero/pgyvpn:ubuntu-tinyproxy-sshd
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        context: ./
-        file: "./pgyvpn/tinyproxy-sshd/Dockerfile.ubuntu"
-        # Always attempt to pull a newer version of the image
-        pull: true
-        push: true
-        # 构建参数
-        # build-args: NODE_VERSION=14
-        #   APK_ARG=rsync
-        # Adds labels with git repository information to the built image
-        labels: true  
-
-# ubuntu-------------------------------------------
 
 
     # - name: 构建镜像  adockero/node-service:node-11-alpine

@@ -7,6 +7,6 @@ ENV SSHD_PASSWORD=''
 COPY ./common/open-sshd-passwd.sh /open-sshd-passwd.sh
 
 
-COPY ./pgyvpn/tinyproxy-sshd/docker-entrypoint.sh /docker-entrypoint-sshd.sh
+COPY ./pgyvpn/sshd/docker-entrypoint.sh /docker-entrypoint-sshd.sh
 ENTRYPOINT [ "/docker-entrypoint-sshd.sh" ]
 

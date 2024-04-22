@@ -3,17 +3,16 @@ FROM adockero/pgyvpn:ubuntu
 
 
 RUN apt update \
-    && apt install -y tinyproxy psmisc \
-    && ln -s $(which tinyproxy) /usr/sbin/ \
-    && mkdir -p /usr/share/pgyvpn/script/ \
+    && apt install -y socat \
     && mv /docker-entrypoint.sh /usr/share/pgyvpn/script/pgystart \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && apt-get clean
 
-COPY --from=monokal/tinyproxy /opt/docker-tinyproxy/run.sh /docker-tinyproxy-run.sh
 
 # COPY --chmod 0755 docker-entrypoint.sh /docker-entrypoint.sh
-COPY ./pgyvpn/docker-entrypoint.sh /docker-entrypoint.sh
+ENV PROXY_IP ""
+ENV PROXY_PORT ""
+COPY ./pgyvpn/ubuntu/docker-entrypoint.socat.sh /docker-entrypoint.sh
 
 
 EXPOSE 8888
