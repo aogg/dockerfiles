@@ -5,13 +5,15 @@ FROM adockero/pgyvpn:ubuntu
 RUN apt update \
     && apt install -y tinyproxy \
     && ln -s $(which tinyproxy) /usr/sbin/ \
+    && mkdir -p /usr/share/pgyvpn/script/ \
+    && ln -s /docker-entrypoint.sh /usr/share/pgyvpn/script/pgystart \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && apt-get clean
 
 COPY --from=monokal/tinyproxy /opt/docker-tinyproxy/run.sh /docker-tinyproxy-run.sh
 
 # COPY --chmod 0755 docker-entrypoint.sh /docker-entrypoint.sh
-COPY ./pgyvpn/docker-entrypoint.sh /docker-entrypoint.sh
+COPY ./pgyvpn/docker-entrypoint.sh /docker-entrypoint-tinyproxy.sh
 
 
 EXPOSE 8888
@@ -20,7 +22,7 @@ EXPOSE 8888
 COPY ./common/one-exec.sh /one-exec.sh
 ENV ONE_EXEC ""
 
-ENTRYPOINT [ "/docker-entrypoint.sh" ]
+ENTRYPOINT [ "/docker-entrypoint-tinyproxy.sh" ]
 
 
 

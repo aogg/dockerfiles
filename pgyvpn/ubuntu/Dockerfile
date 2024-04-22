@@ -2,7 +2,7 @@
 FROM ubuntu:20.04
 
 RUN apt update \
-    && apt install -y wget \
+    && apt install -y wget net-tools inetutils-ping \
     && echo '开始pgyvpn' \
     && wget https://pgy.oray.com/softwares/153/download/2156/PgyVisitor_6.2.0_x86_64.deb \
     && dpkg -i PgyVisitor_6.2.0_x86_64.deb \
