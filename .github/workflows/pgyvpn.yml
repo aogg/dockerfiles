@@ -118,6 +118,23 @@ jobs:
         # Adds labels with git repository information to the built image
         labels: true  
 
+    - name: 构建镜像  adockero/pgyvpn:ubuntu-tinyproxy-sshd
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/pgyvpn:ubuntu-tinyproxy-sshd
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./
+        file: "./pgyvpn/tinyproxy-sshd/Dockerfile.ubuntu"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        # build-args: NODE_VERSION=14
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true  
+
 # ubuntu-------------------------------------------
 
 
