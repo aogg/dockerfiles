@@ -19,6 +19,6 @@ ENTRYPOINT [ "/docker-entrypoint.sh" ]
 
 
 
-COPY ./pgyvpn/ubuntu/service.pgyvpn.sh /etc/init.d/pgyvpn.sh
+# COPY ./pgyvpn/ubuntu/service.pgyvpn.sh /etc/init.d/pgyvpn.sh
 
 

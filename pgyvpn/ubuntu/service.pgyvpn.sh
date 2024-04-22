@@ -1,6 +1,7 @@
 #!/bin/sh
 #chkconfig: 345 90 10 
 #description: pgyvpn
+# 会自动安装，不需要
 
 start_monitor()
 {
