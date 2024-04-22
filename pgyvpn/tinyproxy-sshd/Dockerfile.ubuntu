@@ -2,7 +2,7 @@ FROM adockero/pgyvpn:ubuntu-tinyproxy
 
 
 RUN apt update \
-    && apt install -y openssh \
+    && apt install -y openssh-server \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && apt-get clean
 
