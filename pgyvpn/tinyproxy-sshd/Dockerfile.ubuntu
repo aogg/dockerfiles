@@ -1,0 +1,16 @@
+FROM adockero/pgyvpn:ubuntu-tinyproxy
+
+
+RUN apt update \
+    && apt install -y openssh \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && apt-get clean
+
+ENV SSHD_PORT 22
+ENV SSHD_PASSWORD=''
+COPY ./common/open-sshd-passwd.sh /open-sshd-passwd.sh
+
+
+COPY ./pgyvpn/tinyproxy-sshd/docker-entrypoint.sh /docker-entrypoint-sshd.sh
+ENTRYPOINT [ "/docker-entrypoint-sshd.sh" ]
+
