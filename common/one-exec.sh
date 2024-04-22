@@ -2,7 +2,7 @@
 
 
 echo 'start one-exec.sh';
-if [ ! -f "~/.one" ];then
+if [ ! -f "$(cd ~ && pwd)/.one" ];then
     echo 1 > ~/.one
 
     if [ -n "$ONE_EXEC" ];then
