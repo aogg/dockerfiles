@@ -10,7 +10,9 @@ COPY ./pgyvpn/docker-entrypoint.sh /docker-entrypoint.sh
 # 通过代理来使用
 
 RUN apk add --no-cache tinyproxy \
-    && ln -s /usr/bin/tinyproxy /usr/sbin/
+    && ln -s /usr/bin/tinyproxy /usr/sbin/ \
+    && touch /var/log/tinyproxy/tinyproxy.log \
+    && chmod 777 /var/log/tinyproxy/tinyproxy.log
 
 EXPOSE 8888
 
