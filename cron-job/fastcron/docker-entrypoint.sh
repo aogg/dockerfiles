@@ -99,7 +99,7 @@ while true; do
 
 # id = $(cat )
     # json=$(
-        execute_with_retry curl --location --request GET "'https://www.fastcron.com/api/v1/cron_list?token=${ACCESS_TOKEN}'"
+        execute_with_retry curl --location --request GET "'https://app.fastcron.com/api/v1/cron_list?token=${ACCESS_TOKEN}'"
     # )
     json=$execute_with_retry_out
     
@@ -127,7 +127,7 @@ while true; do
                     
                     # 执行删除操作
                     sleep 1
-                    execute_with_retry curl --location --request POST "'https://www.fastcron.com/api/v1/cron_delete?token=${ACCESS_TOKEN}&id=${jobId}'"
+                    execute_with_retry curl --location --request POST "'https://app.fastcron.com/api/v1/cron_delete?token=${ACCESS_TOKEN}&id=${jobId}'"
                 # else
                 #     echo "jobId 不大于 0"  
                 fi
@@ -138,7 +138,7 @@ while true; do
     
     echo '----------------确认是否已删除----start----'$(date)'-----------------------------'
         sleep 1
-        execute_with_retry curl --location --request GET "'https://www.fastcron.com/api/v1/cron_list?token=${ACCESS_TOKEN}'"
+        execute_with_retry curl --location --request GET "'https://app.fastcron.com/api/v1/cron_list?token=${ACCESS_TOKEN}'"
     echo '----------------确认是否已删除----end----'$(date)'-----------------------------'
 
     echo '----------------开始创建定时任务-------'$(date)'-----------------------------'
@@ -171,7 +171,7 @@ while true; do
     echo '----------------最终发送json----end---'$(date)'-----------------------------'
 
     sleep 1
-    execute_with_retry curl --location --request POST "'https://www.fastcron.com/api/v1/cron_add?token=${ACCESS_TOKEN}'"  \
+    execute_with_retry curl --location --request POST "'https://app.fastcron.com/api/v1/cron_add?token=${ACCESS_TOKEN}'"  \
     --header "'Content-Type: application/json'" \
     --data-raw "'$(echo $updated_string)'"
 
