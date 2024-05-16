@@ -11,3 +11,5 @@ EXPOSE 8080
 ADD ./docker-entrypoint.http_shell.sh /
 
 ENTRYPOINT ["/docker-entrypoint.http_shell.sh"]
+
+CMD [ "dockerd" ]
