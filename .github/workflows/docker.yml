@@ -41,7 +41,7 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: adockero/docker:dind-http-shell
         context: ./docker/http_shell/
-        file: Dockerfile
+        file: ./docker/http_shell/Dockerfile
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
