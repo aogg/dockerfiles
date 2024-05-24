@@ -146,7 +146,7 @@ jobs:
         tags: adockero/pgyvpn:tinyproxy
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./
-        file: "./pgyvpn/Dockerfile"
+        file: "./pgyvpn/pgyvpn-tinyproxy/Dockerfile"
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
