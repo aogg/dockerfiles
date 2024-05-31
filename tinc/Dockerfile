@@ -14,6 +14,7 @@ RUN echo "deb http://http.debian.net/debian experimental main" >> /etc/apt/sourc
     mkdir -p /etc/tinc/nets.boot && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y -t experimental net-tools tinc && \
     echo 'end install tinc' && \
+    mkdir -p /dev/net/tun \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 EXPOSE 655/tcp 655/udp

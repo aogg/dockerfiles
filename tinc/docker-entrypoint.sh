@@ -26,6 +26,11 @@ Port=${PORT}
 Subnet=${NODE_IP}/32
 EOF
 
+
+    echo '追加配置';
+    echo -e $CONFIG_MORE
+    echo -e $CONFIG_MORE >> /etc/tinc/hosts/${NODE_NAME}
+
 else
     # 服务端
     NODE_IP=${NODE_IP:-10.5.5.1}
@@ -45,12 +50,17 @@ Subnet=${NODE_IP}/32
 Address=${ETH0_IP}
 EOF
 
+    echo '追加配置';
+    echo -e $CONFIG_MORE
+    echo -e $CONFIG_MORE >> /etc/tinc/hosts/tinc_server
+
 
     echo 'Here is the INVITE_URL variable on the client side';
     echo '下面是客户端的INVITE_URL变量，5s后输出';
     echo 'tinc invite ${NODE_NAME}'
-    if [[ -z "${NODE_NAME}" ]];then
-        (slee 5 && tinc invite ${NODE_NAME}) &
+    if [[ -n "${NODE_NAME}" ]];then
+        echo '开始5s后输出';
+        (sleep 5 && echo $(echo '邀请链接为' && tinc invite ${NODE_NAME})) &
     fi
 
 
