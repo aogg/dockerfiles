@@ -6,10 +6,11 @@ FROM debian:experimental
 # Remove SUID programs
 RUN for i in `find / -perm +6000 -type f 2>/dev/null`; do chmod a-s $i; done
 
-RUN echo "deb http://http.debian.net/debian experimental main" >> /etc/apt/sources.list && \
+RUN apt update && \
+    apt-get install -y iputils-ping && \
+    echo "deb http://http.debian.net/debian experimental main" >> /etc/apt/sources.list && \
     apt-get update && \
     echo 'start install' && apt search ifconfig \
-    && apt-get install -y iputils-ping && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y libssl && \
     echo 'start install tinc' && \
     mkdir -p /etc/tinc/nets.boot && \
