@@ -5,10 +5,28 @@ NETMASK=${NETMASK:-255.255.255.0}
 PORT=${PORT:-655}
 ETH0_IP=${ETH0_IP:-0.0.0.0}
 
+mkdir -p /etc/tinc/hosts/;
+
 if [[ "${INVITE_URL}" ]];then
     # 客户端
 
-    if [[ ! -f /etc/tinc/hosts/${NODE_NAME} ]];then
+
+
+    # Port 0 表示随机选择 - 不使用固定端口避免被检测
+#     cat <<EOF >> /etc/tinc/hosts/${NODE_NAME}
+# Port=${PORT}
+# Subnet=${NODE_IP}/32
+# EOF
+
+
+#     echo '追加配置';
+#     echo -e $CONFIG_MORE
+#     echo -e $CONFIG_MORE >> /etc/tinc/hosts/${NODE_NAME}
+
+
+    # if [[ ! -f /etc/tinc/hosts/${NODE_NAME} ]];then
+    if [[ ! -f /etc/tinc/tinc.conf ]];then
+        echo 'tinc join '$INVITE_URL;
         tinc join $INVITE_URL
     fi
 
@@ -19,17 +37,6 @@ if [[ "${INVITE_URL}" ]];then
 #!/bin/sh
 ifconfig \$INTERFACE ${NODE_IP} netmask ${NETMASK}
 EOF
-
-    # Port 0 表示随机选择 - 不使用固定端口避免被检测
-    cat <<EOF >> /etc/tinc/hosts/${NODE_NAME}
-Port=${PORT}
-Subnet=${NODE_IP}/32
-EOF
-
-
-    echo '追加配置';
-    echo -e $CONFIG_MORE
-    echo -e $CONFIG_MORE >> /etc/tinc/hosts/${NODE_NAME}
 
 else
     # 服务端
@@ -67,6 +74,7 @@ EOF
 fi
 
 
+echo '开始运行 tinc start -d';
 # 不允许join -U nobody
 exec tinc start -d $LOG_LEVEL -D
 
