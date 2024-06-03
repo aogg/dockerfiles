@@ -1,0 +1,26 @@
+FROM adockero/tinc
+
+
+RUN apt update \
+    && apt install -y tinyproxy psmisc \
+    && ln -s $(which tinyproxy) /usr/sbin/ \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && apt-get clean
+
+COPY --from=monokal/tinyproxy /opt/docker-tinyproxy/run.sh /docker-tinyproxy-run.sh
+
+# COPY --chmod 0755 docker-entrypoint.sh /docker-entrypoint.sh
+COPY ./tinc/tinyproxy/docker-entrypoint.sh /docker-entrypoint-tinyproxy.sh
+
+RUN touch /var/log/tinyproxy/tinyproxy.log \
+    && chmod 777 /var/log/tinyproxy/tinyproxy.log
+
+EXPOSE 8888
+
+# 一次脚本
+COPY ./common/one-exec.sh /one-exec.sh
+ENV ONE_EXEC ""
+
+
+
+ENTRYPOINT [ "/docker-entrypoint-tinyproxy.sh" ]
