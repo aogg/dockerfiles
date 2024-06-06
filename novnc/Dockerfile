@@ -24,6 +24,11 @@ ENV MORE_ARGS ""
 
 EXPOSE 6080
 
-ENTRYPOINT ["/noVNC/utils/novnc_proxy"]
+# ENTRYPOINT ["/noVNC/utils/novnc_proxy"]
 
-CMD ["--vnc", "\$VNC_ADDRESS", "--key", "/etc/ssl/novnc.key", "--cert", "/etc/ssl/novnc.cert", "--ssl-only", "\$MORE_ARGS"]
+# CMD ["/noVNC/utils/novnc_proxy", "--vnc", "\$VNC_ADDRESS", "--key", "/etc/ssl/novnc.key", "--cert", "/etc/ssl/novnc.cert", "--ssl-only", "\$MORE_ARGS"]
+
+
+CMD /noVNC/utils/novnc_proxy --vnc $VNC_ADDRESS --key /etc/ssl/novnc.key --cert /etc/ssl/novnc.cert --ssl-only $MORE_ARGS
+
+
