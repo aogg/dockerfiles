@@ -20,6 +20,7 @@ RUN apk add python3 bash \
 WORKDIR /noVNC
 
 ENV VNC_ADDRESS ""
+ENV MORE_ARGS ""
 
 EXPOSE 6080
 
