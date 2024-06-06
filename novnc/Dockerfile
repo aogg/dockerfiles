@@ -11,7 +11,7 @@ RUN apk add python3 \
     && git clone --depth 1 https://github.com/novnc/websockify ./websockify \
     && rm -Rf ./websockify/.git \
     && openssl req -new -newkey rsa:4096 -days 36500 -nodes -x509 -subj "/C=CN/ST=Guangdong/L=Guangzhou/O=YourOrganization/CN=www.google.com" -keyout /etc/ssl/novnc.key -out /etc/ssl/novnc.cert \
-    && apk del .phpize-deps
+    && apk del .apk-cache
 
 
 
