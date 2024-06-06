@@ -2,7 +2,7 @@
 FROM alpine
 
 
-RUN apk add python3 bash \
+RUN apk add python3 py3-numpy bash \
     && echo '安装临时包' \
     && apk add --no-cache --virtual .apk-cache git openssl \
     && git clone --depth 1 https://github.com/novnc/noVNC /noVNC \
