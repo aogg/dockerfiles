@@ -25,4 +25,4 @@ EXPOSE 6080
 
 ENTRYPOINT ["/noVNC/utils/novnc_proxy"]
 
-CMD ["--vnc", "$VNC_ADDRESS", "--key", "/app/etc/ssl/novnc.key", "--cert", "/app/etc/ssl/novnc.cert", "--ssl-only"]
+CMD ["--vnc", "$VNC_ADDRESS", "--key", "/etc/ssl/novnc.key", "--cert", "/etc/ssl/novnc.cert", "--ssl-only", "$MORE_ARGS"]
