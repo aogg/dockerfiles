@@ -2,7 +2,7 @@
 FROM alpine
 
 
-RUN apk add python3 py3-numpy bash \
+RUN apk add python3 bash \
     && echo '安装临时包' \
     && apk add --no-cache --virtual .apk-cache git openssl \
     && git clone --depth 1 https://github.com/novnc/noVNC /noVNC \
@@ -26,4 +26,4 @@ EXPOSE 6080
 
 ENTRYPOINT ["/noVNC/utils/novnc_proxy"]
 
-CMD ["--vnc", "$VNC_ADDRESS", "--key", "/etc/ssl/novnc.key", "--cert", "/etc/ssl/novnc.cert", "--ssl-only", "$MORE_ARGS"]
+CMD ["--vnc", "\$VNC_ADDRESS", "--key", "/etc/ssl/novnc.key", "--cert", "/etc/ssl/novnc.cert", "--ssl-only", "\$MORE_ARGS"]
