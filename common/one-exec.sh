@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+# 运行
+# /one-exec.sh
 
 echo 'start one-exec.sh';
 if [ ! -f "$(cd ~ && pwd)/.one" ];then
