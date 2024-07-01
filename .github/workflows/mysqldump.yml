@@ -38,7 +38,7 @@ jobs:
         # tags: adockero/node-systemd:node-14
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./mysqldump/table
-        file: "./mysqldump/table/Dockerfile"
+        file: "Dockerfile"
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
