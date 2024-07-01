@@ -30,15 +30,15 @@ jobs:
 
 # ##########  构建  ###########################
 
-    - name: 构建镜像  adockero/mysqldump:table
+    - name: 构建镜像  adockero/mysqldump:tables
       uses: docker/build-push-action@v3
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: adockero/mysqldump:table
+        tags: adockero/mysqldump:tables
         # tags: adockero/node-systemd:node-14
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        context: ./mysqldump/table
-        file: "Dockerfile"
+        context: ./mysqldump/tables
+        file: "./mysqldump/tables/Dockerfile"
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
