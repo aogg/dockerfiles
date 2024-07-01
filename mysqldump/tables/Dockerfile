@@ -7,6 +7,7 @@ FROM alpine:3.4
 RUN apk add --update mysql-client bash openssh-client && rm -rf /var/cache/apk/*
 COPY dump.sh /
 COPY import.sh /
+COPY dump-import.sh /
 
 # 支持异步并发执行，然后等待所有
 ENV ASYNC_WAIT ""

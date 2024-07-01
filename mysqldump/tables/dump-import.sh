@@ -8,6 +8,8 @@ IGNORE_DATABASE=${IGNORE_DATABASE}
 ASYNC_WAIT=${ASYNC_WAIT}
 ASYNC_WAIT_MAX=${ASYNC_WAIT_MAX:-100}
 
+# DUMP_ARGS=
+
 
 if [[ ${DB_USER} == "" ]]; then
         echo "Missing DB_USER env variable"
@@ -61,17 +63,18 @@ for db in $databases; do
                 
         
                 if [[ ${ASYNC_WAIT} == "" ]]; then
-                        mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" $db "$table" > "/mysqldump/$db/$table.sql"
+                        mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table" | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db"
                 else
                         while true; do
-                        current_jobs=$(pgrep -f "$KEYWORD" | wc -l)
-                        if [ "$current_jobs" -lt "$ASYNC_WAIT_MAX" ]; then
-                                mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" $db "$table" > "/mysqldump/$db/$table.sql" &
-                                break
-                        else
-                                echo $(date "+%Y-%m-%d %H:%M:%S")" dump.sh  Waiting for mysqldump process to complete..."${db}
-                                sleep 1
-                        fi
+                                current_jobs=$(pgrep -f "$KEYWORD" | wc -l)
+                                if [[ "$current_jobs" -lt "$ASYNC_WAIT_MAX" ]]; then
+                                        echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  ..."${db}"."${table}
+                                        mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db" &
+                                        break
+                                else
+                                        echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  Waiting for mysqldump process to complete..."${db}
+                                        sleep 1
+                                fi
                         done
                 fi
         done
@@ -92,10 +95,10 @@ else
 
         # 循环检测 mysqldump 进程是否存在
         while check_mysqldump_process; do
-                echo $(date "+%Y-%m-%d %H:%M:%S")" dump.sh last  Waiting for mysqldump process to complete..."${DB_HOST}
+                echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh last  Waiting for mysqldump process to complete..."${DB_HOST}
                 sleep 1  # 等待 1 秒后重新检测
         done
 
-        echo $(date "+%Y-%m-%d %H:%M:%S")" dump.sh last  mysqldump process has completed.  "${DB_HOST}
+        echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh last  mysqldump process has completed.  "${DB_HOST}
 
 fi
