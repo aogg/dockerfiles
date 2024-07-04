@@ -4,11 +4,11 @@ ARG FROM_ARG=adockero/selenium-chrome-pip:standalone
 
 FROM ${FROM_ARG}
 
+ARG USER_ARG=seluser
 
-# USER root
+USER root
 
 RUN pip install  selenium \
     && pip install pytest
 
-
-# USER seluser
+USER $USER_ARG

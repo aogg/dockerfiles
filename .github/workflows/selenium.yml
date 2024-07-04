@@ -156,7 +156,8 @@ jobs:
         pull: true
         push: true
         # 构建参数
-        # build-args: FROM_ARG=selenium/standalone-chrome
+        build-args: |
+          USER_ARG=seluser
         #   APK_ARG=rsync
         # Adds labels with git repository information to the built image
         labels: true    
