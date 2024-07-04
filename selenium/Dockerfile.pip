@@ -9,7 +9,10 @@ ARG USER_ARG=seluser
 
 USER root
 
-RUN apt update \
+RUN echo '开始' \
+    && rm /etc/apt/sources.list.d/google-chrome.list \
+    && apt update \
+    && echo '开始install' \
     && apt install -y python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
