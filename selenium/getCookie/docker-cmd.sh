@@ -8,6 +8,7 @@ wget -t 1 -O /getCookie/stealth.min.js https://raw.githubusercontent.com/require
 
 sleep 5
 
+ps -ef
 echo "开始执行------getCookie.py"
 exec python3 /getCookie/getCookie.py 2>&1
 
