@@ -6,9 +6,11 @@ wget -t 1 -O /getCookie/stealth.min.js https://raw.githubusercontent.com/require
 
 (/dockerstartup/kasm_default_profile.sh /dockerstartup/vnc_startup.sh /dockerstartup/kasm_startup.sh --wait) &
 
-sleep 5
+sleep 7
 
-ps -ef
+sudo ps -ef > /tmp/ps
+cat /tmp/ps
+
 echo "开始执行------getCookie.py"
 exec python3 /getCookie/getCookie.py 2>&1
 
