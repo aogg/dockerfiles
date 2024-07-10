@@ -57,7 +57,7 @@ if [[ "$a" != 1 ]];then
 fi
 
 # 迁移到diff
-# eval "$sshRun bash -c \"pwd && rm -Rf /tmp/dump-import-ssh-diff && mkdir -p /tmp/dump-import-ssh && mv /tmp/dump-import-ssh /tmp/dump-import-ssh-diff\""
+eval "$sshRun bash -c \"pwd && rm -Rf /tmp/dump-import-ssh-diff && mkdir -p /tmp/dump-import-ssh && mv /tmp/dump-import-ssh /tmp/dump-import-ssh-diff\""
 
 
 echo '开始循环数据库--下面是执行的命令';
@@ -69,7 +69,7 @@ echo '开始循环数据库---'$databases;
 for db in $databases; do
     if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "$IGNORE_DATABASE" ]]; then
         echo "Dumping database: $db"
-break;
+# break;
 
         eval "$sshRun 'mkdir -p /tmp/dump-import-ssh/$db && mkdir -p /tmp/dump-import-ssh-diff/$db'"
 
