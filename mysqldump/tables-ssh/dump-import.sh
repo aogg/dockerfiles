@@ -113,7 +113,10 @@ for db in $databases; do
                                 if [[ "$current_jobs" -lt "$ASYNC_WAIT_MAX" ]]; then
                                         echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  ..."${db}"."${table}
                                         # mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db" &
-                                        eval "$sshRun 'mysqldump --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db/${table}.sql'" &
+                                        {
+                                                eval "$sshRun 'mysqldump --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db/${table}.sql'";
+                                                echo "导出表--表结束--$db.$table';
+                                        }&
                                         break
                                 else
                                         echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  Waiting for mysqldump process to complete..."${db}
@@ -198,6 +201,7 @@ for db in $databases; do
                                                 
                                                 {
                                                         eval "$sshRun 'cat \"$full_file\"'" | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db";
+                                                        echo "导入有差异文件--表结束--$db.$full_file";
                                                 } &
                                                 break
                                         else
@@ -244,6 +248,7 @@ for db in $databases; do
                                                 
                                                 {
                                                         eval "$sshRun 'cat \"/tmp/dump-import-ssh/$db/$file\"'" | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db";
+                                                        echo "导入新增--表结束--$db.$file";
                                                 } &
                                                 break
                                         else
