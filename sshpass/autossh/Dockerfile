@@ -1,7 +1,7 @@
 
 FROM alpine:edge
 
-RUN apk --update --no-cache add sshpass openssh rsync autossh
+RUN apk --update --no-cache add sshpass openssh-client rsync autossh
 
 ENV SERVER_ALIVE_INTERVAL 30
 ENV SERVER_ALIVE_COUNT_MAX 3

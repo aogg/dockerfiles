@@ -4,9 +4,9 @@
 # FROM camil/mysqldump
 
 FROM alpine:3.4
-RUN apk add --update mysql-client bash && rm -rf /var/cache/apk/*
-COPY dump.sh /
-COPY import.sh /
+RUN apk add --update mysql-client bash openssh-client sshpass && rm -rf /var/cache/apk/*
+
+
 COPY dump-import.sh /
 
 # 支持异步并发执行，然后等待所有
@@ -24,6 +24,13 @@ ENV DB_HOST ""
 ENV DB_NAME ""
 ENV DB_PASS ""
 ENV DB_USER ""
+
+# ssh
+ENV STRICT_HOST_KEY_CHECKING "no"
+ENV SSH_ARGS ""
+ENV SSH_PASSWORD ""
+ENV SSH_USER ""
+ENV SSH_IP ""
 
 ENTRYPOINT ["/dump.sh"]
 
