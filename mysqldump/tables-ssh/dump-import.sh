@@ -185,7 +185,7 @@ for db in $databases; do
                         continue;
                 fi
 
-                echo $content | awk '{print $2}' | while read -r full_file; do 
+                echo -e $content | awk '{print $2}' | while read -r full_file; do 
                         echo "导入有差异文件--$db.$full_file";
 
                         if [[ ${ASYNC_WAIT} == "" ]]; then
@@ -229,7 +229,7 @@ for db in $databases; do
                         continue;
                 fi
 
-                echo $content | awk -F' ' '{print $4}' | while read -r file; do 
+                echo -e $content | awk -F' ' '{print $4}' | while read -r file; do 
                         echo "导入新增--$db.$file";
 
 
