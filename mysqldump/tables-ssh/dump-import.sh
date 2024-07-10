@@ -56,8 +56,8 @@ if [[ "$a" != 1 ]];then
         firstBool=1
 fi
 
-# 迁移到diff
-eval "$sshRun bash -c \"pwd && rm -Rf /tmp/dump-import-ssh-diff && mkdir -p /tmp/dump-import-ssh && mv /tmp/dump-import-ssh /tmp/dump-import-ssh-diff\""
+# 初始化
+eval "$sshRun bash -c \"pwd && mkdir -p /tmp/dump-import-ssh-diff && mkdir -p /tmp/dump-import-ssh && mkdir -p /tmp/dump-import-ssh-temp\""
 
 
 echo '开始循环数据库--下面是执行的命令';
@@ -71,14 +71,14 @@ for db in $databases; do
         echo "Dumping database: $db"
 # break;
 
-        eval "$sshRun 'mkdir -p /tmp/dump-import-ssh/$db && mkdir -p /tmp/dump-import-ssh-diff/$db'"
+        eval "$sshRun 'mkdir -p /tmp/dump-import-ssh/$db && mkdir -p /tmp/dump-import-ssh-diff/$db && mkdir -p /tmp/dump-import-ssh-temp/$db'"
 
 
         echo '开始循环库里的所有表--下面是执行的命令'
         echo eval "$sshRun 'mysql --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" -e \"SHOW TABLES IN $db;\"'" | tr -d "| " | grep -v Tables_in
-        echo '开始循环库里的所有表--数量-'$(eval "$sshRun 'mysql --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" -e \"SHOW TABLES IN $db;\"'" | tr -d "| " | grep -v Tables_in|wc -l)
-
         tables=$(eval "$sshRun 'mysql --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" -e \"SHOW TABLES IN $db;\"'" | tr -d "| " | grep -v Tables_in)
+        echo '开始循环库里的所有表--数量-'$(echo $tables | wc -l)
+
         for table in $tables; do
                 ignore_table=false
 
@@ -106,14 +106,14 @@ for db in $databases; do
                 
         
                 if [[ ${ASYNC_WAIT} == "" ]]; then
-                        eval "$sshRun 'mysqldump --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh/$db'"
+                        eval "$sshRun 'mysqldump --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db'"
                 else
                         while true; do
                                 current_jobs=$(pgrep -f "$KEYWORD" | wc -l)
                                 if [[ "$current_jobs" -lt "$ASYNC_WAIT_MAX" ]]; then
                                         echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  ..."${db}"."${table}
                                         # mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db" &
-                                        eval "$sshRun 'mysqldump --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh/$db/${table}.sql'" &
+                                        eval "$sshRun 'mysqldump --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db/${table}.sql'" &
                                         break
                                 else
                                         echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  Waiting for mysqldump process to complete..."${db}
@@ -151,30 +151,53 @@ else
 fi
 
 
+# 开始导入
+
+# 迁移到diff
+eval "$sshRun bash -c \"pwd && rm -Rf /tmp/dump-import-ssh-diff && mkdir -p /tmp/dump-import-ssh && mv /tmp/dump-import-ssh /tmp/dump-import-ssh-diff && mkdir -p /tmp/dump-import-ssh-temp && mv /tmp/dump-import-ssh-temp /tmp/dump-import-ssh\""
+
+
+# diff赋值
+for db in $databases; do
+        if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "$IGNORE_DATABASE" ]]; then
+                echo "对比$db--赋值变量"
+                content=$(eval "$sshRun diff -rq /tmp/dump-import-ssh/$db /tmp/dump-import-ssh-diff/$db")
+
+                echo $content
+                
+                # 定义动态变量 content_$db
+                eval "content_$db='$content'"
+        fi
+done
 
 
 # 对比文件夹
 echo '有差异的文件'
-
 for db in $databases; do
         if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "$IGNORE_DATABASE" ]]; then
                 echo "对比$db"
-                eval "$sshRun diff -rq /tmp/dump-import-ssh/$db /tmp/dump-import-ssh-diff/$db" | grep -e "^Files" | awk '{print $2}'
+                eval "content=\$content_$db"
+                content=$(echo $content | grep -e "^Files")
+                echo $content
 
+                if [ -z "$content" ]; then
+                        echo "空$db"
+                        continue;
+                fi
 
-                eval "$sshRun diff -rq /tmp/dump-import-ssh/$db /tmp/dump-import-ssh-diff/$db" | grep -e "^Files" | awk '{print $2}' | while read -r file; do 
-                        echo "导入有差异文件--$db.$file";
+                echo $content | awk '{print $2}' | while read -r full_file; do 
+                        echo "导入有差异文件--$db.$full_file";
 
                         if [[ ${ASYNC_WAIT} == "" ]]; then
-                                eval "$sshRun 'cat \"/tmp/dump-import-ssh/$db/$file\"'" | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db";
+                                eval "$sshRun 'cat \"$full_file\"'" | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db";
                         else
                                 while true; do
                                         current_jobs=$(pgrep -f "$IMPORT_KEYWORD" | wc -l)
                                         if [[ "$current_jobs" -lt "$ASYNC_WAIT_MAX" ]]; then
-                                                echo $(date "+%Y-%m-%d %H:%M:%S")" 导入  ..."${db}"."${file}
+                                                echo $(date "+%Y-%m-%d %H:%M:%S")" 导入  ..."${db}"."${full_file}
                                                 
                                                 {
-                                                        eval "$sshRun 'cat \"/tmp/dump-import-ssh/$db/$file\"'" | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db";
+                                                        eval "$sshRun 'cat \"$full_file\"'" | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db";
                                                 } &
                                                 break
                                         else
@@ -195,9 +218,18 @@ echo '有新增的文件'
 for db in $databases; do
         if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "$IGNORE_DATABASE" ]]; then
                 echo "对比$db"
-                eval "$sshRun diff -rq /tmp/dump-import-ssh/$db /tmp/dump-import-ssh-diff/$db" | grep -e "^Only in /tmp/dump-import-ssh/$db:"
+                eval "content=\$content_$db"
 
-                eval "$sshRun diff -rq /tmp/dump-import-ssh/$db /tmp/dump-import-ssh-diff/$db" | grep -e "^Only in /tmp/dump-import-ssh/$db:" | awk -F' ' '{print $4}' | while read -r file; do 
+
+                content=$(echo $content | grep -e "^Only in /tmp/dump-import-ssh/$db:")
+                echo $content
+
+                if [ -z "$content" ]; then
+                        echo "空$db"
+                        continue;
+                fi
+
+                echo $content | awk -F' ' '{print $4}' | while read -r file; do 
                         echo "导入新增--$db.$file";
 
 
@@ -241,10 +273,14 @@ else
 
         # 循环检测 mysqldump 进程是否存在
         while check_mysqldump_process; do
-                echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh last  Waiting for mysqldump process to complete..."${DB_HOST}
+                echo $(date "+%Y-%m-%d %H:%M:%S")" 最后导入 last  Waiting for mysqldump process to complete..."${DB_HOST}
                 sleep 1  # 等待 1 秒后重新检测
         done
 
-        echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh last  mysqldump process has completed.  "${DB_HOST}
+        echo $(date "+%Y-%m-%d %H:%M:%S")" 最后导入 last  mysqldump process has completed.  "${DB_HOST}
 
 fi
+
+
+
+echo $(date "+%Y-%m-%d %H:%M:%S")'-------全部结束--------'
