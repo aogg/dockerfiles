@@ -32,7 +32,7 @@ ENV SSH_PASSWORD ""
 ENV SSH_USER ""
 ENV SSH_IP ""
 
-ENTRYPOINT ["/dump.sh"]
+ENTRYPOINT ["/dump-import.sh"]
 
 
 
