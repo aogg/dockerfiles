@@ -163,7 +163,7 @@ for db in $databases; do
                 echo "对比$db--赋值变量"
                 content=$(eval "$sshRun diff -rq /tmp/dump-import-ssh/$db /tmp/dump-import-ssh-diff/$db")
 
-                echo -e $content
+                echo -e "$content"
                 
                 # 定义动态变量 content_$db
                 eval "content_$db='$content'"
@@ -177,15 +177,15 @@ for db in $databases; do
         if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "$IGNORE_DATABASE" ]]; then
                 echo "对比$db"
                 eval "content=\$content_$db"
-                content=$(echo $content | grep -e "^Files")
-                echo -e $content
+                content=$(echo -e "$content" | grep -e "^Files")
+                echo -e "$content"
 
                 if [ -z "$content" ]; then
                         echo "空$db"
                         continue;
                 fi
 
-                echo -e $content | awk '{print $2}' | while read -r full_file; do 
+                echo -e "$content" | awk '{print $2}' | while read -r full_file; do 
                         echo "导入有差异文件--$db.$full_file";
 
                         if [[ ${ASYNC_WAIT} == "" ]]; then
@@ -221,15 +221,15 @@ for db in $databases; do
                 eval "content=\$content_$db"
 
 
-                content=$(echo $content | grep -e "^Only in /tmp/dump-import-ssh/$db:")
-                echo -e $content
+                content=$(echo -e "$content" | grep -e "^Only in /tmp/dump-import-ssh/$db:")
+                echo -e "$content"
 
                 if [ -z "$content" ]; then
                         echo "空$db"
                         continue;
                 fi
 
-                echo -e $content | awk -F' ' '{print $4}' | while read -r file; do 
+                echo -e "$content" | awk -F' ' '{print $4}' | while read -r file; do 
                         echo "导入新增--$db.$file";
 
 
