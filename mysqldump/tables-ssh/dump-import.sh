@@ -163,7 +163,7 @@ for db in $databases; do
                 echo "对比$db--赋值变量"
                 content=$(eval "$sshRun diff -rq /tmp/dump-import-ssh/$db /tmp/dump-import-ssh-diff/$db")
 
-                echo $content
+                echo -e $content
                 
                 # 定义动态变量 content_$db
                 eval "content_$db='$content'"
@@ -178,7 +178,7 @@ for db in $databases; do
                 echo "对比$db"
                 eval "content=\$content_$db"
                 content=$(echo $content | grep -e "^Files")
-                echo $content
+                echo -e $content
 
                 if [ -z "$content" ]; then
                         echo "空$db"
@@ -222,7 +222,7 @@ for db in $databases; do
 
 
                 content=$(echo $content | grep -e "^Only in /tmp/dump-import-ssh/$db:")
-                echo $content
+                echo -e $content
 
                 if [ -z "$content" ]; then
                         echo "空$db"
