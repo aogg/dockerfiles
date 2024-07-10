@@ -190,7 +190,7 @@ for db in $databases; do
 
                 echo -e "$content" | awk '{print $2}' | while read -r full_file; do 
                         echo "导入有差异文件--$db.$full_file";
-                        table=$(basename /tmp/dump-import-ssh/mxtm_api/cl_gps_track.sql)
+                        table=$(basename $full_file)
                         table="${table%.*}"
                         echo "$table"
 
@@ -201,11 +201,11 @@ for db in $databases; do
                                 while true; do
                                         current_jobs=$(pgrep -f "$IMPORT_KEYWORD" | wc -l)
                                         if [[ "$current_jobs" -lt "$ASYNC_WAIT_MAX" ]]; then
-                                                echo $(date "+%Y-%m-%d %H:%M:%S")" 导入  ..."${db}"."${full_file}
+                                                echo $(date "+%Y-%m-%d %H:%M:%S")" 导入  ..."${db}"."${table}
                                                 
                                                 {
                                                         mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db"
-                                                        echo "导入有差异文件--表结束--$db.$full_file";
+                                                        echo "导入有差异文件--表结束--$db.$table";
                                                 } &
                                                 break
                                         else
