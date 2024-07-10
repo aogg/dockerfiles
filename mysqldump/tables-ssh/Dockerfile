@@ -7,6 +7,7 @@ FROM alpine:3.4
 RUN apk add --update mysql-client bash openssh-client sshpass && rm -rf /var/cache/apk/*
 
 ARG FILE_ARG=dump-import.sh
+ENV ENTRYPOINT_RUN /$FILE_ARG
 
 COPY $FILE_ARG /
 
@@ -33,7 +34,7 @@ ENV SSH_PASSWORD ""
 ENV SSH_USER ""
 ENV SSH_IP ""
 
-ENTRYPOINT ["/$FILE_ARG"]
+ENTRYPOINT $ENTRYPOINT_RUN
 
 
 
