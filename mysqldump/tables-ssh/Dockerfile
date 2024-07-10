@@ -6,8 +6,9 @@
 FROM alpine:3.4
 RUN apk add --update mysql-client bash openssh-client sshpass && rm -rf /var/cache/apk/*
 
+ARG FILE_ARG=dump-import.sh
 
-COPY dump-import.sh /
+COPY $FILE_ARG /
 
 # 支持异步并发执行，然后等待所有
 ENV ASYNC_WAIT ""
@@ -32,7 +33,7 @@ ENV SSH_PASSWORD ""
 ENV SSH_USER ""
 ENV SSH_IP ""
 
-ENTRYPOINT ["/dump-import.sh"]
+ENTRYPOINT ["/$FILE_ARG"]
 
 
 

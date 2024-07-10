@@ -57,7 +57,7 @@ if [[ "$a" != 1 ]];then
 fi
 
 # 初始化
-eval "$sshRun bash -c \"pwd && mkdir -p /tmp/dump-import-ssh-diff && mkdir -p /tmp/dump-import-ssh && mkdir -p /tmp/dump-import-ssh-temp\""
+eval "$sshRun bash -c \"pwd && mkdir -p /tmp/dump-import-ssh-diff && mkdir -p /tmp/dump-import-ssh rm -Rf /tmp/dump-import-ssh-temp && mkdir -p /tmp/dump-import-ssh-temp\""
 
 
 echo '开始循环数据库--下面是执行的命令';
@@ -106,7 +106,7 @@ for db in $databases; do
                 
         
                 if [[ ${ASYNC_WAIT} == "" ]]; then
-                        eval "$sshRun 'mysqldump --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db'"
+                        eval "$sshRun '(mysqldump --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db) && md5sum /tmp/dump-import-ssh-temp/$db/${table}.sql > /tmp/dump-import-ssh-temp/$db/${table}.sql'"
                 else
                         while true; do
                                 current_jobs=$(pgrep -f "$KEYWORD" | wc -l)
@@ -114,7 +114,7 @@ for db in $databases; do
                                         echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  ..."${db}"."${table}
                                         # mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db" &
                                         {
-                                                eval "$sshRun 'mysqldump --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db/${table}.sql'";
+                                                eval "$sshRun '(mysqldump --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db/${table}.sql) && md5sum /tmp/dump-import-ssh-temp/$db/${table}.sql > /tmp/dump-import-ssh-temp/$db/${table}.sql'";
                                                 echo "导出表--表结束--$db.$table";
                                         } &
                                         break
@@ -190,9 +190,13 @@ for db in $databases; do
 
                 echo -e "$content" | awk '{print $2}' | while read -r full_file; do 
                         echo "导入有差异文件--$db.$full_file";
+                        table=$(basename /tmp/dump-import-ssh/mxtm_api/cl_gps_track.sql)
+                        table="${table%.*}"
+                        echo "$table"
 
                         if [[ ${ASYNC_WAIT} == "" ]]; then
-                                eval "$sshRun 'cat \"$full_file\"'" | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db";
+
+                                mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db"
                         else
                                 while true; do
                                         current_jobs=$(pgrep -f "$IMPORT_KEYWORD" | wc -l)
@@ -200,7 +204,7 @@ for db in $databases; do
                                                 echo $(date "+%Y-%m-%d %H:%M:%S")" 导入  ..."${db}"."${full_file}
                                                 
                                                 {
-                                                        eval "$sshRun 'cat \"$full_file\"'" | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db";
+                                                        mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db"
                                                         echo "导入有差异文件--表结束--$db.$full_file";
                                                 } &
                                                 break
@@ -239,7 +243,8 @@ for db in $databases; do
 
 
                         if [[ ${ASYNC_WAIT} == "" ]]; then
-                                eval "$sshRun 'cat \"/tmp/dump-import-ssh/$db/$file\"'" | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db";
+
+                                mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$file"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db"
                         else
                                 while true; do
                                         current_jobs=$(pgrep -f "$IMPORT_KEYWORD" | wc -l)
@@ -247,7 +252,8 @@ for db in $databases; do
                                                 echo $(date "+%Y-%m-%d %H:%M:%S")" 导入  ..."${db}"."${file}
                                                 
                                                 {
-                                                        eval "$sshRun 'cat \"/tmp/dump-import-ssh/$db/$file\"'" | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db";
+                                                        mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$file"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db";
+
                                                         echo "导入新增--表结束--$db.$file";
                                                 } &
                                                 break
