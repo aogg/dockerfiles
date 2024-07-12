@@ -114,8 +114,8 @@ for db in $databases; do
                                         echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  ..."${db}"."${table}
                                         # mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db" &
                                         {
-                                                eval "$sshRun '(mysqldump --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db/${table}.sql) && md5sum /tmp/dump-import-ssh-temp/$db/${table}.sql > /tmp/dump-import-ssh-temp/$db/${table}.sql'";
-                                                echo "导出表--表结束--$db.$table";
+                                                time eval "$sshRun '(mysqldump --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db/${table}.sql) && md5sum /tmp/dump-import-ssh-temp/$db/${table}.sql > /tmp/dump-import-ssh-temp/$db/${table}.sql'";
+                                                echo "异步导出表--表结束--$db.$table";
                                         } &
                                         break
                                 else
@@ -252,9 +252,9 @@ for db in $databases; do
                                                 echo $(date "+%Y-%m-%d %H:%M:%S")" 导入  ..."${db}"."${file}
                                                 
                                                 {
-                                                        mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$file"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db";
+                                                        time mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$file"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db";
 
-                                                        echo "导入新增--表结束--$db.$file";
+                                                        echo "异步导入新增--表结束--$db.$file";
                                                 } &
                                                 break
                                         else
