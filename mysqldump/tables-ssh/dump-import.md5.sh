@@ -204,8 +204,8 @@ for db in $databases; do
                                                 echo $(date "+%Y-%m-%d %H:%M:%S")" 导入  ..."${db}"."${table}
                                                 
                                                 {
-                                                        mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db"
-                                                        echo "导入有差异文件--表结束--$db.$table";
+                                                        time (mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db")
+                                                        echo "异步导入有差异文件--表结束--$db.$table";
                                                 } &
                                                 break
                                         else
@@ -252,7 +252,7 @@ for db in $databases; do
                                                 echo $(date "+%Y-%m-%d %H:%M:%S")" 导入  ..."${db}"."${file}
                                                 
                                                 {
-                                                        time mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$file"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db";
+                                                        time (mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$file"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db");
 
                                                         echo "异步导入新增--表结束--$db.$file";
                                                 } &
