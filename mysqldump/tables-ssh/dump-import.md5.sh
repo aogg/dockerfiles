@@ -9,6 +9,7 @@ ASYNC_WAIT=${ASYNC_WAIT}
 ASYNC_WAIT_MAX=${ASYNC_WAIT_MAX:-100}
 
 # DUMP_ARGS=
+#  docker build -f ./Dockerfile -t adockero/mysqldump:tables-ssh --build-arg FILE_ARG=dump-import.md5.sh  .
 
 
 if [[ ${DB_USER} == "" ]]; then
@@ -57,7 +58,7 @@ if [[ "$a" != 1 ]];then
 fi
 
 # 初始化
-eval "$sshRun bash -c \"pwd && mkdir -p /tmp/dump-import-ssh-diff && mkdir -p /tmp/dump-import-ssh rm -Rf /tmp/dump-import-ssh-temp && mkdir -p /tmp/dump-import-ssh-temp\""
+eval "$sshRun bash -c \"pwd && mkdir -p /tmp/dump-import-ssh-diff && mkdir -p /tmp/dump-import-ssh && rm -Rf /tmp/dump-import-ssh-temp && mkdir -p /tmp/dump-import-ssh-temp\""
 
 
 echo '开始循环数据库--下面是执行的命令';
@@ -71,7 +72,7 @@ for db in $databases; do
         echo "Dumping database: $db"
 # break;
 
-        eval "$sshRun 'mkdir -p /tmp/dump-import-ssh/$db && mkdir -p /tmp/dump-import-ssh-diff/$db && mkdir -p /tmp/dump-import-ssh-temp/$db'"
+        eval "$sshRun 'mkdir -p /tmp/dump-import-ssh/$db && mkdir -p /tmp/dump-import-ssh-diff/$db && mkdir -p /tmp/dump-import-ssh-temp/$db && mkdir -p /tmp/dump-import-ssh-temp/mysql_error_log_dir/$db'"
 
 
         echo '开始循环库里的所有表--下面是执行的命令'
@@ -106,7 +107,7 @@ for db in $databases; do
                 
         
                 if [[ ${ASYNC_WAIT} == "" ]]; then
-                        eval "$sshRun '(mysqldump --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db) && md5sum /tmp/dump-import-ssh-temp/$db/${table}.sql > /tmp/dump-import-ssh-temp/$db/${table}.sql'"
+                        time eval "$sshRun '(mysqldump --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db/${table}.log --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db);md5sum /tmp/dump-import-ssh-temp/$db/${table}.sql > /tmp/dump-import-ssh-temp/$db/${table}.md5 && cat /tmp/dump-import-ssh-temp/$db/${table}.md5;rm -f /tmp/dump-import-ssh-temp/$db/${table}.sql'"
                 else
                         while true; do
                                 current_jobs=$(pgrep -f "$KEYWORD" | wc -l)
@@ -114,7 +115,9 @@ for db in $databases; do
                                         echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  ..."${db}"."${table}
                                         # mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db" &
                                         {
-                                                time eval "$sshRun '(mysqldump --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db/${table}.sql) && md5sum /tmp/dump-import-ssh-temp/$db/${table}.sql > /tmp/dump-import-ssh-temp/$db/${table}.sql'";
+                                                # 空文件的md5=d41d8cd98f00b204e9800998ecf8427e
+                                                time eval "$sshRun '(mysqldump --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db/${table}.log --skip-comments --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db/${table}.sql); md5sum /tmp/dump-import-ssh-temp/$db/${table}.sql > /tmp/dump-import-ssh-temp/$db/${table}.md5 && cat /tmp/dump-import-ssh-temp/$db/${table}.md5;rm -f /tmp/dump-import-ssh-temp/$db/${table}.sql'";
+                                                
                                                 echo "异步导出表--表结束--$db.$table";
                                         } &
                                         break
@@ -152,6 +155,9 @@ else
         echo $(date "+%Y-%m-%d %H:%M:%S")" 导出 last  mysqldump process has completed.  "${DB_HOST}
 
 fi
+
+# 显示导出时的错误
+eval "$sshRun 'cat -n /tmp/dump-import-ssh-temp/mysql_error_log_dir/*/*'"
 
 
 # 开始导入
@@ -196,7 +202,7 @@ for db in $databases; do
 
                         if [[ ${ASYNC_WAIT} == "" ]]; then
 
-                                mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db"
+                                time (mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db")
                         else
                                 while true; do
                                         current_jobs=$(pgrep -f "$IMPORT_KEYWORD" | wc -l)
@@ -244,7 +250,7 @@ for db in $databases; do
 
                         if [[ ${ASYNC_WAIT} == "" ]]; then
 
-                                mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$file"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db"
+                                time (mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$file"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db")
                         else
                                 while true; do
                                         current_jobs=$(pgrep -f "$IMPORT_KEYWORD" | wc -l)
