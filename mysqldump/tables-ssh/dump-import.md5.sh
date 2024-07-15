@@ -108,7 +108,7 @@ for db in $databases; do
                 
         
                 if [[ ${ASYNC_WAIT} == "" ]]; then
-                        time (echo "DB_PASS=\"${DB_PASS}\";echo \$(mysqldump --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db/${table}.log --skip-comments --user=\"${DB_USER}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db/${table}.sql); md5sum /tmp/dump-import-ssh-temp/$db/${table}.sql > /tmp/dump-import-ssh-temp/$db/${table}.md5 && cat /tmp/dump-import-ssh-temp/$db/${table}.md5;rm -f /tmp/dump-import-ssh-temp/$db/${table}.sql" | eval "$sshRun 'bash -s'");
+                        time (echo "DB_PASS=\"${DB_PASS}\";echo \$(mysqldump --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db/${table}.log --skip-comments --user=\"${DB_USER}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" | md5sum) > /tmp/dump-import-ssh-temp/$db/${table}.md5;cat /tmp/dump-import-ssh-temp/$db/${table}.md5" | eval "$sshRun 'bash -s'");
                 else
                         while true; do
                                 current_jobs=$(pgrep -f "$KEYWORD" | wc -l)
@@ -117,7 +117,7 @@ for db in $databases; do
                                         # mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db" &
                                         {
                                                 # 空文件的md5=d41d8cd98f00b204e9800998ecf8427e
-                                                time (echo "DB_PASS=\"${DB_PASS}\";echo \$(mysqldump --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db/${table}.log --skip-comments --user=\"${DB_USER}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" > /tmp/dump-import-ssh-temp/$db/${table}.sql); md5sum /tmp/dump-import-ssh-temp/$db/${table}.sql > /tmp/dump-import-ssh-temp/$db/${table}.md5 && cat /tmp/dump-import-ssh-temp/$db/${table}.md5;rm -f /tmp/dump-import-ssh-temp/$db/${table}.sql" | eval "$sshRun 'bash -s'");
+                                                time (echo "DB_PASS=\"${DB_PASS}\";echo \$(mysqldump --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db/${table}.log --skip-comments --user=\"${DB_USER}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db \"$table\" | md5sum) > /tmp/dump-import-ssh-temp/$db/${table}.md5;cat /tmp/dump-import-ssh-temp/$db/${table}.md5" | eval "$sshRun 'bash -s'");
                                                 
                                                 echo "异步导出表--表结束--$db.$table";
                                         } &
