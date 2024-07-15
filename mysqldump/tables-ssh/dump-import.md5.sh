@@ -123,7 +123,7 @@ for db in $databases; do
                                         } &
                                         break
                                 else
-                                        echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  Waiting for mysqldump process to complete..."${db}
+                                        echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  等待异步导出..."${db}
                                         sleep 1
                                 fi
                         done
