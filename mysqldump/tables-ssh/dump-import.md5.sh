@@ -79,7 +79,7 @@ for db in $databases; do
         echo '开始循环库里的所有表--下面是执行的命令'
         echo eval "$sshRun 'mysql --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" -e \"SHOW TABLES IN $db;\"'" | tr -d "| " | grep -v Tables_in
         tables=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -e \"SHOW TABLES IN $db;\"" | eval "$sshRun 'bash -s'" | tr -d "| " | grep -v Tables_in)
-        echo '开始循环库里的所有表--数量-'$(echo $tables | wc -l)
+        echo '开始循环库里的所有表--数量-'$(echo -e "$tables" | wc -l)
 
         for table in $tables; do
                 ignore_table=false
