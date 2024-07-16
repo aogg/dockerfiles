@@ -85,8 +85,8 @@ echo $cpuScript
 echo 100 > /tmp/get_remote_cpu_idle
 async_write_file(){
         {
-
-        echo $cpuScript | (exec -a "监听CPU空闲率" $(eval echo $sshRun) 'bash -s') | while IFS= read -r line; do
+# 避免keyword匹配到
+        echo $cpuScript | (exec -a "监听CPU空闲率" sshpass -p "$SSH_PASSWORD" ssh $SSH_ARGS -v -o "StrictHostKeyChecking=$STRICT_HOST_KEY_CHECKING" $SSH_USER@$SSH_IP 'bash -s') | while IFS= read -r line; do
                 echo $line > /tmp/get_remote_cpu_idle
                 echo "cpu空闲率=${line}"
         done
