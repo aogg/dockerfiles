@@ -166,7 +166,7 @@ for db in $databases; do
                                                 
                                                 echo "异步导出表--表结束--$db.$table";
                                         } &
-                                        sleep 1;
+                                        sleep 0.7;
                                         break
                                 else
                                         echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  cpu空闲率=${cpuWait}%  等待异步导出..."${db}
