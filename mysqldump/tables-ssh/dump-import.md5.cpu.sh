@@ -7,6 +7,7 @@ DB_HOST=${DB_HOST:-${MYSQL_ENV_DB_HOST}}
 IGNORE_DATABASE=${IGNORE_DATABASE}
 ASYNC_WAIT=${ASYNC_WAIT}
 ASYNC_WAIT_MAX=${ASYNC_WAIT_MAX:-100}
+DUMP_WAIT_SECONDS=${DUMP_WAIT_SECONDS:-0.6}
 
 # 最小空闲cpu
 CPU_IDLE_MIN=${CPU_IDLE_MIN:-15}
@@ -166,7 +167,7 @@ for db in $databases; do
                                                 
                                                 echo "异步导出表--表结束--$db.$table";
                                         } &
-                                        sleep 0.7;
+                                        sleep $DUMP_WAIT_SECONDS;
                                         break
                                 else
                                         echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  cpu空闲率=${cpuWait}%  等待异步导出..."${db}
