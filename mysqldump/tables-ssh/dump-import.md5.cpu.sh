@@ -80,13 +80,26 @@ echo $cpuScript
         
 
 # get_remote_cpu_idle
+#  exec -a "aaa" $(eval echo $sshRun)
 echo 100 > /tmp/get_remote_cpu_idle
-{
+async_write_file(){
+        {
 
-echo $cpuScript | eval $sshRun 'bash -s' | while IFS= read -r line; do
-        echo $line > /tmp/get_remote_cpu_idle
-        echo "cpu空闲率=${line}"
-done
+        echo $cpuScript | (exec -a "监听CPU空闲率" $(eval echo $sshRun) 'bash -s') | while IFS= read -r line; do
+                echo $line > /tmp/get_remote_cpu_idle
+                echo "cpu空闲率=${line}"
+        done
+        } &
+} 
+async_write_file
+{
+        sleep 2;
+        while true; do
+                if ! pgrep -f "监听CPU空闲率" > /dev/null; then
+                        async_write_file
+                fi
+                sleep 1
+        done
 } &
 echo '监听cpu空闲率'
 
@@ -153,12 +166,14 @@ for db in $databases; do
                                                 
                                                 echo "异步导出表--表结束--$db.$table";
                                         } &
+                                        sleep 1;
                                         break
                                 else
                                         echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  cpu空闲率=${cpuWait}%  等待异步导出..."${db}
-                                        sleep 1
+                                        sleep 1;
                                 fi
                         done
+                        
                 fi
         done
 
