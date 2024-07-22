@@ -31,6 +31,25 @@ jobs:
 # ##########  构建  ###########################
 
 
+    - name: 构建镜像  adockero/mysqldump:tables-ssh-pv
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/mysqldump:tables-ssh-pv
+        # tags: adockero/node-systemd:node-14
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./mysqldump/tables-ssh
+        file: "./mysqldump/tables-ssh/Dockerfile"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        build-args: |
+          APK_ARG=pv
+          FILE_ARG=dump-import.md5.pv.sh
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true   
 
     - name: 构建镜像  adockero/mysqldump:tables-ssh-cpu
       uses: docker/build-push-action@v3

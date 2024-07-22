@@ -4,7 +4,10 @@
 # FROM camil/mysqldump
 
 FROM alpine:3.4
-RUN apk add --update mysql-client bash openssh-client sshpass && rm -rf /var/cache/apk/*
+
+ARG APK_ARG=
+
+RUN apk add --update mysql-client bash openssh-client sshpass ${APK_ARG} && rm -rf /var/cache/apk/*
 
 ARG FILE_ARG=dump-import.sh
 ENV ENTRYPOINT_RUN /$FILE_ARG
