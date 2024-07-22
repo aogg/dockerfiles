@@ -3,7 +3,7 @@
 
 # FROM camil/mysqldump
 
-FROM alpine:3.4
+FROM alpine
 
 ARG APK_ARG=
 
