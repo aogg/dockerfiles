@@ -206,7 +206,7 @@ BASH
 
 # todo 还要管道导出表
                 time (
-                        printf "%s\n" "$command" | eval "$sshRun 'exec -a \"导出数据库-$db\" bash -s'" | while read -r line; do 
+                        printf "%s\n" "$command" | eval "$sshRun 'exec -a \"导出数据库-$db\" bash -s 2> /dev/null'" | while read -r line; do 
                                 table=$(echo $line | awk '{print $2}')
                                 echo $line;
                                 current_jobs=$(pgrep -f "mysqldump" | wc -l)
@@ -214,13 +214,13 @@ BASH
 
                                 if [[ "$current_jobs" -lt "$ASYNC_WAIT_MAX" ]]; then
                                         {
-                                                echo '进程数小于最大等待数，异步导入';
+                                                echo "进程数小于最大等待数，异步导入--$db.$table";
                                                 time (mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
                                                 echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$table";
                                         } &
                                         sleep $DUMP_WAIT_SECONDS;
                                 else
-                                        echo '进程数大于最大等待数，同步等待导入';
+                                        echo "进程数大于最大等待数，同步等待导入-$db.$table";
                                         # sleep 20;
                                         time (mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
                                         echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$table";
@@ -234,7 +234,7 @@ BASH
                 sed -i "/$db/d" /tmp/databases_count.log;
                 
                 
-                echo $(date "+%Y-%m-%d %H:%M:%S")"--异步导出库--结束--$db";
+                echo $(date "+%Y-%m-%d %H:%M:%S")"--异步导出库--结束--$db------------------------------------------";
 
 
                 # 
