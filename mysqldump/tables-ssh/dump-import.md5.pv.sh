@@ -76,10 +76,9 @@ cpuScript=$(cat <<EOF
 while true; do 
 echo \$(mpstat 1 1 |grep "Average:" | awk '{print "远端-CPU空闲率 "\$NF}'); 
 
-echo '远端-导出文件数量';
-ls -al /tmp/dump-import-ssh-temp/*/*.md5|wc -l;
-echo '远端-ps有mysqldump的数量';
-ps -ef|grep mysqldump|grep -v grep|wc -l;
+echo '远端-导出文件数量 '\$(ls -al /tmp/dump-import-ssh-temp/*/*.md5|wc -l);
+
+echo '远端-ps有mysqldump的数量 '\$(ps -ef|grep mysqldump|grep -v grep|wc -l);
 sleep 2; 
 
 done
@@ -101,6 +100,7 @@ async_write_file(){
                 # echo $line > /tmp/get_remote_cpu_idle
                 # echo "cpu空闲率=${line}"
                 echo $line;
+                echo $line | grep 'mysqldump的' | awk '{print $2}' > /tmp/remote_mysqldump_num;
         done
         } &
 } 
@@ -145,6 +145,8 @@ echo "数据库-库数量--${num_databases}";
 # exit;
 
 echo '' > /tmp/databases_count.log
+waitNum=0;
+waitEmptyNum=0;
 
 for ((i = 0; i < num_databases; i++)); do
     db=${databases_arr[$i]}
@@ -158,6 +160,19 @@ for ((i = 0; i < num_databases; i++)); do
 
 
         if [[ "$(cat /tmp/databases_count.log | grep -v -e '^$' | wc -l)" -ge "$ASYNC_WAIT_DB_MAX" ]]; then
+
+                if [[ "$waitNum" -gt "3" ]] && [[ "$(cat /tmp/remote_mysqldump_num | grep -v -e '^$' | wc -l)" -ge "$ASYNC_WAIT_DB_MAX" ]]; then
+                        waitNum=0;
+                        if [[ "$waitNum" -lt "3" ]];then
+                                (( waitNum++ ));
+                        else
+                                # 累计多次
+                                sed -i "/$db/d" /tmp/databases_count.log;
+                        fi
+                else
+                        (( waitNum++ ));
+                fi
+                
                 (( i-- ));
                 echo $(date "+%Y-%m-%d %H:%M:%S")"--本地等待库${db}  当前${current_jobs}";
                 sleep 2;
@@ -181,7 +196,7 @@ mysqldump --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db.log --no
                 echo \$lastTable > /tmp/dump-import-ssh-temp/$db.lastTable.log;
         fi;
         if [[ "\$lastTable" != "\$table" ]];then
-                if [[ "\$(md5sum /tmp/dump-import-ssh-temp/$db/\$lastTable.md5)" != "\$(md5sum /tmp/dump-import-ssh-diff/$db/\$lastTable.md5)" ]];then
+                if [[ "\$(cat /tmp/dump-import-ssh-temp/$db/\$lastTable.md5 | md5sum)" != "\$(cat /tmp/dump-import-ssh-diff/$db/\$lastTable.md5 | md5sum)" ]];then
                         echo '有差异表名 '\$lastTable;
                 fi
                 lastTable=\$table;
@@ -192,7 +207,7 @@ done;
 lastTable=\$(cat /tmp/dump-import-ssh-temp/$db.lastTable.log);
 if [[ -n "\$lastTable" ]];then
         if [[ -f "/tmp/dump-import-ssh-diff/$db/\$lastTable.md5" ]]
-                if [[ "\$(md5sum /tmp/dump-import-ssh-temp/$db/\$lastTable.md5)" != "\$(md5sum /tmp/dump-import-ssh-diff/$db/\$lastTable.md5)" ]];then
+                if [[ "\$(cat /tmp/dump-import-ssh-temp/$db/\$lastTable.md5 | md5sum)" != "\$(cat /tmp/dump-import-ssh-diff/$db/\$lastTable.md5 | md5sum)" ]];then
                         echo '有差异表名 '\$lastTable;
                 fi;
         else
@@ -249,7 +264,7 @@ done
 # 检测 mysqldump 进程是否存在的函数
 check_mysqldump_process() {
         # 使用 pgrep 命令查找与关键字匹配的进程 ID
-        pgrep -f "(ssh -o|mysql|sshpass)" >/dev/null 2>&1
+        pgrep -f "(ssh -o|mysql|sshpass -p)" >/dev/null 2>&1
 }
 
 # 循环检测 mysqldump 进程是否存在
