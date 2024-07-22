@@ -7,6 +7,7 @@ DB_HOST=${DB_HOST:-${MYSQL_ENV_DB_HOST}}
 IGNORE_DATABASE=${IGNORE_DATABASE}
 ASYNC_WAIT=${ASYNC_WAIT}
 ASYNC_WAIT_MAX=${ASYNC_WAIT_MAX:-100}
+ASYNC_WAIT_DB_MAX=${ASYNC_WAIT_DB_MAX:-10}
 DUMP_PV=${DUMP_PV:-6m}
 DUMP_WAIT_SECONDS=${DUMP_WAIT_SECONDS:-0.6}
 
@@ -64,15 +65,105 @@ fi
 eval "$sshRun bash -c \"pwd && mkdir -p /tmp/dump-import-ssh-diff && rm -Rf /tmp/dump-import-ssh-temp && mkdir -p /tmp/dump-import-ssh-temp/mysql_error_log_dir\""
 
 
+
+
+
+
+
+# 使用SSH执行远程命令来获取CPU空闲率
+cpuScript=$(cat <<EOF
+
+while true; do 
+echo \$(mpstat 1 1 |grep "Average:" | awk '{print "远端-CPU空闲率 "\$NF}'); 
+
+echo '远端-导出文件数量';
+ls -al /tmp/dump-import-ssh-temp/*/*.md5|wc -l;
+echo '远端-ps有mysqldump的数量';
+ps -ef|grep mysqldump|grep -v grep|wc -l;
+sleep 2; 
+
+done
+
+EOF
+    )
+
+echo '监听cpu空闲率的脚本'
+echo $cpuScript
+        
+
+# get_remote_cpu_idle
+#  exec -a "aaa" $(eval echo $sshRun)
+# echo 100 > /tmp/get_remote_cpu_idle
+async_write_file(){
+        {
+# 避免keyword匹配到
+        echo $cpuScript | (exec -a "监听CPU空闲率" sshpass -p "$SSH_PASSWORD" ssh $SSH_ARGS -v -o "StrictHostKeyChecking=$STRICT_HOST_KEY_CHECKING" $SSH_USER@$SSH_IP 'bash -s') | while IFS= read -r line; do
+                # echo $line > /tmp/get_remote_cpu_idle
+                # echo "cpu空闲率=${line}"
+                echo $line;
+        done
+        } &
+} 
+async_write_file
+{
+        sleep 2;
+        while true; do
+                if ! pgrep -f "监听CPU空闲率" > /dev/null; then
+                        async_write_file
+                fi
+                sleep 2
+        done
+} &
+echo '监听cpu空闲率'
+
+
+
+
+
+
 echo '开始循环数据库--下面是执行的命令';
 echo eval "$sshRun 'mysql --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" -e \"SHOW DATABASES;\"'"
 
 databases=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -e \"SHOW DATABASES;\"" | eval "$sshRun 'bash -s'" | tr -d "| " | grep -v Database)
 echo '开始循环数据库---'$databases;
 
+num_databases=0;
+databases_arr=();
 for db in $databases; do
+        (( num_databases++ ));
+        databases_arr+=($db)
+done
+
+# for ((i = 0; i < num_databases; i++)); do
+#     db=${databases_arr[$i]}
+#     echo $db;
+# done;
+
+# databases=("db1" "db2" "db3")
+# num_databases=$(echo -n $databases | wc -l)
+echo "数据库-库数量--${num_databases}";
+# exit;
+
+echo '' > /tmp/databases_count.log
+
+for ((i = 0; i < num_databases; i++)); do
+    db=${databases_arr[$i]}
+    # 执行循环体的代码
+#     echo "Processing database $((i + 1)): $db"
+# done
+# for db in $databases; do
     if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "$IGNORE_DATABASE" ]]; then
 # break;
+
+
+
+        if [[ "$(cat /tmp/databases_count.log | grep -v -e '^$' | wc -l)" -ge "$ASYNC_WAIT_DB_MAX" ]]; then
+                (( i-- ));
+                echo $(date "+%Y-%m-%d %H:%M:%S")"--本地等待库${db}  当前${current_jobs}";
+                sleep 2;
+                continue;
+        fi
+        echo $db >> /tmp/databases_count.log;
 
 
         {
@@ -115,7 +206,7 @@ BASH
 
 # todo 还要管道导出表
                 time (
-                        printf "%s\n" "$command" | eval "$sshRun 'exec -a \"导出数据库\" bash -s'" | while read -r line; do 
+                        printf "%s\n" "$command" | eval "$sshRun 'exec -a \"导出数据库-$db\" bash -s'" | while read -r line; do 
                                 table=$(echo $line | awk '{print $2}')
                                 echo $line;
                                 current_jobs=$(pgrep -f "mysqldump" | wc -l)
@@ -125,13 +216,14 @@ BASH
                                         {
                                                 echo '进程数小于最大等待数，异步导入';
                                                 time (mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
-                                                echo "导入结束  $db.$table";
+                                                echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$table";
                                         } &
                                         sleep $DUMP_WAIT_SECONDS;
                                 else
                                         echo '进程数大于最大等待数，同步等待导入';
+                                        # sleep 20;
                                         time (mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
-                                        echo "导入结束  $db.$table";
+                                        echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$table";
                                 fi
                                 
                         done;
@@ -139,15 +231,17 @@ BASH
                 # time (eval "$sshRun 'bash -s'" < $command)
 
 
-
+                sed -i "/$db/d" /tmp/databases_count.log;
                 
-                echo "异步导出库--结束--$db";
+                
+                echo $(date "+%Y-%m-%d %H:%M:%S")"--异步导出库--结束--$db";
 
 
                 # 
-        }
-        # } &
-exit;
+        # }
+        } &
+        sleep 2;
+# exit;
     fi
 done
 
@@ -155,7 +249,7 @@ done
 # 检测 mysqldump 进程是否存在的函数
 check_mysqldump_process() {
         # 使用 pgrep 命令查找与关键字匹配的进程 ID
-        pgrep -f "(ssh|mysql)" >/dev/null 2>&1
+        pgrep -f "(ssh -o|mysql|sshpass)" >/dev/null 2>&1
 }
 
 # 循环检测 mysqldump 进程是否存在
