@@ -161,20 +161,23 @@ for ((i = 0; i < num_databases; i++)); do
 
         if [[ "$(cat /tmp/databases_count.log | grep -v -e '^$' | wc -l)" -ge "$ASYNC_WAIT_DB_MAX" ]]; then
 
-                if [[ "$waitNum" -gt "3" ]] && [[ "$(cat /tmp/remote_mysqldump_num | grep -v -e '^$' | wc -l)" -ge "$ASYNC_WAIT_DB_MAX" ]]; then
-                        waitNum=0;
+                if [[ "$waitNum" -gt "3" ]] && [[ "$(cat /tmp/remote_mysqldump_num)" -lt "$ASYNC_WAIT_DB_MAX" ]]; then
+                        echo $(date "+%Y-%m-%d %H:%M:%S")"--远端mysqldump已结束，开始  导出${db}   waitNum=${waitNum}";
                         if [[ "$waitNum" -lt "3" ]];then
                                 (( waitNum++ ));
                         else
                                 # 累计多次
                                 sed -i "/$db/d" /tmp/databases_count.log;
                         fi
-                else
+                        waitNum=0;
+                elif [[ "$(cat /tmp/remote_mysqldump_num)" -lt "$ASYNC_WAIT_DB_MAX" ]];then
                         (( waitNum++ ));
+                else
+                        waitNum=0;     
                 fi
                 
                 (( i-- ));
-                echo $(date "+%Y-%m-%d %H:%M:%S")"--本地等待库${db}  当前${current_jobs}";
+                echo $(date "+%Y-%m-%d %H:%M:%S")"--本地等待库${db}  当前${current_jobs}  waitNum=${waitNum}";
                 sleep 2;
                 continue;
         fi
