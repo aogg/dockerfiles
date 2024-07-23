@@ -158,7 +158,7 @@ for ((i = 0; i < num_databases; i++)); do
 # break;
 
 
-
+        continueBool=0
         if [[ "$(cat /tmp/databases_count.log | grep -v -e '^$' | wc -l)" -ge "$ASYNC_WAIT_DB_MAX" ]]; then
 
                 if [[ "$waitNum" -gt "3" ]] && [[ "$(cat /tmp/remote_mysqldump_num)" -lt "$ASYNC_WAIT_DB_MAX" ]]; then
@@ -167,7 +167,8 @@ for ((i = 0; i < num_databases; i++)); do
                                 (( waitNum++ ));
                         else
                                 # 累计多次
-                                sed -i "/$db/d" /tmp/databases_count.log;
+                                # sed -i "/$db/d" /tmp/databases_count.log;
+                                continueBool=1
                         fi
                         waitNum=0;
                 elif [[ "$(cat /tmp/remote_mysqldump_num)" -lt "$ASYNC_WAIT_DB_MAX" ]];then
@@ -176,10 +177,12 @@ for ((i = 0; i < num_databases; i++)); do
                         waitNum=0;     
                 fi
                 
-                (( i-- ));
-                echo $(date "+%Y-%m-%d %H:%M:%S")"--本地等待库${db}  当前${current_jobs}  waitNum=${waitNum}";
-                sleep 2;
-                continue;
+                if [[ "$continueBool" < 1 ]];then
+                        (( i-- ));
+                        echo $(date "+%Y-%m-%d %H:%M:%S")"--本地等待库${db}  当前${current_jobs}  waitNum=${waitNum}";
+                        sleep 2;
+                        continue;
+                fi
         fi
         echo $db >> /tmp/databases_count.log;
 
