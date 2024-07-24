@@ -256,7 +256,8 @@ BASH
 # ionice -c3 
                 time (
                         # printf "%s\n" "$command" | eval "$sshRun 'exec -a \"导出数据库-$db\" bash -s 2> /dev/null'" | while read -r line; do 
-                        printf "%s\n" "$command" | eval "$sshRun 'ionice -c3 bash -s 2> /dev/null'" | while read -r line; do 
+                        # printf "%s\n" "$command" | eval "$sshRun 'ionice -c3 bash -s 2> /dev/null'" | while read -r line; do 
+                        printf "%s\n" "$command" | eval "$sshRun 'ionice -c3 bash -c \"exec -a 导出数据库-$db bash -s\" 2> /dev/null'" | while read -r line; do 
                                 echo $db.$line;
                                 if [[ $line = "开始运行mysqldump $db" ]];then
                                         echo $db >> /tmp/databases_count.run.log;
