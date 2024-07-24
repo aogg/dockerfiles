@@ -4,6 +4,8 @@ DB_USER=${DB_USER:-${MYSQL_ENV_DB_USER}}
 DB_PASS=${DB_PASS:-${MYSQL_ENV_DB_PASS}}
 DB_NAME=${DB_NAME:-${MYSQL_ENV_DB_NAME}}
 DB_HOST=${DB_HOST:-${MYSQL_ENV_DB_HOST}}
+DB_PORT=${DB_PORT:-3306}
+DB_TABLE_PORT=${DB_TABLE_PORT:-${DB_PORT}}
 IGNORE_DATABASE=${IGNORE_DATABASE}
 ASYNC_WAIT=${ASYNC_WAIT}
 ASYNC_WAIT_MAX=${ASYNC_WAIT_MAX:-100}
@@ -145,8 +147,11 @@ echo "数据库-库数量--${num_databases}";
 # exit;
 
 echo '' > /tmp/databases_count.log
+echo '' > /tmp/databases_count.run.log
+echo '' > /tmp/databases_count.end.log
 waitNum=0;
-waitEmptyNum=0;
+continueBool=0
+continueBoolUse=0;
 
 for ((i = 0; i < num_databases; i++)); do
     db=${databases_arr[$i]}
@@ -157,18 +162,18 @@ for ((i = 0; i < num_databases; i++)); do
     if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "$IGNORE_DATABASE" ]]; then
 # break;
 
-
-        continueBool=0
+        # 运行完库的没运行完表的
         if [[ "$(cat /tmp/databases_count.log | grep -v -e '^$' | wc -l)" -ge "$ASYNC_WAIT_DB_MAX" ]]; then
 
                 if [[ "$waitNum" -gt "3" ]] && [[ "$(cat /tmp/remote_mysqldump_num)" -lt "$ASYNC_WAIT_DB_MAX" ]]; then
-                        echo $(date "+%Y-%m-%d %H:%M:%S")"--远端mysqldump已结束，开始  导出${db}   waitNum=${waitNum}";
                         if [[ "$waitNum" -lt "3" ]];then
                                 (( waitNum++ ));
                         else
+                                echo $(date "+%Y-%m-%d %H:%M:%S")"--远端mysqldump已结束，开始  导出${db}   waitNum=${waitNum}------------------------";
                                 # 累计多次
                                 # sed -i "/$db/d" /tmp/databases_count.log;
-                                continueBool=1
+                                continueBool=$(( $(cat /tmp/databases_count.run.log | wc -l) + 1 ))
+                                continueBoolUse=1;
                         fi
                         waitNum=0;
                 elif [[ "$(cat /tmp/remote_mysqldump_num)" -lt "$ASYNC_WAIT_DB_MAX" ]];then
@@ -182,6 +187,24 @@ for ((i = 0; i < num_databases; i++)); do
                         echo $(date "+%Y-%m-%d %H:%M:%S")"--本地等待库${db}  当前${current_jobs}  waitNum=${waitNum}";
                         sleep 2;
                         continue;
+                elif [[ "$continueBool" = "$(( $(cat /tmp/databases_count.run.log | wc -l) + 1 ))" ]];then
+                        # 还没出现mysqldump $db
+                        if [[ "$continueBoolUse" < 1 ]];then
+                                (( i-- ));
+                                echo $(date "+%Y-%m-%d %H:%M:%S")"--本地等待库${db}  当前${current_jobs}  waitNum=${waitNum}  等待上一次放过去的导出进入mysqldump";
+                                sleep 2;
+                                continue;
+                        else
+                                # 首次放行
+                                continueBoolUse=0;
+                        fi
+                else        
+                        # 已生成mysqldump，归0
+                        continueBool=0;
+                        (( i-- ));
+                        echo $(date "+%Y-%m-%d %H:%M:%S")"--本地等待库${db}  当前${current_jobs}  waitNum=${waitNum}  continueBool=0";
+                        sleep 2;
+                        continue;
                 fi
         fi
         echo $db >> /tmp/databases_count.log;
@@ -192,9 +215,10 @@ for ((i = 0; i < num_databases; i++)); do
                 # 空文件的md5=d41d8cd98f00b204e9800998ecf8427e
                 command=$(cat << BASH
 DB_PASS="${DB_PASS}";
+echo '开始运行mysqldump $db';
 mkdir -p /tmp/dump-import-ssh-temp/$db/;
 lastTable='';
-mysqldump --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db.log --no-create-info --skip-comments --user="${DB_USER}" --password="\${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db | pv -L $DUMP_PV |grep -e '^INSERT INTO'  | while read -r line; do 
+ionice -c3 mysqldump --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db.log --no-create-info --skip-comments --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db | pv -L $DUMP_PV |grep -e '^INSERT INTO'  | while read -r line; do 
         table=\$(echo "\$line" | awk -F '\`' '{print \$2}');
         echo -n "\$line" | md5sum | awk -v table="\$table" '{print table, \$1}' >> /tmp/dump-import-ssh-temp/$db/\$table.md5;
         if [[ -z "\$lastTable" ]];then
@@ -220,30 +244,44 @@ if [[ -n "\$lastTable" ]];then
                 echo '有差异表名 '\$lastTable;
         fi
 fi
+
+echo '结束运行mysqldump $db';
+
 BASH
                 )
 
                 # printf "%s\n" "$command"
 
 # todo 还要管道导出表
+# ionice -c3 
                 time (
-                        printf "%s\n" "$command" | eval "$sshRun 'exec -a \"导出数据库-$db\" bash -s 2> /dev/null'" | while read -r line; do 
+                        # printf "%s\n" "$command" | eval "$sshRun 'exec -a \"导出数据库-$db\" bash -s 2> /dev/null'" | while read -r line; do 
+                        printf "%s\n" "$command" | eval "$sshRun 'ionice -c3 bash -s 2> /dev/null'" | while read -r line; do 
+                                echo $db.$line;
+                                if [[ $line = "开始运行mysqldump $db" ]];then
+                                        echo $db >> /tmp/databases_count.run.log;
+                                        continue;
+                                fi
+                                if [[ $line = "结束运行mysqldump $db" ]];then
+                                        echo $db >> /tmp/databases_count.end.log;
+                                        continue;
+                                fi
+
                                 table=$(echo $line | awk '{print $2}')
-                                echo $line;
                                 current_jobs=$(pgrep -f "mysqldump" | wc -l)
                                 current_jobs=$(( $current_jobs + 1 ))
 
                                 if [[ "$current_jobs" -lt "$ASYNC_WAIT_MAX" ]]; then
                                         {
                                                 echo "进程数小于最大等待数，异步导入--$db.$table";
-                                                time (mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
+                                                time (mysqldump --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
                                                 echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$table";
                                         } &
                                         sleep $DUMP_WAIT_SECONDS;
                                 else
                                         echo "进程数大于最大等待数，同步等待导入-$db.$table";
                                         # sleep 20;
-                                        time (mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
+                                        time (mysqldump --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
                                         echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$table";
                                 fi
                                 
@@ -253,9 +291,10 @@ BASH
 
 
                 sed -i "/$db/d" /tmp/databases_count.log;
+                # sed -i "/$db/d" /tmp/databases_count.run.log;
                 
                 
-                echo $(date "+%Y-%m-%d %H:%M:%S")"--异步导出库--结束--$db------------------------------------------";
+                echo $(date "+%Y-%m-%d %H:%M:%S")"--异步导出库--结束--$db----continueBool=$continueBool--------------------------------------";
 
 
                 # 
