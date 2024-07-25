@@ -315,7 +315,7 @@ check_mysqldump_process() {
 
 # 循环检测 mysqldump 进程是否存在
 while check_mysqldump_process; do
-        echo $(date "+%Y-%m-%d %H:%M:%S")" 最后导入 last  Waiting for mysqldump process to complete..."${DB_HOST}
+        echo $(date "+%Y-%m-%d %H:%M:%S")" 最后导入 last  Waiting for mysqldump process to complete...${DB_HOST}  本地mysql数量=$(ps -ef|grep /usr/bin/mysql|wc -l)"
         sleep 1  # 等待 1 秒后重新检测
 done
 
