@@ -13,6 +13,20 @@ ASYNC_WAIT_DB_MAX=${ASYNC_WAIT_DB_MAX:-10}
 DUMP_PV=${DUMP_PV:-6m}
 DUMP_WAIT_SECONDS=${DUMP_WAIT_SECONDS:-0.6}
 
+RUN_LIMIT_START=${RUN_LIMIT_START};
+RUN_LIMIT_START_MYSQLDUMP=${RUN_LIMIT_START_MYSQLDUMP};
+if [[ -n "$CPUQUOTA" ]];then
+        RUN_LIMIT_START="sudo systemd-run --uid=\$(whoami) --gid=\$(id -gn) --scope -p CPUQuota=$CPUQUOTA ";
+        RUN_LIMIT_START_MYSQLDUMP="";
+fi
+if [[ -n "$IONICE_C" ]];then
+        RUN_LIMIT_START="ionice -c$IONICE_C "
+        RUN_LIMIT_START_MYSQLDUMP=$RUN_LIMIT_START
+fi
+
+# systemd-run --scope -p CPUQuota=30% 
+# ionice -c3
+
 # DUMP_ARGS=
 #  docker build -f ./Dockerfile -t adockero/mysqldump:tables-ssh-pv --build-arg APK_ARG=pv --build-arg FILE_ARG=dump-import.md5.pv.sh  .
 
@@ -218,7 +232,7 @@ DB_PASS="${DB_PASS}";
 echo '开始运行mysqldump $db';
 mkdir -p /tmp/dump-import-ssh-temp/$db/;
 lastTable='';
-ionice -c3 mysqldump --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db.log --no-create-info --skip-comments --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db | pv -L $DUMP_PV |grep -e '^INSERT INTO'  | while read -r line; do 
+$RUN_LIMIT_START_MYSQLDUMP mysqldump --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db.log --no-create-info --skip-comments --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db | pv -L $DUMP_PV |grep -e '^INSERT INTO'  | while read -r line; do 
         table=\$(echo "\$line" | awk -F '\`' '{print \$2}');
         echo -n "\$line" | md5sum | awk -v table="\$table" '{print table, \$1}' >> /tmp/dump-import-ssh-temp/$db/\$table.md5;
         if [[ -z "\$lastTable" ]];then
@@ -257,7 +271,7 @@ BASH
                 time (
                         # printf "%s\n" "$command" | eval "$sshRun 'exec -a \"导出数据库-$db\" bash -s 2> /dev/null'" | while read -r line; do 
                         # printf "%s\n" "$command" | eval "$sshRun 'ionice -c3 bash -s 2> /dev/null'" | while read -r line; do 
-                        printf "%s\n" "$command" | eval "$sshRun 'ionice -c3 bash -c \"exec -a 导出数据库-$db bash -s\" 2> /dev/null'" | while read -r line; do 
+                        printf "%s\n" "$command" | eval "$sshRun '$RUN_LIMIT_START bash -c \"exec -a 导出数据库-$db bash -s\" 2> /dev/null'" | while read -r line; do 
                                 echo $db.$line;
                                 if [[ $line = "开始运行mysqldump $db" ]];then
                                         echo $db >> /tmp/databases_count.run.log;
