@@ -82,6 +82,26 @@ jobs:
 
 
 
+    - name: 构建镜像  http-shell:alpine-docker
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/http-shell:alpine-docker
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./golang/http_shell
+        file: "./golang/http_shell/Dockerfile.docker"
+        # Always attempt to pull a newer version of the image
+        # pull: true
+        push: true
+        # 构建参数
+        # build-args: |
+          # LATEST_FROM_BASE=alpine
+        #   ZABBIX_VERSION_BIG=6.2
+        #   ZABBIX_VERSION=6.2-4
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true    
+
 
 
     - name: 构建镜像  http-shell
@@ -103,27 +123,7 @@ jobs:
         #   APK_ARG=rsync
         # Adds labels with git repository information to the built image
         labels: true          
-
-
-    - name: 构建镜像  http-shell:alpine-docker
-      uses: docker/build-push-action@v3
-      with:
-        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: adockero/http-shell:alpine-docker
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        context: ./golang/http_shell
-        file: "./golang/http_shell/Dockerfile.docker"
-        # Always attempt to pull a newer version of the image
-        # pull: true
-        push: true
-        # 构建参数
-        # build-args: |
-          # LATEST_FROM_BASE=alpine
-        #   ZABBIX_VERSION_BIG=6.2
-        #   ZABBIX_VERSION=6.2-4
-        #   APK_ARG=rsync
-        # Adds labels with git repository information to the built image
-        labels: true     
+ 
 
 
 

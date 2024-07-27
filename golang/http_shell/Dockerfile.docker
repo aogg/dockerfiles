@@ -1,4 +1,4 @@
 FROM adockero/http-shell:alpine
 
 
-RUN apk run docker-cli
+RUN apk add --no-cache docker-cli
