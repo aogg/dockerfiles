@@ -1,0 +1,4 @@
+FROM adockero/http-shell:alpine
+
+
+RUN apk run docker-cli
