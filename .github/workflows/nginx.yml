@@ -63,7 +63,7 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: stream
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        path: ./stream
+        path: ./nginx/stream
         dockerfile: nginx/stream/Dockerfile
         # Always attempt to pull a newer version of the image
         always_pull: true
