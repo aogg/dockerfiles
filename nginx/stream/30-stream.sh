@@ -36,7 +36,7 @@ fi
     fi
 
     echo "}"
-} > "$CONFIG_FILE"
+} >> "$CONFIG_FILE"
 
 # sed -i \
 #     -e "s/{TCP_UPSTREAM_CONTENT}/$TCP_UPSTREAM_CONTENT/" \
