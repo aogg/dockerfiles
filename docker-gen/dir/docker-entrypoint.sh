@@ -7,7 +7,7 @@ cd "$GEN_DIR" || exit 1
 for file in *
 do
 
-    if [ -f "$file" ] && ; then
+    if [ -f "$file" ]; then
         if echo "$GEN_DOCKER_COMMAND" | grep -q "{file_name}";then
             NEW_COMMAND=$(echo "$GEN_DOCKER_COMMAND" | sed "s/{file_name}/$file/")
 
