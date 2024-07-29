@@ -9,6 +9,7 @@ ENV GEN_DIR=/gen/
 ENV GEN_DOCKER_COMMAND=
 
 VOLUME [ "/gen" ]
+VOLUME [ "/var/run/docker.sock" ]
 
 ADD ./docker-entrypoint.sh /
 
