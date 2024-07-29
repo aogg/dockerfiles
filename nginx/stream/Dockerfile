@@ -1,7 +1,7 @@
 FROM nginx
 
 
-COPY ./stream.conf /etc/nginx/conf.d/
+COPY ./30-stream.sh /docker-entrypoint.d/
 
 
 ENV TCP_PORT ""
