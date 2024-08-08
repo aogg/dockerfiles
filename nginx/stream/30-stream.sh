@@ -10,6 +10,10 @@ fi
 
 {
     echo "stream {"
+    echo "    log_format tcp_log '\$remote_addr:\$remote_port  \$upstream_addr  - \$status - \$bytes_sent - \$bytes_received tcp_log';"
+    echo "    log_format udp_log '\$remote_addr:\$remote_port  \$upstream_addr  - \$status - \$bytes_sent - \$bytes_received udp_log';"
+    echo "    error_log /var/log/nginx/error.log;"
+    echo ""
     echo "    # 代理 TCP 流量"
     echo "    upstream tcp_upstream {"
     echo "        $TCP_UPSTREAM_CONTENT"  # 使用 TCP 上游内容
@@ -18,6 +22,7 @@ fi
     echo "    server {"
     echo "        listen $TCP_PORT;"  # 使用 TCP 端口
     echo "        proxy_pass tcp_upstream;"
+    echo "        access_log /var/log/nginx/access.log tcp_log;"
     echo "    }"
     echo ""
 
@@ -31,6 +36,7 @@ fi
         echo "    server {"
         echo "        listen $UDP_PORT udp;"  # 使用 UDP 端口
         echo "        proxy_pass udp_upstream;"
+        echo "        access_log /var/log/nginx/access.log udp_log;"
         echo "    }"
         echo ""
     fi
