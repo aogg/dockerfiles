@@ -55,11 +55,14 @@ else
         # 检测 mysqldump 进程是否存在的函数
         check_mysqldump_process() {
                 # 使用 pgrep 命令查找与关键字匹配的进程 ID
-                pgrep -f "$KEYWORD" >/dev/null 2>&1
+                pgrep -f "$KEYWORD"  2>&1
         }
 
         # 循环检测 mysqldump 进程是否存在
-        while check_mysqldump_process; do
+        while true; do
+                if [[ ! $(check_mysqldump_process) ]];then
+                        break
+                fi
                 echo $(date "+%Y-%m-%d %H:%M:%S")" dump.sh  Waiting for mysqldump process to complete..."${DB_HOST}
                 sleep 1  # 等待 1 秒后重新检测
         done
