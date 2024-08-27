@@ -2,8 +2,15 @@ FROM nginx
 
 ARG LANG=zh_CN.utf8
 
+# 12的写法
+# sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources
+
+# 旧写法
+# && if [ $LANG = 'zh_CN.utf8' ]; then sed -i 's/http.\{0,1\}\:\/\/[^\/]\{1,\}/https\:\/\/mirrors.aliyun.com/g' /etc/apt/sources.list;fi \
+
+
 RUN echo $LANG \
-  && if [ $LANG = 'zh_CN.utf8' ]; then sed -i 's/http.\{0,1\}\:\/\/[^\/]\{1,\}/https\:\/\/mirrors.aliyun.com/g' /etc/apt/sources.list;fi \
+  && if [ $LANG = 'zh_CN.utf8' ]; then sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources;fi \
   && cat /etc/apt/sources.list \
   && apt update \
   && apt install -y locales inetutils-ping vim telnet \
