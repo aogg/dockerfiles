@@ -6,7 +6,7 @@ on:
       - main
     paths: 
       - "nginx/**"
-      - "common/**"
+      - "common/create-user.sh"
       - ".github/workflows/nginx.yml"
       - "!**.md"
 

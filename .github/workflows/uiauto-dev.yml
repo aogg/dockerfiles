@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths: 
       - "uiauto-dev/**"
+      - "common/adb-auto.sh"
       - ".github/workflows/uiauto-dev.yml"
       - "!**.md"
 
