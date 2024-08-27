@@ -11,7 +11,7 @@ ARG LANG=zh_CN.utf8
 
 RUN echo $LANG \
   && if [ $LANG = 'zh_CN.utf8' ]; then sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources;fi \
-  && cat /etc/apt/sources.list \
+  && cat /etc/apt/sources.list.d/debian.sources \
   && apt update \
   && apt install -y locales inetutils-ping vim telnet \
   && echo 'apt安装完成' \
