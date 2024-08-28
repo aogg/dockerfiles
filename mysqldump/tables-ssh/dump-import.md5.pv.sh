@@ -5,7 +5,11 @@ DB_PASS=${DB_PASS:-${MYSQL_ENV_DB_PASS}}
 DB_NAME=${DB_NAME:-${MYSQL_ENV_DB_NAME}}
 DB_HOST=${DB_HOST:-${MYSQL_ENV_DB_HOST}}
 DB_PORT=${DB_PORT:-3306}
+
+# 用于管道导出并导入
 DB_TABLE_PORT=${DB_TABLE_PORT:-${DB_PORT}}
+DB_TABLE_HOST=${DB_TABLE_HOST:-${DB_HOST}}
+
 IGNORE_DATABASE=${IGNORE_DATABASE}
 ASYNC_WAIT=${ASYNC_WAIT}
 ASYNC_WAIT_MAX=${ASYNC_WAIT_MAX:-100}
@@ -289,14 +293,14 @@ BASH
                                 if [[ "$current_jobs" -lt "$ASYNC_WAIT_MAX" ]]; then
                                         {
                                                 echo "进程数小于最大等待数，异步导入--$db.$table";
-                                                time (mysqldump --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
+                                                time (mysqldump --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
                                                 echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$table";
                                         } &
                                         sleep $DUMP_WAIT_SECONDS;
                                 else
                                         echo "进程数大于最大等待数，同步等待导入-$db.$table";
                                         # sleep 20;
-                                        time (mysqldump --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
+                                        time (mysqldump --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
                                         echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$table";
                                 fi
                                 
