@@ -5,7 +5,10 @@ on:
     branches: [main]
     paths: 
       - "hyperf/**"
-      - "common/**"
+      - "common/run-dir-file.sh"
+      - "common/env-set-file.sh"
+      - "common/timezone-set.sh"
+      - "common/open-sshd-passwd.sh"
       - ".github/workflows/hyperf.yml"
       - "!**.md"
 
