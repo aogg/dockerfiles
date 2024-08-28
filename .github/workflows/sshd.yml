@@ -5,7 +5,10 @@ on:
     branches: [main]
     paths: 
       - "sshd/**"
-      - "common/**"
+      - "common/open-sshd-passwd.sh"
+      - "common/one-exec.sh"
+      - "common/open-sshd-jsh.sh"
+      - "common/create-user-id.sh"
       - ".github/workflows/sshd.yml"
       - "!**.md"
 
