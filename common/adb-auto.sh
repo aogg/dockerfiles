@@ -13,11 +13,6 @@ IFS=","
 ip_port_array=$ANDROID_DEVICES
 
 
-# 循环连接每个IP:端口
-# for ip_port in "${ip_port_array[@]}"
-# do
-#     adb connect "$ip_port"
-# done
 
 # 循环检测连接是否断开，间隔REMOTE_ADB_POLLING_SEC秒
 # REMOTE_ADB_POLLING_SEC=10

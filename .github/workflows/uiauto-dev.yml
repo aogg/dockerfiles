@@ -48,7 +48,7 @@ jobs:
         # build-args: NODE_VERSION=14
         #   APK_ARG=rsync
         # Adds labels with git repository information to the built image
-        labels: true    
+        # labels: true    
 
     - name: 构建镜像  adockero/uiauto-dev:adb
       uses: docker/build-push-action@v3
@@ -66,7 +66,7 @@ jobs:
         # build-args: NODE_VERSION=14
         #   APK_ARG=rsync
         # Adds labels with git repository information to the built image
-        labels: true  
+        # labels: true  
 
 
 
