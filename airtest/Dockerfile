@@ -1,6 +1,6 @@
 
 
-FROM python:3
+FROM python:3.6
 
 
 # ARG PIP_ARGS
@@ -15,16 +15,17 @@ FROM python:3
 # COPY wireless_connect.sh /wireless_connect.sh
 
 
-RUN pip install --no-cache-dir pocoui \
-    && pip install --no-cache-dir airtest \
-    && rm -Rf /var/log/* \
-    && echo "pip结束" \
-    && apt update \
+RUN apt update \
     && apt install -y adb libgl1-mesa-glx \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && apt-get clean \
     && rm -Rf /var/log/* \
-    && echo "结束"
+    && echo "apt结束"
+
+RUN pip install --no-cache-dir airtest \
+    && pip install --no-cache-dir pocoui \
+    && rm -Rf /var/log/* \
+    && echo "pip结束" \
 
 
 # 保存授权
