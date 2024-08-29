@@ -3,10 +3,10 @@
 
 # @see https://github.com/appium/appium-docker-android/blob/master/Appium/start.sh
 # It is workaround to access adb from androidusr
-echo "Prepare adb to have access to device"
-adb devices >/dev/null
+# echo "Prepare adb to have access to device"
+# adb devices >/dev/null
 #  chown -R 1300:1301 .android
-echo "adb can be used now"
+# echo "adb can be used now"
 
 
 # Connect device via wireless
@@ -18,9 +18,10 @@ echo "adb can be used now"
 # fi
 
 
+echo '-------------airtest容器开始--------'$(date "+%Y年%m月%d日 %H:%M:%S")'---------------------'
 
 $@
 
 # adb disconnect ${array_device}
 
-echo '-------------容器结束-----------------------------'
+echo '-------------airtest容器结束----------'$(date "+%Y年%m月%d日 %H:%M:%S")'-------------------'
