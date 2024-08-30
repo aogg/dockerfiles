@@ -200,7 +200,7 @@ for ((i = 0; i < num_databases; i++)); do
                         waitNum=0;     
                 fi
                 
-                if [[ "$continueBool" < 1 ]];then
+                if [[ "$continueBool" -lt 1 ]];then
                         (( i-- ));
                         echo $(date "+%Y-%m-%d %H:%M:%S")"--本地等待库${db}  当前${current_jobs}  waitNum=${waitNum}";
                         sleep 2;
