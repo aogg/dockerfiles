@@ -202,14 +202,14 @@ for ((i = 0; i < num_databases; i++)); do
                 
                 if [[ "$continueBool" -lt 1 ]];then
                         (( i-- ));
-                        echo $(date "+%Y-%m-%d %H:%M:%S")"--本地等待库${db}  当前${current_jobs}  waitNum=${waitNum}";
+                        echo "$(date "+%Y-%m-%d %H:%M:%S")--本地等待库${db}  当前${current_jobs}  waitNum=${waitNum}";
                         sleep 2;
                         continue;
                 elif [[ "$continueBool" = "$(( $(cat /tmp/databases_count.run.log | wc -l) + 1 ))" ]];then
                         # 还没出现mysqldump $db
-                        if [[ "$continueBoolUse" < 1 ]];then
+                        if [[ "$continueBoolUse" -lt 1 ]];then
                                 (( i-- ));
-                                echo $(date "+%Y-%m-%d %H:%M:%S")"--本地等待库${db}  当前${current_jobs}  waitNum=${waitNum}  等待上一次放过去的导出进入mysqldump";
+                                echo "$(date "+%Y-%m-%d %H:%M:%S")--本地等待库${db}  当前${current_jobs}  waitNum=${waitNum}  等待上一次放过去的导出进入mysqldump";
                                 sleep 2;
                                 continue;
                         else
@@ -220,7 +220,7 @@ for ((i = 0; i < num_databases; i++)); do
                         # 已生成mysqldump，归0
                         continueBool=0;
                         (( i-- ));
-                        echo $(date "+%Y-%m-%d %H:%M:%S")"--本地等待库${db}  当前${current_jobs}  waitNum=${waitNum}  continueBool=0";
+                        echo "$(date "+%Y-%m-%d %H:%M:%S")--本地等待库${db}  当前${current_jobs}  waitNum=${waitNum}  continueBool=0";
                         sleep 2;
                         continue;
                 fi
