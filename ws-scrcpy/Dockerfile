@@ -15,7 +15,6 @@ RUN npm install -g node-gyp \
     && apk del build-base \
     && npm uninstall -g node-gyp \
     && rm -f /var/log/*.log \
-    && rm -Rf node_modules \
     && echo '结束'
 
 WORKDIR /ws-scrcpy-master
