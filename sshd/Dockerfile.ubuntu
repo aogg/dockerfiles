@@ -1,0 +1,26 @@
+FROM ubuntu
+
+ARG MORE_APT
+
+
+RUN apt update \
+    && apt install -y openssh-server $MORE_APT \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && apt-get clean \
+    && rm -Rf /var/log/* \
+    && echo "apt结束"
+
+
+ENV SSHD_PORT=22
+ENV SSHD_PASSWORD='root'
+
+# 留意path要./，不能指定到下层文件夹
+ADD ./common/open-sshd-passwd.sh /
+
+ADD ./common/one-exec.sh /
+
+
+ADD ./sshd/docker-entrypoint.sh /
+
+ENTRYPOINT [ "/docker-entrypoint.sh" ]
+# CMD ["/open-sshd-passwd.sh", "-D"]
