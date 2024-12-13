@@ -1,0 +1,69 @@
+name: python-构建和提交docker
+
+on:
+  push:
+    branches: [main]
+    paths: 
+      - "python/**"
+      - ".github/workflows/python.yml"
+      - "!**.md"
+
+jobs:
+
+  # 并发构建
+  setup-build-publish-v3:
+    runs-on: ubuntu-latest
+    name: 构建和推送docker镜像v3
+    steps:
+    
+    - name: 更新代码
+      # 使用action库  actions/checkout获取源码
+      uses: actions/checkout@v3
+
+
+    -  
+      name: 登录 Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: adockero
+        password: ${{ secrets.PASSWORD }}
+
+# ##########  构建  ###########################
+
+
+    - name: 构建镜像  adockero/python:mijiaAPI
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        # tags: adockero/docker:ubuntu-ssh,adockero/docker-ubuntu:ssh
+        tags: adockero/python:mijiaAPI
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./python
+        file: "./python/Dockerfile"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        build-args: PIP_ARGS=mijiaAPI
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true    
+
+    # - name: 构建镜像  adockero/python-service:python-11-alpine
+    #   uses: docker/build-push-action@v3
+    #   with:
+    #     # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+    #     tags: adockero/python-service:python-11-alpine
+    #     # Path to the Dockerfile (Default is '{path}/Dockerfile')
+    #     context: ./python
+    #     file: "./python/Dockerfile.service"
+    #     # Always attempt to pull a newer version of the image
+    #     pull: true
+    #     push: true
+    #     # 构建参数
+    #     build-args: |
+    #       FROM_ARG=python:11-alpine
+    #     #   APK_ARG=rsync
+    #     # Adds labels with git repository information to the built image
+    #     labels: true          
+
