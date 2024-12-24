@@ -3,6 +3,8 @@ FROM docker:dind
 
 EXPOSE 8080
 
+ENV HTTP_SHELL_PORT 8080
+
 # RUN echo '开始' \
 #     && ((/usr/local/bin/docker-entrypoint.sh ) &) \
 #     && sleep 4 \
