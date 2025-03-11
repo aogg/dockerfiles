@@ -17,14 +17,15 @@ for env in $(printenv); do
 
   # 分割变量
   key=$(echo $env | cut -d= -f1)
-  val=$(echo $env | cut -d= -f2-)
+  val=$(echo $env | cut -d= -f2- | sed "s/^'\(.*\)'/\\1/g")
 
-  # echo "$key => $val"
 
   # 判断key变量是否存在CLASH_YQ_这个前置
   if echo "$key" | grep -q "^CLASH_YQ_"; then
 
+    echo "开始配置   $key => $val"
     yq -i "$val" $configFilePath
+    echo "开始配置--结束   $key => $val"
 
     # 去掉CLASH_前缀
     # key="${key#CLASH_YQ_}"
