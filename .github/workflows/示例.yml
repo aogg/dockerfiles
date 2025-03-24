@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths: 
-      - "node/**"
-      - ".github/workflows/node.yml"
+      - "node2/**"
+      - ".github/workflows/node2.yml"
       - "!**.md"
 
 jobs:
