@@ -44,7 +44,7 @@ jobs:
         push: true
         # 构建参数
         build-args: |
-          NODE_VERSION=22.13
+          FROM_ARG=node:22.13-alpine
           NPM_ARGS=pnpm
         #   APK_ARG=rsync
         # Adds labels with git repository information to the built image
@@ -63,7 +63,7 @@ jobs:
         push: true
         # 构建参数
         build-args: |
-          NODE_VERSION=22.13
+          FROM_ARG=node:22.13-alpine
         #   APK_ARG=rsync
         # Adds labels with git repository information to the built image
         labels: true 
