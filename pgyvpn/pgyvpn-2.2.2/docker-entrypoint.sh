@@ -6,6 +6,9 @@ touch /var/log/oray/pgyvpn/pgyvpn.log
 
 tail -f /var/log/oray/pgyvpn/pgyvpn.log &
 
+
+/one-exec.sh
+
 # /usr/share/pgyvpn/script/pgystart &
 /usr/share/pgyvpn/script/pgyvpn_monitor &
 
