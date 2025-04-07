@@ -16,6 +16,11 @@ RUN apt update \
 
 EXPOSE 8888
 
+
+# 一次脚本
+COPY ./common/one-exec.sh /one-exec.sh
+ENV ONE_EXEC ""
+
 ENTRYPOINT [ "/docker-entrypoint.sh" ]
 
 
