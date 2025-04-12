@@ -14,6 +14,11 @@ RUN apk add --no-cache tinyproxy \
     && touch /var/log/tinyproxy/tinyproxy.log \
     && chmod 777 /var/log/tinyproxy/tinyproxy.log
 
+
+
+COPY ./pgyvpn/pgyvpn-tinyproxy/tinyproxy-proxy.conf /etc/tinyproxy/tinyproxy-proxy.conf  
+
+
 EXPOSE 8888
 
 # 一次脚本

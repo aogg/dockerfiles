@@ -14,6 +14,12 @@ RUN apt update \
     && rm -rf  /var/lib/apt/lists/* \
     && ln -s /usr/bin/tinyproxy /usr/sbin/
 
+
+
+COPY ./pgyvpn/pgyvpn-tinyproxy/tinyproxy-proxy.conf /etc/tinyproxy/tinyproxy-proxy.conf  
+
+
+
 EXPOSE 8888
 
 
