@@ -18,6 +18,7 @@ adockero/http-shell:alpine
 ) &
 
 echo '运行dockerd';
+# 移除pid
 rm -f /var/run/docker.pid
 
 if [ -z "$@" ];then
