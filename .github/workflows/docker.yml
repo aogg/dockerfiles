@@ -7,8 +7,8 @@ on:
       - "common/open-sshd-passwd.sh"
       - ".github/workflows/docker.yml"
       - "!**.md"
-  schedule: 
-    - cron: '0 2 2 * *' # Weekly on Sundays at 02:00 
+ # schedule: 
+ #   - cron: '0 2 2 * *' # Weekly on Sundays at 02:00 
 
 jobs:
   
