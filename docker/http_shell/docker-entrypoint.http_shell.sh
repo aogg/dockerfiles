@@ -18,6 +18,7 @@ adockero/http-shell:alpine
 ) &
 
 echo '运行dockerd';
+rm -f /var/run/docker.pid
 
 if [ -z "$@" ];then
     exec /usr/local/bin/docker-entrypoint.sh dockerd
