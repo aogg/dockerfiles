@@ -16,6 +16,7 @@ RUN apt update \
 
 
 
+COPY ./pgyvpn/pgyvpn-tinyproxy/tinyproxy-run-proxy.sh /tinyproxy-run-proxy.sh
 COPY ./pgyvpn/pgyvpn-tinyproxy/tinyproxy-proxy.conf /etc/tinyproxy/tinyproxy-proxy.conf  
 
 

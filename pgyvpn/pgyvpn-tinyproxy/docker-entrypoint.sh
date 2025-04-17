@@ -16,10 +16,7 @@ touch /var/log/oray/pgyvpn/pgyvistor.log
 
 
 # 替换配置
-if [ -n "$TINYPROXY_PROXY" ];then
-    sed -i -e "s%upstream http.*%upstream http `echo $TINYPROXY_PROXY`%g" /etc/tinyproxy/tinyproxy-proxy.conf
-fi
-(/usr/sbin/tinyproxy -c /etc/tinyproxy/tinyproxy-proxy.conf)
+/tinyproxy-run-proxy.sh
 
 exec /docker-tinyproxy-run.sh "$@"
 
