@@ -30,16 +30,18 @@ run_command() {
         current_timestamp=$(date +%s)
     done
 
-
     local num=$2
-    apifox run ${APIFOX_URL} --env-var "apifox_run_i=$1" -n $num -r html,cli --verbose --out-dir $currentDatetimeDir/$1
+
+    echo "开始$1，循环${num}次"
+
+    apifox run ${APIFOX_URL} --env-var "apifox_run_i=$1" -n $num -r html,cli --verbose --out-file $currentDatetimeDir/apifox-report-$1
 }
 
 # 获取环境变量num的值，如果未设置则默认为30
 # 循环指定次数，将命令放入后台执行
 for ((i = 1; i <= fork_num; i++)); do
-    mkdir -p $currentDatetimeDir/$1
-    (run_command $1 $for_num) &
+    mkdir -p $currentDatetimeDir/$i
+    (run_command $i $for_num) &
 done
 
 
