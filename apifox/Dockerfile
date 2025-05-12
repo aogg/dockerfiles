@@ -6,5 +6,6 @@ FROM node
 RUN npm install -g apifox-cli
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY for.sh /for.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
