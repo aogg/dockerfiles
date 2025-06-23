@@ -31,7 +31,7 @@ jobs:
 # ##########  构建  ###########################
 
 
-    - name: 构建镜像  adockero/python:mijiaAPI
+    - name: 构建镜像  adockero/python:mijiaAPI容器
       uses: docker/build-push-action@v3
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
