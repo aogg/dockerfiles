@@ -48,6 +48,7 @@ jobs:
         # Adds labels with git repository information to the built image
         labels: true    
 
+
     # - name: 构建镜像  adockero/node-service:node-11-alpine
     #   uses: docker/build-push-action@v3
     #   with:
