@@ -1,0 +1,12 @@
+FROM mgoltzsche/podman:minimal
+
+
+ENV PATH=$PATH:/usr/bin:/usr/local/sbin/
+
+COPY --from=adockero/http-shell /http-shell /http-shell
+
+EXPOSE 8080/TCP
+
+VOLUME [ "/usr/local/sbin/" ]
+
+ENTRYPOINT [ "/http-shell" ] 
