@@ -10,7 +10,8 @@ COPY http_shell.go /http_shell.go
 RUN cd / \
     && CGO_ENABLED=0 GOOS=linux go build -tags netgo -v -o http-shell /http_shell.go \
     && chmod +x /http-shell \
-    && ls -al /http-shell
+    && ls -al /http-shell \
+    && echo '编译结束'
 
 
 FROM ${LATEST_FROM_BASE}
