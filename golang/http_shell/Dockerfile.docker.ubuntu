@@ -1,0 +1,11 @@
+FROM ubuntu:22.04
+
+COPY --from=adockero/http-shell:alpine /http-shell /http-shell
+
+
+
+RUN apt update && \
+    apt install -y docker \
+  # 删除
+#   && apt remove --purge --auto-remove -y patch gcc libpcre3-dev make zlibc openssl \
+  && rm -rf /var/lib/apt/lists/*
