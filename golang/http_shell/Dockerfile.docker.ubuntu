@@ -9,3 +9,6 @@ RUN apt update && \
   # 删除
 #   && apt remove --purge --auto-remove -y patch gcc libpcre3-dev make zlibc openssl \
   && rm -rf /var/lib/apt/lists/*
+
+
+ENTRYPOINT [ "/http-shell" ] 
