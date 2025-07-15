@@ -70,6 +70,11 @@ else
         check_mysqldump_process() {
                 # 使用 pgrep 命令查找与关键字匹配的进程 ID
                 pgrep -f "$KEYWORD"  2>&1
+
+                # 检查当前是否有作业
+                if [ $(jobs | wc -l) -gt 0 ]; then
+                        echo "There are jobs running in the background."
+                fi
         }
         echo "下面是 ps -ef"
         ps -ef
