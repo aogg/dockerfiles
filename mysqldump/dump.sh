@@ -8,6 +8,7 @@ ALL_DATABASES=${ALL_DATABASES}
 IGNORE_DATABASE=${IGNORE_DATABASE}
 ASYNC_WAIT=${ASYNC_WAIT}
 
+id
 
 if [[ ${DB_USER} == "" ]]; then
         echo "Missing DB_USER env variable"
@@ -38,15 +39,17 @@ for db in $databases; do
 
         if [[ ${ASYNC_WAIT} == "" ]]; then
                 echo "执行 同步 导出  $db，下面是执行命令"
-                cat <<<EOF
+                cat <<EOF
 mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" --databases $db > /mysqldump/$db.sql
-EOF                
+EOF          
+
                 mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" --databases $db > /mysqldump/$db.sql
         else
                 echo "执行 异步 导出  $db，下面是执行命令"
-                cat <<<EOF
+                cat <<EOF
 mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" --databases $db > /mysqldump/$db.sql &
 EOF                
+
                 mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" --databases $db > /mysqldump/$db.sql &
                 jobs
         fi
