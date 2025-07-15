@@ -72,6 +72,8 @@ else
                 pgrep -f "$KEYWORD"  2>&1
 
                 # 检查当前是否有作业
+                # 防止缓存
+                jobs >> /dev/null 2>&1
                 if [ $(jobs | wc -l) -gt 0 ]; then
                         echo "There are jobs running in the background."
                 fi
