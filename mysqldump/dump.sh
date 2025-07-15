@@ -40,17 +40,17 @@ for db in $databases; do
         if [[ ${ASYNC_WAIT} == "" ]]; then
                 echo "执行 同步 导出  $db，下面是执行命令"
                 cat <<EOF
-mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" --databases $db > /mysqldump/$db.sql
+mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $@ --databases $db > /mysqldump/$db.sql
 EOF
 
-                mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" --databases $db > /mysqldump/$db.sql
+                mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $@ --databases $db > /mysqldump/$db.sql
         else
                 echo "执行 异步 导出  $db，下面是执行命令"
                 cat <<EOF
-mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" --databases $db > /mysqldump/$db.sql &
+mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $@ --databases $db > /mysqldump/$db.sql &
 EOF
 
-                mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" --databases $db > /mysqldump/$db.sql &
+                mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $@ --databases $db > /mysqldump/$db.sql &
                 jobs
         fi
     fi
@@ -73,6 +73,8 @@ else
         }
         echo "下面是 ps -ef"
         ps -ef
+        echo "下面是 jobs"
+        jobs
         echo "下面是 check_mysqldump_process"
         check_mysqldump_process
 
