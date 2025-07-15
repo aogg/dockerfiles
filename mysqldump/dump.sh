@@ -48,7 +48,7 @@ EOF
                 echo "执行 异步 导出  $db，下面是执行命令"
                 cat <<EOF
 mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" --databases $db > /mysqldump/$db.sql &
-EOF     
+EOF
 
                 mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" --databases $db > /mysqldump/$db.sql &
                 jobs
