@@ -89,6 +89,7 @@ else
                         break
                 fi
                 echo $(date "+%Y-%m-%d %H:%M:%S")" dump.sh  Waiting for mysqldump process to complete..."${DB_HOST}
+                check_mysqldump_process
                 sleep 1  # 等待 1 秒后重新检测
         done
 
