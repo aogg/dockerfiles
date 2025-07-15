@@ -29,14 +29,18 @@ if [[ ${ALL_DATABASES} == "" ]]; then
         fi
         mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" "${DB_NAME}" > /mysqldump/"${DB_NAME}".sql
 else
+        echo "开始导出所有数据库";
+
         databases=`mysql --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" -e "SHOW DATABASES;" | tr -d "| " | grep -v Database`
 for db in $databases; do
     if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "$IGNORE_DATABASE" ]]; then
         echo "Dumping database: $db"
 
         if [[ ${ASYNC_WAIT} == "" ]]; then
+                echo "执行 同步 导出  $db"
                 mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" --databases $db > /mysqldump/$db.sql
         else
+                echo "执行 异步 导出  $db"
                 mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" --databases $db > /mysqldump/$db.sql &
         fi
     fi
@@ -48,7 +52,7 @@ fi
 if [[ ${ASYNC_WAIT} == "" ]]; then
         echo 'finish all';
 else
-
+        echo "开始等待异步导出"
         # mysqldump 进程的关键字
         KEYWORD="mysqldump"
 
@@ -57,6 +61,10 @@ else
                 # 使用 pgrep 命令查找与关键字匹配的进程 ID
                 pgrep -f "$KEYWORD"  2>&1
         }
+        echo "下面是 ps -ef"
+        ps -ef
+        echo "下面是 check_mysqldump_process"
+        check_mysqldump_process
 
         # 循环检测 mysqldump 进程是否存在
         while true; do
