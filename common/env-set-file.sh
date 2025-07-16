@@ -19,7 +19,16 @@ for env in $(printenv); do
     # 去掉前缀
     key="${key#$ENV_PREFIX}"
 
-    echo "${key}=${val}" >> $file
+    # 检查是否包含点，并处理
+    if echo "$key" | grep -q "\."; then
+      prefix=$(echo "$key" | cut -d. -f1)
+      # 特定配置的需要加[swoole]前缀
+      echo "[${prefix}] ${key}=${val}" >> "$file"
+    else
+      echo "${key}=${val}" >> "$file"
+    fi
+
+    # echo "${key}=${val}" >> $file
 
   fi
 
