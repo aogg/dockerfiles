@@ -24,6 +24,7 @@ ENV SW_VERSION=${SW_VERSION:-"v4.5.7"} \
     PHPIZE_DEPS="autoconf dpkg-dev dpkg file g++ gcc libc-dev make php7-dev php7-pear pkgconf re2c pcre-dev pcre2-dev zlib-dev libtool automake"
 
 # update
+# https://github.com/swoole/swoole-src/archive/refs/tags/v4.8.13.tar.gz
 RUN set -ex \
     && apk update \
     # for swoole extension libaio linux-headers
