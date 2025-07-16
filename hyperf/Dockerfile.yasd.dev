@@ -5,6 +5,7 @@ ARG BASE_FORM=hyperf/hyperf:7.4-alpine-v3.11
 FROM ${BASE_FORM} as build
 
 RUN git clone https://github.com/swoole/yasd \
+    && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS libaio-dev openssl-dev curl-dev \
     && apk add --no-cache boost boost-dev \
     && cd yasd \
     && phpize --clean && \
@@ -12,7 +13,10 @@ RUN git clone https://github.com/swoole/yasd \
     ./configure && \
     make clean && \
     make && \
-    make install
+    make install \
+    && apk del .build-deps \
+    && rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/local/bin/php* \
+    && echo "完成"
 
 FROM ${BASE_FORM} as finish
 
