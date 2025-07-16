@@ -35,7 +35,7 @@ jobs:
         # Docker repository to tag the image with
         repository: adockero/hyperf
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: 7.4-alpine-v3.11-swoole-env
+        tags: 7.4-alpine-v3.12-swoole-env
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         path: ./
         dockerfile: hyperf/Dockerfile.env
@@ -67,7 +67,7 @@ jobs:
         # Adds labels with git repository information to the built image
         add_git_labels: true  
 
-        
+
     - name: hyperf:8.2-alpine-v3.19-swoole-slim-env
       uses: docker/build-push-action@v1.1.0
       with:
