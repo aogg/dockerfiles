@@ -8,6 +8,8 @@ RUN git clone https://github.com/swoole/yasd \
     && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS libaio-dev openssl-dev curl-dev \
     && apk add --no-cache boost boost-dev \
     && cd yasd \
+    && ln -s /usr/bin/phpize7 /usr/local/bin/phpize \
+    && ln -s /usr/bin/php-config7 /usr/local/bin/php-config \
     && phpize --clean && \
     phpize && \
     ./configure && \
