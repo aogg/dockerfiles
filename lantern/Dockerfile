@@ -7,7 +7,7 @@ FROM ubuntu
 WORKDIR /root
 # https://github.com/getlantern/lantern-binaries/raw/main/lantern-installer-64-bit.deb
 RUN apt-get update  && \
-         apt-get -y install wget libappindicator3-1 libpcap0.8:amd64 && \
+         apt-get -y install wget libappindicator3-1 libpcap0.8:amd64 libgstreamer-plugins-base1.0-0 libwebkit2gtk-4.1-0  && \
          wget -O lantern.deb https://github.com/getlantern/lantern-binaries/raw/main/lantern-installer-64-bit.deb && \
          wget -O settings.yaml https://raw.githubusercontent.com/xiaoqingfengATGH/lantern/refs/heads/master/settings.yaml && \
          dpkg -i lantern.deb && \
