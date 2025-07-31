@@ -7,7 +7,10 @@ FROM ubuntu
 WORKDIR /root
 # https://github.com/getlantern/lantern-binaries/raw/main/lantern-installer-64-bit.deb
 RUN apt-get update  && \
-         apt-get -y install wget libappindicator3-1 libpcap0.8:amd64 libgstreamer-plugins-base1.0-0 libwebkit2gtk-4.1-0  && \
+        echo "console-setup console-setup/layoutcode string us" | debconf-set-selections && \
+        echo "console-setup console-setup/layout select English (Australia)" | debconf-set-selections && \
+         apt-get -y install wget libappindicator3-1 libpcap0.8:amd64 libgstreamer-plugins-base1.0-0 \
+         xserver-xorg-core libgtk-3-0 libwebkit2gtk-4.1-0 libcurl4 libayatana-appindicator3-1  && \
          wget -O lantern.deb https://github.com/getlantern/lantern-binaries/raw/main/lantern-installer-64-bit.deb && \
          wget -O settings.yaml https://raw.githubusercontent.com/xiaoqingfengATGH/lantern/refs/heads/master/settings.yaml && \
          dpkg -i lantern.deb && \
@@ -20,4 +23,4 @@ RUN apt-get update  && \
 
 EXPOSE 3128/tcp 8080/tcp 3129/tcp
 
-ENTRYPOINT ["/usr/bin/lantern", "--configdir=/root/.lantern", "--headless=true"]
+ENTRYPOINT ["/usr/share/Lantern/Lantern", "--configdir=/root/.lantern", "--headless=true"]
