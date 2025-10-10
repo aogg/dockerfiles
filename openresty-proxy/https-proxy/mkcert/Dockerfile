@@ -45,9 +45,9 @@ VOLUME [ "/root/.local/share/mkcert/" ]
 RUN apk add --no-cache \
     nss-tools \
     ca-certificates
+    
+# 将 AUTO_MKCERT 环境变量暴露给 Nginx worker 进程
+RUN echo "env AUTO_MKCERT;" >> /usr/local/openresty/nginx/conf/nginx.conf
+
 
 CMD /docker-run-mkcert.sh
-
-
-
-
