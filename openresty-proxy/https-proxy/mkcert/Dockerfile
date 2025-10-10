@@ -34,8 +34,11 @@ RUN go env -w GOOS=linux && \
 
 FROM adockero/openresty-proxy:https-intercept
 
+ENV AUTO_MKCERT=1
+
 COPY --from=builder /app/mkcert /usr/local/bin/mkcert
 COPY ./docker-run-mkcert.sh /docker-run-mkcert.sh
+COPY ./mkcert.sh /mkcert.sh
 
 VOLUME [ "/root/.local/share/mkcert/" ]
 
