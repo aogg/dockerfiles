@@ -1,4 +1,4 @@
-name: clash-构建和提交docker
+name: clash/mihomo-构建和提交docker
 
 on:
   push:
@@ -82,6 +82,24 @@ jobs:
         #   APK_ARG=rsync
         # Adds labels with git repository information to the built image
         labels: true 
+
+    - name: 构建镜像  adockero/clash:mihomo-curl-line
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/clash:mihomo-curl-line
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./clash/
+        file: "./clash/mihomo-curl-line/Dockerfile"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        # build-args: NODE_VERSION=14
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true 
+
 
     # - name: 构建镜像  adockero/node-service:node-11-alpine
     #   uses: docker/build-push-action@v3
