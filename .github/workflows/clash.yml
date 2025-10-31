@@ -55,7 +55,7 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: adockero/clash:curl
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        context: ./clash/curl
+        context: ./clash/
         file: "./clash/curl/Dockerfile"
         # Always attempt to pull a newer version of the image
         pull: true

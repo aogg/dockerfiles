@@ -10,8 +10,8 @@ ENV PROXIE_NAME="自动选择"
 
 EXPOSE 7890
 
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-COPY proxies-select.sh /proxies-select.sh
+COPY curl/docker-entrypoint.sh /docker-entrypoint.sh
+COPY common/proxies-select.sh /proxies-select.sh
 
 # ENTRYPOINT [ "/curl-docker-entrypoint.sh" ]
 ENTRYPOINT [ "/docker-entrypoint.sh" ]
