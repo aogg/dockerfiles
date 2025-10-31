@@ -11,7 +11,7 @@ ENV PROXIE_NAME="自动选择"
 
 EXPOSE 7890
 
-COPY curl-line/docker-entrypoint.sh /docker-entrypoint.sh
+COPY mihomo-curl-line/docker-entrypoint.sh /docker-entrypoint.sh
 COPY common/proxies-select.sh /proxies-select.sh
 
 # ENTRYPOINT [ "/curl-docker-entrypoint.sh" ]
