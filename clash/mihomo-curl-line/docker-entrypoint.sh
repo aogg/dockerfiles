@@ -31,6 +31,7 @@ EOF
 parse_vless() {
     local line="$1"
     local configFilePath="$2"  # 接收配置文件路径参数（需从调用处传入）
+    local debugBool="$3"  # 接收配置文件路径参数（需从调用处传入）
 
     # 提取 # 后的名称（解码 URL 编码，如 %20 转空格）
     local name=$(echo "$line" | awk -F'#' '{if (NF>=2) print $2; else print ""}')
@@ -39,9 +40,21 @@ parse_vless() {
 
     # 提取 UUID、服务器、端口（基础信息）
     local uuid=$(echo "$line" | awk -F'vless://|@' '{print $2}')  # 从 vless:// 后、@ 前提取 UUID
-    local server_port=$(echo "$line" | awk -F'@' '{print $2}' | awk -F'\?' '{print $1}')  # 提取 @ 后、? 前的 server:port
-    local server=$(echo "$server_port" | awk -F':' '{print $1}')
-    local port=$(echo "$server_port" | awk -F':' '{print $2}')
+    # local server_port=$(echo "$line" | awk -F'@' '{print $2}' | awk -F'\?' '{print $1}')  # 提取 @ 后、? 前的 server:port
+    # local server=$(echo "$server_port" | awk -F':' '{print $1}')
+    # local port=$(echo "$server_port" | awk -F':' '{print $2}')
+    # 提取 @ 后面的部分（服务器+端口+参数），再剥离参数部分（? 及后面内容）
+    local server_port_str=$(echo "$line" | sed -E 's/^vless:\/\/[^@]+@([^?]+).*$/\1/')
+
+    # 从 server_port_str 中拆分 server 和 port（处理无端口的情况，默认443）
+    local server=$(echo "$server_port_str" | sed -E 's/^([^:]+)(:.*)?$/\1/')  # 提取 : 之前的部分作为服务器
+    local port=$(echo "$server_port_str" | sed -E 's/^[^:]+:([0-9]+)$/\1/')   # 提取 : 之后的数字作为端口
+
+    # 若未提取到端口，默认使用 443
+    if [ -z "$port" ] || ! echo "$port" | grep -q '^[0-9]\+$'; then
+        port=443
+    fi
+
 
     # 若未指定端口，默认 443
     [ -z "$port" ] && port=443
@@ -54,6 +67,7 @@ parse_vless() {
 
     # 解析各参数（默认值合理设置）
     local network=$(echo "$params" | sed -n 's/.*type=\([^&]*\).*/\1/p' | grep -q . && echo "$network" || echo "tcp")
+    
     local tls_val=$(echo "$params" | sed -n 's/.*security=\([^&]*\).*/\1/p')
     local servername=$(echo "$params" | sed -n 's/.*sni=\([^&]*\).*/\1/p' | grep -q . && echo "$servername" || echo "$server")
     local path=$(echo "$params" | sed -n 's/.*path=\([^&]*\).*/\1/p' | sed 's/%2F/\//g')  # 解码 /
@@ -100,26 +114,51 @@ parse_vless() {
     [ -z "$packet_encoding" ] && packet_encoding=""
 
 
-    echo "最后结果---------------------------------"
-    echo ".proxies += [{
-        \"name\": \"$name\",
-        \"type\": \"vless\",
-        \"server\": \"$server\",
-        \"port\": $port,
-        \"uuid\": \"$uuid\",
-        \"network\": \"$network\",
-        \"tls\": $tls_enabled,
-        \"udp\": true,
-        \"servername\": \"$servername\",
-        \"flow\": \"$flow\",
-        \"client-fingerprint\": \"$fp\",
-        \"packet-encoding\": \"$packet_encoding\",
-        $alpn_opts
-        $reality_opts
-        $ws_opts
-        \"tcp-fast-open\": $tfo_enabled
-    }]"
-    echo "最后结果---------------------------------"
+    # 根据echo作为返回的
+    if [ "$debugBool" = "true" ]; then
+      echo "最后结果---------------------------------"
+      echo "params: $params"
+      echo "name: $name"
+      echo "server: $server"
+      echo "port: $port"
+      echo "uuid: $uuid"
+      echo "network: $network"
+      echo "tls: $tls_enabled"
+      echo "servername: $servername"
+      echo "flow: $flow"
+      echo "fp: $fp"
+      echo "packet-encoding: $packet_encoding"
+      echo "alpn: $alpn"
+      echo "public-key: $public_key"
+      echo "short-id: $short_id"
+      echo "spider-x: $spider_x"
+      echo "tfo: $tfo_enabled"
+      echo "reality-opts: $reality_opts"
+      echo "ws-opts: $ws_opts"
+      echo "alpn-opts: $alpn_opts"
+      echo "最后结果----------proxies-----------------------"
+
+      echo ".proxies += [{
+          \"name\": \"$name\",
+          \"type\": \"vless\",
+          \"server\": \"$server\",
+          \"port\": $port,
+          \"uuid\": \"$uuid\",
+          \"network\": \"$network\",
+          \"tls\": $tls_enabled,
+          \"udp\": true,
+          \"servername\": \"$servername\",
+          \"flow\": \"$flow\",
+          \"client-fingerprint\": \"$fp\",
+          \"packet-encoding\": \"$packet_encoding\",
+          $alpn_opts
+          $reality_opts
+          $ws_opts
+          \"tcp-fast-open\": $tfo_enabled
+      }]"
+      echo "最后结果---------------------------------"
+      return
+    fi
 
     # 使用 yq 插入代理配置（格式严格对齐 YAML 规范）
     yq -i ".proxies += [{
@@ -247,10 +286,15 @@ update_config() {
         # 示例输入数据（可以是一个文件或管道）
         input_data=$(echo "$line" | perl -pe 's/\+/ /g; s/%(..)/chr(hex($1))/eg')
 
+        echo "处理链接: $input_data"
+
         local name=""
         # 根据协议头选择解析函数
         if echo "$input_data" | grep -q "^vless://"; then
           name=$(parse_vless "$input_data" "$configFilePath")
+
+          echo "调试信息"
+          parse_vless "$input_data" "$configFilePath" "true"
         elif echo "$input_data" | grep -q "^vmess://"; then
           name=$(parse_vmess "$input_data" "$configFilePath")
         elif echo "$input_data" | grep -q "^trojan://"; then
@@ -280,8 +324,19 @@ update_config() {
     echo "    proxies:" >> "$temp_proxies_file"
     echo -e "$proxy_names" >> "$temp_proxies_file"
     # 使用 yq 合并代理列表到主配置文件
-    yq eval-all '. as $item ireduce ({}; . * $item)' "$configFilePath" "$temp_proxies_file" > "${configFilePath}.tmp" && mv "${configFilePath}.tmp" "$configFilePath"
-    rm "$temp_proxies_file"
+    echo "开始替换"
+    yq eval-all '. as $item ireduce ({}; . * $item)' "$configFilePath" "$temp_proxies_file" > "${configFilePath}.tmp"
+    if [ $? -ne 0 ]; then
+      echo "错误：合并代理组失败！"
+      return 1
+    else
+      mv "${configFilePath}.tmp" "$configFilePath"  
+      rm "$temp_proxies_file"
+    fi
+
+    # 最后检查下VLESS-LB
+    echo "最后检查下VLESS-LB"
+    yq eval '.proxy-groups[] | select(.name == "VLESS-LB")' "$configFilePath"
   }
 
   echo "配置文件处理完成。"
