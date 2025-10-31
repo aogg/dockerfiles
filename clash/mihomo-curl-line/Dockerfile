@@ -3,7 +3,7 @@
 FROM metacubex/mihomo
 
 
-RUN apk add --no-cache yq curl
+RUN apk add --no-cache yq curl perl
 
 ENV PORT=7890
 ENV EXTERNAL_PORT=9090

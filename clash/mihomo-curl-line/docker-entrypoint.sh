@@ -25,49 +25,129 @@ rules:
 EOF
 }
 
+
+
 # 解析 vless 链接并添加到配置
 parse_vless() {
     local line="$1"
-    # vless://uuid@host:port?params#name
-    local name=$(echo "$line" | awk -F'#' '{print $2}' | sed 's/%/ /g' | xargs)
-    local uuid=$(echo "$line" | awk -F'[@:]' '{print $2}')
-    local server=$(echo "$line" | awk -F'[@:]' '{print $3}')
-    local port=$(echo "$line" | awk -F'[:?]' '{print $3}')
-    
-    # 提取所有查询参数
-    local params=$(echo "$line" | awk -F'?' '{print $2}' | awk -F'#' '{print $1}')
-    local network=$(echo "$params" | sed -n 's/.*type=\([^&]*\).*/\1/p')
+    local configFilePath="$2"  # 接收配置文件路径参数（需从调用处传入）
+
+    # 提取 # 后的名称（解码 URL 编码，如 %20 转空格）
+    local name=$(echo "$line" | awk -F'#' '{if (NF>=2) print $2; else print ""}')
+    # 解码名称中的 URL 编码（处理空格、特殊字符）
+    name=$(echo "$name" | sed -e 's/%20/ /g' -e 's/%23/#/g' -e 's/%2F/\//g' | xargs)
+
+    # 提取 UUID、服务器、端口（基础信息）
+    local uuid=$(echo "$line" | awk -F'vless://|@' '{print $2}')  # 从 vless:// 后、@ 前提取 UUID
+    local server_port=$(echo "$line" | awk -F'@' '{print $2}' | awk -F'\?' '{print $1}')  # 提取 @ 后、? 前的 server:port
+    local server=$(echo "$server_port" | awk -F':' '{print $1}')
+    local port=$(echo "$server_port" | awk -F':' '{print $2}')
+
+    # 若未指定端口，默认 443
+    [ -z "$port" ] && port=443
+
+    # 若名称为空，用 server:port 生成
+    [ -z "$name" ] && name="vless-${server}:${port}"
+
+    # 提取查询参数（? 后的部分，排除 # 及后面内容）
+    local params=$(echo "$line" | awk -F'\?' '{if (NF>=2) print $2; else print ""}' | awk -F'#' '{print $1}')
+
+    # 解析各参数（默认值合理设置）
+    local network=$(echo "$params" | sed -n 's/.*type=\([^&]*\).*/\1/p' | grep -q . && echo "$network" || echo "tcp")
     local tls_val=$(echo "$params" | sed -n 's/.*security=\([^&]*\).*/\1/p')
-    local servername=$(echo "$params" | sed -n 's/.*sni=\([^&]*\).*/\1/p')
-    local path=$(echo "$params" | sed -n 's/.*path=\([^&]*\).*/\1/p' | sed 's|%2F|/|g')
+    local servername=$(echo "$params" | sed -n 's/.*sni=\([^&]*\).*/\1/p' | grep -q . && echo "$servername" || echo "$server")
+    local path=$(echo "$params" | sed -n 's/.*path=\([^&]*\).*/\1/p' | sed 's/%2F/\//g')  # 解码 /
     local host_header=$(echo "$params" | sed -n 's/.*host=\([^&]*\).*/\1/p')
     local flow=$(echo "$params" | sed -n 's/.*flow=\([^&]*\).*/\1/p')
     local fp=$(echo "$params" | sed -n 's/.*fp=\([^&]*\).*/\1/p')
     local tfo_val=$(echo "$params" | sed -n 's/.*tfo=\([^&]*\).*/\1/p')
-    local alpn=$(echo "$params" | sed -n 's/.*alpn=\([^&]*\).*/\1/p' | sed 's|%2F|/|g')
+    local alpn=$(echo "$params" | sed -n 's/.*alpn=\([^&]*\).*/\1/p' | sed 's/%2C/,/g')  # 解码逗号
     local public_key=$(echo "$params" | sed -n 's/.*pbk=\([^&]*\).*/\1/p')
     local short_id=$(echo "$params" | sed -n 's/.*sid=\([^&]*\).*/\1/p')
     local spider_x=$(echo "$params" | sed -n 's/.*spx=\([^&]*\).*/\1/p')
 
-    [ -z "$name" ] && name="vless-${server}:${port}"
-    [ -z "$servername" ] && servername="$server"
-
+    # 构建 reality 配置（仅当 security=reality 时）
     local reality_opts=""
-    if [ "$tls_val" = "reality" ]; then
+    if [ "$tls_val" = "reality" ] && [ -n "$public_key" ]; then
         reality_opts="\"reality-opts\": {\"public-key\": \"$public_key\", \"short-id\": \"$short_id\"},"
     fi
 
+    # 构建 ALPN 配置（若有值）
     local alpn_opts=""
-    [ -n "$alpn" ] && alpn_opts="\"alpn\": [\"h2\", \"http/1.1\"],"
+    if [ -n "$alpn" ]; then
+        # 将 alpn 参数按逗号拆分并转为数组（如 h2,http/1.1 → ["h2", "http/1.1"]）
+        alpn_arr=$(echo "$alpn" | sed 's/,/","/g')
+        alpn_opts="\"alpn\": [\"$alpn_arr\"],"
+    fi
 
-    # 使用 yq 添加代理配置
-    yq -i ".proxies += [{\"name\": \"$name\", \"type\": \"vless\", \"server\": \"$server\", \"port\": $port, \"uuid\": \"$uuid\", \"network\": \"${network:-tcp}\", \"tls\": $([ "$tls_val" = "tls" ] || [ "$tls_val" = "reality" ] && echo "true" || echo "false"), \"udp\": true, \"servername\": \"$servername\", \"flow\": \"$flow\", \"client-fingerprint\": \"$fp\", \"packet-encoding\": \"${spider_x:-xudp}\", $alpn_opts $reality_opts \"tcp-fast-open\": $([ "$tfo_val" = "1" ] && echo "true" || echo "false"), \"ws-opts\": {\"path\": \"$path\", \"headers\": {\"Host\": \"$host_header\"}}}]" "$configFilePath"
-    echo "$name"
+    # 构建 WebSocket 配置（仅当 network=ws 时）
+    local ws_opts=""
+    if [ "$network" = "ws" ]; then
+        # 处理 path 和 host_header（为空则不填）
+        local ws_path=$( [ -n "$path" ] && echo "\"path\": \"$path\"," || echo "" )
+        local ws_host=$( [ -n "$host_header" ] && echo "\"Host\": \"$host_header\"" || echo "" )
+        ws_opts="\"ws-opts\": {${ws_path} \"headers\": {$ws_host}},"
+    fi
+
+    # 构建 TLS 开关（security=tls 或 reality 时启用）
+    local tls_enabled=$([ "$tls_val" = "tls" ] || [ "$tls_val" = "reality" ] && echo "true" || echo "false")
+
+    # 构建 TCP 快速打开（tfo=1 时启用）
+    local tfo_enabled=$([ "$tfo_val" = "1" ] && echo "true" || echo "false")
+
+    # 构建 packet-encoding（默认 xudp，无则空）
+    local packet_encoding=${spider_x:-xudp}
+    [ -z "$packet_encoding" ] && packet_encoding=""
+
+
+    echo "最后结果---------------------------------"
+    echo ".proxies += [{
+        \"name\": \"$name\",
+        \"type\": \"vless\",
+        \"server\": \"$server\",
+        \"port\": $port,
+        \"uuid\": \"$uuid\",
+        \"network\": \"$network\",
+        \"tls\": $tls_enabled,
+        \"udp\": true,
+        \"servername\": \"$servername\",
+        \"flow\": \"$flow\",
+        \"client-fingerprint\": \"$fp\",
+        \"packet-encoding\": \"$packet_encoding\",
+        $alpn_opts
+        $reality_opts
+        $ws_opts
+        \"tcp-fast-open\": $tfo_enabled
+    }]"
+    echo "最后结果---------------------------------"
+
+    # 使用 yq 插入代理配置（格式严格对齐 YAML 规范）
+    yq -i ".proxies += [{
+        \"name\": \"$name\",
+        \"type\": \"vless\",
+        \"server\": \"$server\",
+        \"port\": $port,
+        \"uuid\": \"$uuid\",
+        \"network\": \"$network\",
+        \"tls\": $tls_enabled,
+        \"udp\": true,
+        \"servername\": \"$servername\",
+        \"flow\": \"$flow\",
+        \"client-fingerprint\": \"$fp\",
+        \"packet-encoding\": \"$packet_encoding\",
+        $alpn_opts
+        $reality_opts
+        $ws_opts
+        \"tcp-fast-open\": $tfo_enabled
+    }]" "$configFilePath"
+
+    echo "$name"  # 返回生成的节点名称
 }
 
 # 解析 vmess 链接并添加到配置
 parse_vmess() {
     local line="$1"
+    local configFilePath="$2"
     # vmess://<base64>
     local b64_data=$(echo "$line" | sed 's/vmess:\/\///')
     local json_data=$(echo "$b64_data" | base64 -d)
@@ -91,6 +171,7 @@ parse_vmess() {
 # 解析 trojan 链接并添加到配置
 parse_trojan() {
     local line="$1"
+    local configFilePath="$2"
     # trojan://password@host:port#name
     local name=$(echo "$line" | awk -F'#' '{print $2}' | sed 's/%/ /g' | xargs)
     local password=$(echo "$line" | awk -F'[@:]' '{print $2}')
@@ -108,6 +189,7 @@ parse_trojan() {
 # 解析 ss 链接并添加到配置
 parse_ss() {
     local line="$1"
+    local configFilePath="$2"
     # ss://<base64>#name
     local name=$(echo "$line" | awk -F'#' '{print $2}' | sed 's/%/ /g' | xargs)
     local b64_part=$(echo "$line" | sed -e 's/ss:\/\///' -e 's/#.*//')
@@ -162,18 +244,22 @@ update_config() {
           continue
         fi
 
+        # 示例输入数据（可以是一个文件或管道）
+        input_data=$(echo "$line" | perl -pe 's/\+/ /g; s/%(..)/chr(hex($1))/eg')
+
         local name=""
         # 根据协议头选择解析函数
-        if echo "$line" | grep -q "^vless://"; then
-          name=$(parse_vless "$line")
-        elif echo "$line" | grep -q "^vmess://"; then
-          name=$(parse_vmess "$line")
-        elif echo "$line" | grep -q "^trojan://"; then
-          name=$(parse_trojan "$line")
-        elif echo "$line" | grep -q "^ss://"; then
-          name=$(parse_ss "$line")
+        if echo "$input_data" | grep -q "^vless://"; then
+          name=$(parse_vless "$input_data" "$configFilePath")
+        elif echo "$input_data" | grep -q "^vmess://"; then
+          name=$(parse_vmess "$input_data" "$configFilePath")
+        elif echo "$input_data" | grep -q "^trojan://"; then
+          name=$(parse_trojan "$input_data" "$configFilePath")
+        elif echo "$input_data" | grep -q "^ss://"; then
+          name=$(parse_ss "$input_data" "$configFilePath")
         else
-          echo "跳过不支持的链接类型: $line"
+          echo "跳过不支持的链接类型: $input_data"
+          echo "跳过不支持的链接类型line: $line"
           continue
         fi
 
