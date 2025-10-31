@@ -102,6 +102,12 @@ while true; do
   echo "重启 Clash 服务以应用新配置..."
   kill $CLASH_PID
   /clash &
+
+  # 首次启动后，在后台选择代理
+  if [ -f "/proxies-select.sh" ]; then
+      (sleep 5 && /proxies-select.sh) &
+  fi
+
   CLASH_PID=$!
   echo "Clash 已重启, 新 PID: $CLASH_PID"
   echo "========================================="
