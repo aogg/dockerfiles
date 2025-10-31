@@ -66,19 +66,39 @@ parse_vless() {
     local params=$(echo "$line" | awk -F'\?' '{if (NF>=2) print $2; else print ""}' | awk -F'#' '{print $1}')
 
     # 解析各参数（默认值合理设置）
-    local network=$(echo "$params" | sed -n 's/.*type=\([^&]*\).*/\1/p' | grep -q . && echo "$network" || echo "tcp")
+    #  type
+    local extracted_network=$(echo "$params" | sed -n 's/.*type=\([^&]*\).*/\1/p')
+    local network=${extracted_network:-tcp}
     
-    local tls_val=$(echo "$params" | sed -n 's/.*security=\([^&]*\).*/\1/p')
-    local servername=$(echo "$params" | sed -n 's/.*sni=\([^&]*\).*/\1/p' | grep -q . && echo "$servername" || echo "$server")
-    local path=$(echo "$params" | sed -n 's/.*path=\([^&]*\).*/\1/p' | sed 's/%2F/\//g')  # 解码 /
+    local encryption=$(echo "$params" | sed -n 's/.*encryption=\([^&]*\).*/\1/p')
     local host_header=$(echo "$params" | sed -n 's/.*host=\([^&]*\).*/\1/p')
-    local flow=$(echo "$params" | sed -n 's/.*flow=\([^&]*\).*/\1/p')
-    local fp=$(echo "$params" | sed -n 's/.*fp=\([^&]*\).*/\1/p')
-    local tfo_val=$(echo "$params" | sed -n 's/.*tfo=\([^&]*\).*/\1/p')
-    local alpn=$(echo "$params" | sed -n 's/.*alpn=\([^&]*\).*/\1/p' | sed 's/%2C/,/g')  # 解码逗号
-    local public_key=$(echo "$params" | sed -n 's/.*pbk=\([^&]*\).*/\1/p')
-    local short_id=$(echo "$params" | sed -n 's/.*sid=\([^&]*\).*/\1/p')
-    local spider_x=$(echo "$params" | sed -n 's/.*spx=\([^&]*\).*/\1/p')
+    # 从完整链接中提取 path，并进行 URL 解码
+    # 1. 提取 path=... 部分，直到 & 或 # 或行尾
+    # 2. 去掉 path= 前缀
+    # 3. URL 解码（处理 %2F, %3D, %3F 等）
+    local path=$(echo "$line" | sed -n 's/.*[?&]path=\([^&#]*\).*/\1/p' | perl -pe 's/%(..)/chr(hex($1))/eg')
+    
+    # 构建 WebSocket 配置（仅当 network=ws 时）
+    local ws_opts=""
+    if [ "$network" = "ws" ]; then
+        # 处理 path 和 host_header（为空则不填）
+        local ws_path=$( [ -n "$path" ] && echo "\"path\": \"$path\"," || echo "" )
+        local ws_host=$( [ -n "$host_header" ] && echo "\"Host\": \"$host_header\"" || echo "" )
+        ws_opts="\"ws-opts\": {${ws_path} \"headers\": {$ws_host}},"
+    fi
+
+
+    local tls_val=$(echo "$line" | sed -n 's/.*security=\([^&]*\).*/\1/p')
+    # 提取 sni，如果不存在则使用 server 作为默认值
+    local extracted_sni=$(echo "$line" | sed -n 's/.*[?&]sni=\([^&#]*\).*/\1/p')
+    local servername=${extracted_sni:-$server}
+    local flow=$(echo "$line" | sed -n 's/.*flow=\([^&]*\).*/\1/p')
+    local fp=$(echo "$line" | sed -n 's/.*fp=\([^&]*\).*/\1/p' || echo "")
+    local tfo_val=$(echo "$line" | sed -n 's/.*tfo=\([^&]*\).*/\1/p')
+    local alpn=$(echo "$line" | sed -n 's/.*alpn=\([^&]*\).*/\1/p' | sed 's/%2C/,/g')  # 解码逗号
+    local public_key=$(echo "$line" | sed -n 's/.*pbk=\([^&]*\).*/\1/p')
+    local short_id=$(echo "$line" | sed -n 's/.*sid=\([^&]*\).*/\1/p')
+    local spider_x=$(echo "$line" | sed -n 's/.*spx=\([^&]*\).*/\1/p')
 
     # 构建 reality 配置（仅当 security=reality 时）
     local reality_opts=""
@@ -94,14 +114,6 @@ parse_vless() {
         alpn_opts="\"alpn\": [\"$alpn_arr\"],"
     fi
 
-    # 构建 WebSocket 配置（仅当 network=ws 时）
-    local ws_opts=""
-    if [ "$network" = "ws" ]; then
-        # 处理 path 和 host_header（为空则不填）
-        local ws_path=$( [ -n "$path" ] && echo "\"path\": \"$path\"," || echo "" )
-        local ws_host=$( [ -n "$host_header" ] && echo "\"Host\": \"$host_header\"" || echo "" )
-        ws_opts="\"ws-opts\": {${ws_path} \"headers\": {$ws_host}},"
-    fi
 
     # 构建 TLS 开关（security=tls 或 reality 时启用）
     local tls_enabled=$([ "$tls_val" = "tls" ] || [ "$tls_val" = "reality" ] && echo "true" || echo "false")
@@ -123,6 +135,9 @@ parse_vless() {
       echo "port: $port"
       echo "uuid: $uuid"
       echo "network: $network"
+      echo "encryption: $encryption"
+      echo "host-header: $host_header"
+      echo "path: $path"
       echo "tls: $tls_enabled"
       echo "servername: $servername"
       echo "flow: $flow"
