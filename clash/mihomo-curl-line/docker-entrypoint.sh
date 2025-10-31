@@ -147,42 +147,56 @@ update_config() {
   # 4. 解析 vless 链接并生成 proxies
   echo "生成代理配置..."
   proxy_names=""
-  
-  # 使用 while read 逐行处理，防止 for 循环因空格分割问题出错
-  echo "$vless_links" | while IFS= read -r line; do
-    # 跳过空行
-    if [ -z "$line" ]; then
-      continue
-    fi
 
-    local name=""
-    # 根据协议头选择解析函数
-    if echo "$line" | grep -q "^vless://"; then
-      name=$(parse_vless "$line")
-    elif echo "$line" | grep -q "^vmess://"; then
-      name=$(parse_vmess "$line")
-    elif echo "$line" | grep -q "^trojan://"; then
-      name=$(parse_trojan "$line")
-    elif echo "$line" | grep -q "^ss://"; then
-      name=$(parse_ss "$line")
-    else
-      echo "跳过不支持的链接类型: $line"
-      continue
-    fi
+  # 5. 创建 load-balance 代理组并添加代理
+  # 使用代码块 `{...}` 确保 while 循环和后续的 sed 命令在同一个 shell 中执行，
+  # 这样 proxy_names 变量在循环结束后依然可用。
+  echo "$vless_links" | {
+    # 5.1 创建 load-balance 代理组
+    echo "创建 'VLESS-LB' 负载均衡组..."
+    yq -i '.proxy-groups += [{"name": "VLESS-LB", "type": "load-balance", "strategy": "round-robin", "url": "http://www.gstatic.com/generate_204", "interval": 300}]' "$configFilePath"
 
-    # 拼接代理名称列表
-    if [ -n "$name" ]; then
-        proxy_names="$proxy_names\n      - \"$name\""
-    fi
-  done
+    while IFS= read -r line; do
+        # 跳过空行
+        if [ -z "$line" ]; then
+          continue
+        fi
 
-  # 5. 创建 load-balance 代理组
-  echo "创建 'VLESS-LB' 负载均衡组..."
-  yq -i '.proxy-groups += [{"name": "VLESS-LB", "type": "load-balance", "strategy": "round-robin", "url": "http://www.gstatic.com/generate_204", "interval": 300}]' "$configFilePath"
-  
-  # 将所有代理添加到组中
-  # yq 不支持直接从变量插入多行 yaml，所以我们用 sed
-  sed -i "/- name: VLESS-LB/a \    proxies:$(echo -e "$proxy_names")" "$configFilePath"
+        local name=""
+        # 根据协议头选择解析函数
+        if echo "$line" | grep -q "^vless://"; then
+          name=$(parse_vless "$line")
+        elif echo "$line" | grep -q "^vmess://"; then
+          name=$(parse_vmess "$line")
+        elif echo "$line" | grep -q "^trojan://"; then
+          name=$(parse_trojan "$line")
+        elif echo "$line" | grep -q "^ss://"; then
+          name=$(parse_ss "$line")
+        else
+          echo "跳过不支持的链接类型: $line"
+          continue
+        fi
+
+        # 拼接代理名称列表
+        if [ -n "$name" ]; then
+            proxy_names="$proxy_names\n      - \"$name\""
+        fi
+    done
+    echo "proxy_names: $proxy_names"
+    # 5.2 将所有代理添加到组中
+    # 创建一个临时的 yml 文件来存储要合并的代理列表
+    temp_proxies_file=$(mktemp)
+    echo "proxy-groups:" > "$temp_proxies_file"
+    echo "  - name: VLESS-LB" >> "$temp_proxies_file"
+    echo "    url: 'http://www.gstatic.com/generate_204'" >> "$temp_proxies_file"
+    echo "    interval: 300" >> "$temp_proxies_file"
+    echo "    type: load-balance" >> "$temp_proxies_file"
+    echo "    proxies:" >> "$temp_proxies_file"
+    echo -e "$proxy_names" >> "$temp_proxies_file"
+    # 使用 yq 合并代理列表到主配置文件
+    yq eval-all '. as $item ireduce ({}; . * $item)' "$configFilePath" "$temp_proxies_file" > "${configFilePath}.tmp" && mv "${configFilePath}.tmp" "$configFilePath"
+    rm "$temp_proxies_file"
+  }
 
   echo "配置文件处理完成。"
   return 0
@@ -196,11 +210,11 @@ while true; do
   echo "开始执行配置更新..."
   
   # 杀死旧的 Clash 进程（如果存在）
-  if [ -n "$MIHOMO_PID" ]; then
-    echo "停止旧的 Mihomo 进程 (PID: $MIHOMO_PID)..."
-    kill $MIHOMO_PID
+  if [ -n "$CLASH_PID" ]; then
+    echo "停止旧的 Mihomo 进程 (PID: $CLASH_PID)..."
+    kill $CLASH_PID
     # 等待进程完全退出
-    wait $MIHOMO_PID 2>/dev/null
+    wait $CLASH_PID 2>/dev/null
   fi
   
   # 更新配置
@@ -214,13 +228,13 @@ while true; do
   # 启动新的 Clash 进程
   echo "启动 Mihomo 服务..."
   /mihomo &
-  MIHOMO_PID=$!
-  echo "Mihomo 已启动, 新 PID: $MIHOMO_PID"
+  CLASH_PID=$!
+  echo "Mihomo 已启动, 新 PID: $CLASH_PID"
   echo "========================================="
   
   # 首次启动后，在后台选择代理
-if [ -f "/clash-common/proxies-select.sh" ]; then
-    (sleep 5 && /clash-common/proxies-select.sh) &
+if [ -f "/proxies-select.sh" ]; then
+    (sleep 5 && /proxies-select.sh) &
 fi
 
   # 等待 24 小时
