@@ -202,11 +202,15 @@ parse_vless() {
 parse_vmess() {
     local line="$1"
     local configFilePath="$2"
+    local debugBool="$3"
+
     # vmess://<base64>
     local b64_data=$(echo "$line" | sed 's/vmess:\/\///')
     local json_data=$(echo "$b64_data" | base64 -d)
+    # 将json里的\/转为\
+    json_data=$(echo "$json_data" | sed 's/\\\//\//g')
 
-    local name=$(echo "$json_data" | yq -r '.ps')
+    local name=$(printf "%s" "$json_data" | yq -r '.ps')
     local server=$(echo "$json_data" | yq -r '.add')
     local port=$(echo "$json_data" | yq -r '.port')
     local uuid=$(echo "$json_data" | yq -r '.id')
@@ -216,7 +220,42 @@ parse_vmess() {
     local path=$(echo "$json_data" | yq -r '.path')
     local host_header=$(echo "$json_data" | yq -r '.host')
 
-    [ -z "$name" ] && name="vmess-${server}:${port}"
+    [ -z "$name" ] && [ -n "$server" ] && [ -n "$port" ] && name="vmess-${server}:${port}"
+
+    if [ "$debugBool" = "true" ]; then
+      echo "最后结果---------------------------------"
+      echo "json_data: $json_data"
+
+      # 用 printf 转换为中文（%b 表示解析转义序列）
+      printf "%b" "$name"
+      echo 
+      echo "name: $name"
+      echo "server: $server"
+      echo "port: $port"
+      echo "uuid: $uuid"
+      echo "alterId: $alterId"
+      echo "network: $network"
+      echo "tls: $tls_val"
+      echo "path: $path"
+      echo "host-header: $host_header"
+      echo "最后结果----------proxies-----------------------"
+
+      echo ".proxies += [{
+          \"name\": \"$name\",
+          \"type\": \"vmess\",
+          \"server\": \"$server\",
+          \"port\": $port,
+          \"uuid\": \"$uuid\",
+          \"alterId\": $alterId,
+          \"cipher\": \"auto\",
+          \"network\": \"$network\",
+          \"tls\": $([ "$tls_val" = "tls" ] && echo "true" || echo "false"),
+          \"udp\": true,
+          \"ws-opts\": {\"path\": \"$path\", \"headers\": {\"Host\": \"$host_header\"}}
+      }]"
+      echo "最后结果---------------------------------"
+      return
+    fi
 
     yq -i ".proxies += [{\"name\": \"$name\", \"type\": \"vmess\", \"server\": \"$server\", \"port\": $port, \"uuid\": \"$uuid\", \"alterId\": $alterId, \"cipher\": \"auto\", \"network\": \"$network\", \"tls\": $([ "$tls_val" = "tls" ] && echo "true" || echo "false"), \"udp\": true, \"ws-opts\": {\"path\": \"$path\", \"headers\": {\"Host\": \"$host_header\"}}}]" "$configFilePath"
     echo "$name"
@@ -312,6 +351,7 @@ update_config() {
           parse_vless "$input_data" "$configFilePath" "true"
         elif echo "$input_data" | grep -q "^vmess://"; then
           name=$(parse_vmess "$input_data" "$configFilePath")
+          parse_vmess "$input_data" "$configFilePath" "true"
         elif echo "$input_data" | grep -q "^trojan://"; then
           name=$(parse_trojan "$input_data" "$configFilePath")
         elif echo "$input_data" | grep -q "^ss://"; then
