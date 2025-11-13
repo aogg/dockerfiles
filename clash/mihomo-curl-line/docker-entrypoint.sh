@@ -345,10 +345,11 @@ update_config() {
         local name=""
         # 根据协议头选择解析函数
         if echo "$input_data" | grep -q "^vless://"; then
-          name=$(parse_vless "$input_data" "$configFilePath")
-
           echo "调试信息"
           parse_vless "$input_data" "$configFilePath" "true"
+          
+          name=$(parse_vless "$input_data" "$configFilePath")
+
         elif echo "$input_data" | grep -q "^vmess://"; then
           name=$(parse_vmess "$input_data" "$configFilePath")
           parse_vmess "$input_data" "$configFilePath" "true"
