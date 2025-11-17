@@ -219,6 +219,7 @@ parse_vmess() {
     local tls_val=$(echo "$json_data" | yq -r '.tls')
     local path=$(echo "$json_data" | yq -r '.path')
     local host_header=$(echo "$json_data" | yq -r '.host')
+    local sni=$(echo "$json_data" | yq -r '.sni')
 
     [ -z "$name" ] && [ -n "$server" ] && [ -n "$port" ] && name="vmess-${server}:${port}"
 
@@ -238,6 +239,7 @@ parse_vmess() {
       echo "tls: $tls_val"
       echo "path: $path"
       echo "host-header: $host_header"
+      echo "sni: $sni"
       echo "最后结果----------proxies-----------------------"
 
       echo ".proxies += [{
@@ -251,6 +253,7 @@ parse_vmess() {
           \"network\": \"$network\",
           \"tls\": $([ "$tls_val" = "tls" ] && echo "true" || echo "false"),
           \"udp\": true,
+          \"sni\": \"$sni\",
           \"ws-opts\": {\"path\": \"$path\", \"headers\": {\"Host\": \"$host_header\"}}
       }]"
       echo "最后结果---------------------------------"
