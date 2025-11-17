@@ -21,7 +21,7 @@ proxy-groups:
       - VLESS-LB
       - DIRECT
 rules:
-  - MATCH,GLOBAL
+  - MATCH,自动
 EOF
 }
 
@@ -253,7 +253,7 @@ parse_vmess() {
           \"network\": \"$network\",
           \"tls\": $([ "$tls_val" = "tls" ] && echo "true" || echo "false"),
           \"udp\": true,
-          \"sni\": \"$sni\",
+          \"servername\": \"$sni\",
           \"ws-opts\": {\"path\": \"$path\", \"headers\": {\"Host\": \"$host_header\"}}
       }]"
       echo "最后结果---------------------------------"
@@ -332,7 +332,7 @@ update_config() {
   echo "$vless_links" | {
     # 5.1 创建 load-balance 代理组
     echo "创建 'VLESS-LB' 负载均衡组..."
-    yq -i '.proxy-groups += [{"name": "VLESS-LB", "type": "load-balance", "strategy": "round-robin", "url": "http://www.gstatic.com/generate_204", "interval": 300}]' "$configFilePath"
+    yq -i '.proxy-groups += [{"name": "自动", "type": "url-test", "url": "http://www.gstatic.com/generate_204", "interval": 300}]' "$configFilePath"
 
     while IFS= read -r line; do
         # 跳过空行
@@ -376,10 +376,10 @@ update_config() {
     # 创建一个临时的 yml 文件来存储要合并的代理列表
     temp_proxies_file=$(mktemp)
     echo "proxy-groups:" > "$temp_proxies_file"
-    echo "  - name: VLESS-LB" >> "$temp_proxies_file"
+    echo "  - name: 自动" >> "$temp_proxies_file"
     echo "    url: 'http://www.gstatic.com/generate_204'" >> "$temp_proxies_file"
-    echo "    interval: 300" >> "$temp_proxies_file"
-    echo "    type: load-balance" >> "$temp_proxies_file"
+    echo "    interval: 7200" >> "$temp_proxies_file"
+    echo "    type: url-test" >> "$temp_proxies_file"
     echo "    proxies:" >> "$temp_proxies_file"
     echo -e "$proxy_names" >> "$temp_proxies_file"
     # 使用 yq 合并代理列表到主配置文件
@@ -394,8 +394,8 @@ update_config() {
     fi
 
     # 最后检查下VLESS-LB
-    echo "最后检查下VLESS-LB"
-    yq eval '.proxy-groups[] | select(.name == "VLESS-LB")' "$configFilePath"
+    echo "最后检查下自动"
+    yq eval '.proxy-groups[] | select(.name == "自动")' "$configFilePath"
   }
 
   echo "配置文件处理完成。"
