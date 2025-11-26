@@ -3,7 +3,7 @@ FROM alpine
 ARG MORE_APK
 
 # --no-cache没有/var/cache/apk
-RUN apk add --no-cache openssh $MORE_APK;
+RUN apk add --no-cache openssh tzdata locales $MORE_APK;
 
 ENV SSHD_PORT=22
 ENV SSHD_PASSWORD='root'
