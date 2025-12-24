@@ -5,7 +5,7 @@ FROM golang as builder
 
 ARG LATEST_FROM_BASE
 
-COPY http_shell.go /http_shell.go
+COPY {http_shell.go} /app.go
 
 RUN cd / \
     && CGO_ENABLED=0 GOOS=linux go build -tags netgo -v -o http-shell /http_shell.go \

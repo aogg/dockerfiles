@@ -8,7 +8,7 @@ import (
     "net/url"
     "os/exec"
     "io"
-    "bufio"
+    // "bytes"
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -52,34 +52,41 @@ func handler(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "缺少执行命令 'cmd'", http.StatusBadRequest)
         return
     }
-    log.Printf("执行的命令: %s", cmd)
+    log.Printf("-----开始----执行的命令: %s--------", cmd)
+
 
     executeCommand(w, cmd)
+
+    // // 执行Shell命令，必须sh
+    // // 请确保将 "your-command" 替换为实际的命令，并将 "arg1", "arg2" 替换为实际的命令参数（如果有的话）。
+    // cmdExec := exec.Command("sh", "-c", cmd)
+    // var out bytes.Buffer
+    // var stderr bytes.Buffer
+    // cmdExec.Stdout = &out
+    // cmdExec.Stderr = &stderr
+
+    // err := cmdExec.Run()
+
+    // if err != nil {
+    //     errMsg := stderr.String()
+    //     outMsg := out.String()
+    //     log.Println("----------执行命令---报错-------")
+    //     log.Printf("执行命令报错: 正常输出: %s 错误：%s", outMsg, errMsg)
+    //     http.Error(
+    //         w,
+    //         fmt.Sprintf("执行命令报错: 正常输出: %s 错误：%s", outMsg, errMsg),
+    //         http.StatusInternalServerError,
+    //     )
+    //     return
+    // }
+
+    // log.Println("----------执行命令---完毕-------")
+    // // 将命令输出返回给客户端
+    // fmt.Fprintf(w, "%s", out)
 }
 
-// flushWriter 包装 io.Writer，每次写入后自动 flush
-type flushWriter struct {
-    http.Flusher
-    io.Writer
-}
-
-func (fw *flushWriter) Write(p []byte) (n int, err error) {
-    n, err = fw.Writer.Write(p)
-    if fw.Flusher != nil {
-        fw.Flush()
-    }
-    return
-}
 
 func executeCommand(w http.ResponseWriter, cmd string) {
-
-    // 检查是否支持 Flush
-    flusher, ok := w.(http.Flusher)
-    if !ok {
-        log.Println("不支持流式输出")
-        http.Error(w, "http_shell 不支持流式输出", http.StatusInternalServerError)
-        return
-    }
 
     // 创建一个命令
     cmdExec := exec.Command("sh", "-c", cmd)
@@ -106,31 +113,22 @@ func executeCommand(w http.ResponseWriter, cmd string) {
         return
     }
 
-    // 创建带 flush 功能的 writer
-    fw := &flushWriter{
-        Flusher: flusher,
-        Writer:  w,
-    }
+    // 创建一个多写入器，将标准输出和标准错误合并
+    multiWriter := io.MultiWriter(w)
 
-    // 使用带 flush 功能的 writer 逐行输出标准输出
+    // 使用goroutine实时输出标准输出
     go func() {
-        scanner := bufio.NewScanner(stdoutPipe)
-        for scanner.Scan() {
-            fmt.Fprintln(fw, scanner.Text())
-        }
-        if err := scanner.Err(); err != nil {
-            log.Println("标准输出读取失败:", err)
+        _, err := io.Copy(multiWriter, stdoutPipe)
+        if err != nil {
+            log.Println("标准输出复制失败:", err)
         }
     }()
 
-    // 使用带 flush 功能的 writer 逐行输出标准错误
+    // 使用goroutine实时输出标准错误
     go func() {
-        scanner := bufio.NewScanner(stderrPipe)
-        for scanner.Scan() {
-            fmt.Fprintln(fw, scanner.Text())
-        }
-        if err := scanner.Err(); err != nil {
-            log.Println("标准错误读取失败:", err)
+        _, err := io.Copy(multiWriter, stderrPipe)
+        if err != nil {
+            log.Println("标准错误复制失败:", err)
         }
     }()
 
@@ -141,14 +139,13 @@ func executeCommand(w http.ResponseWriter, cmd string) {
         http.Error(w, "http_shell 命令执行失败", http.StatusInternalServerError)
     }
 
-    flusher.Flush()
     log.Println("----------执行命令---完毕-------")
 }
 
 
 func main() {
     http.HandleFunc("/", handler)
-
+    
     log.Println("开启http端口 :8080")
 
     log.Fatal(http.ListenAndServe(":8080", nil))
