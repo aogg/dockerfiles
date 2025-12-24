@@ -25,6 +25,29 @@ jobs:
       uses: actions/checkout@v2.3.2
 
    #########################  8.4 start ##########################################################
+   
+    - name: 8.4-alpine-v3.22-swoole-env
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: adockero
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.PASSWORD }}
+        # Docker repository to tag the image with
+        repository: adockero/hyperf
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: 8.4-alpine-v3.22-swoole-env
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        path: ./
+        dockerfile: hyperf/Dockerfile.env
+        # Always attempt to pull a newer version of the image
+        always_pull: true
+        # 构建参数
+        # build_args: BASE_FORM=hyperf/hyperf:7.4-alpine-v3.12-swoole
+        build_args: BASE_FORM=hyperf/hyperf:8.4-alpine-v3.22-swoole-slim
+        # Adds labels with git repository information to the built image
+        add_git_labels: true 
+        
     - name: 8.4-alpine-v3.22-swoole-sshd
       uses: docker/build-push-action@v1.1.0
       with:
@@ -42,7 +65,7 @@ jobs:
         # Always attempt to pull a newer version of the image
         always_pull: true
         # 构建参数
-        build_args: BASE_FORM=hyperf/hyperf:8.4-alpine-v3.22-swoole-slim
+        build_args: BASE_FORM=adockero/hyperf:8.4-alpine-v3.22-swoole-env
         # Adds labels with git repository information to the built image
         add_git_labels: true  
    
