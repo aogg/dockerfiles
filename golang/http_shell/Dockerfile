@@ -1,7 +1,7 @@
 
 ARG LATEST_FROM_BASE=scratch
 
-FROM golang as builder
+FROM golang AS builder
 
 ARG LATEST_FROM_BASE
 
