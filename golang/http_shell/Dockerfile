@@ -7,8 +7,8 @@ ARG LATEST_FROM_BASE
 
 COPY ./src /code
 
-RUN cd / \
-    && CGO_ENABLED=0 GOOS=linux go build -tags netgo -v -o http-shell /code \
+RUN cd /code \
+    && CGO_ENABLED=0 GOOS=linux go build -tags netgo -v -o /http-shell . \
     && chmod +x /http-shell \
     && ls -al /http-shell \
     && echo '编译结束'
