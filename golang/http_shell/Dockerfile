@@ -5,10 +5,10 @@ FROM golang as builder
 
 ARG LATEST_FROM_BASE
 
-COPY {http_shell.go} /app.go
+COPY ./src /code
 
 RUN cd / \
-    && CGO_ENABLED=0 GOOS=linux go build -tags netgo -v -o http-shell /http_shell.go \
+    && CGO_ENABLED=0 GOOS=linux go build -tags netgo -v -o http-shell /code \
     && chmod +x /http-shell \
     && ls -al /http-shell \
     && echo '编译结束'
