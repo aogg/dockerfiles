@@ -166,9 +166,13 @@ func (h *MCPHandler) HandleToolCall(params map[string]interface{}) MCPToolCallRe
 }
 
 func mcpSSEHandler(w http.ResponseWriter, r *http.Request) {
+	clientIP := r.RemoteAddr
+	log.Printf("[SSE] 新连接来自: %s, Method: %s", clientIP, r.Method)
+
 	// Check for SSE support
 	flusher, ok := w.(http.Flusher)
 	if !ok {
+		log.Printf("[SSE] 错误: 客户端 %s 不支持 SSE", clientIP)
 		http.Error(w, "SSE not supported", http.StatusInternalServerError)
 		return
 	}
@@ -178,6 +182,8 @@ func mcpSSEHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	log.Printf("[SSE] 客户端 %s: SSE 响应头已设置", clientIP)
 
 	sse := &SSEConnection{
 		writer:  w,
@@ -195,28 +201,38 @@ func mcpSSEHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 	sse.WriteEvent("endpoint", string(endpointMsg))
+	log.Printf("[SSE] 客户端 %s: 已发送 endpoint 通知", clientIP)
 
 	// Process incoming messages
 	scanner := bufio.NewScanner(r.Body)
+	messageCount := 0
+
 	for scanner.Scan() {
+		messageCount++
 		line := scanner.Text()
+		log.Printf("[SSE] 客户端 %s: 收到消息 #%d: %s", clientIP, messageCount, line)
+
 		if strings.HasPrefix(line, "data: ") {
 			jsonStr := strings.TrimPrefix(line, "data: ")
 			var msg MCPMessage
 			if err := json.Unmarshal([]byte(jsonStr), &msg); err != nil {
-				log.Printf("JSON解析错误: %v", err)
+				log.Printf("[SSE] 客户端 %s: JSON解析错误 #%d: %v, 原始内容: %s", clientIP, messageCount, err, jsonStr)
 				continue
 			}
+
+			log.Printf("[SSE] 客户端 %s: 解析成功, Method: %s, ID: %v", clientIP, msg.Method, msg.ID)
 
 			var response interface{}
 			switch msg.Method {
 			case "tools/list":
+				log.Printf("[SSE] 客户端 %s: 处理 tools/list 请求", clientIP)
 				response = map[string]interface{}{
 					"jsonrpc": "2.0",
 					"id":      msg.ID,
 					"result":  mcpHandler.HandleToolsList(),
 				}
 			case "tools/call":
+				log.Printf("[SSE] 客户端 %s: 处理 tools/call 请求", clientIP)
 				var params map[string]interface{}
 				json.Unmarshal(msg.Params, &params)
 				result := mcpHandler.HandleToolCall(params)
@@ -226,6 +242,7 @@ func mcpSSEHandler(w http.ResponseWriter, r *http.Request) {
 					"result":  result,
 				}
 			default:
+				log.Printf("[SSE] 客户端 %s: 未知方法: %s", clientIP, msg.Method)
 				response = map[string]interface{}{
 					"jsonrpc": "2.0",
 					"id":      msg.ID,
@@ -238,10 +255,15 @@ func mcpSSEHandler(w http.ResponseWriter, r *http.Request) {
 
 			respBytes, _ := json.Marshal(response)
 			sse.WriteEvent("message", string(respBytes))
+			log.Printf("[SSE] 客户端 %s: 已发送响应", clientIP)
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Printf("SSE连接错误: %v", err)
+		log.Printf("[SSE] 客户端 %s: 连接错误 (已处理消息: %d): %v", clientIP, messageCount, err)
+	} else {
+		log.Printf("[SSE] 客户端 %s: 连接正常关闭 (已处理消息: %d)", clientIP, messageCount)
 	}
+
+	log.Printf("[SSE] 客户端 %s: 处理完成", clientIP)
 }
