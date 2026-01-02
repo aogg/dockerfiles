@@ -11,5 +11,6 @@ do
   then
     # 执行sh文件
     $2 "$file"
+    rm -f "$file"
   fi
 done
