@@ -11,6 +11,7 @@ do
   then
     # 执行sh文件
     $2 "$file"
-    rm -f "$file"
+    # 内部实现
+    # rm -f "$file"
   fi
 done
