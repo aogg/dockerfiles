@@ -4,12 +4,13 @@ ARG BASE_FORM=hyperf/hyperf:7.4-alpine-v3.11
 FROM ${BASE_FORM}
 
 RUN apk add --no-cache php84-pecl-xdebug && \
-    echo "[xdebug] \
-zend_extension=xdebug.so \
-xdebug.mode=develop,debug \
-xdebug.start_with_request=yes \
-xdebug.client_host=host.docker.internal \
-xdebug.client_port=9003 \
-xdebug.log=/tmp/xdebug.log" > /etc/php84/conf.d/50_xdebug.ini && \
+    echo "安装完成xdebug扩展" && \
+    echo "" > /etc/php84/conf.d/50_xdebug.ini && \
+    echo "[xdebug]" >> /etc/php84/conf.d/50_xdebug.ini && \
+    echo "zend_extension=xdebug.so" >> /etc/php84/conf.d/50_xdebug.ini && \
+    echo "xdebug.mode=develop,debug" >> /etc/php84/conf.d/50_xdebug.ini && \
+    echo "xdebug.start_with_request=yes" >> /etc/php84/conf.d/50_xdebug.ini && \
+    echo "xdebug.log=/tmp/xdebug.log" >> /etc/php84/conf.d/50_xdebug.ini && \
     echo "开始验证xdebug是否安装成功" && \
-    php -m | grep xdebug
+    bash -c "php -m | grep xdebug" \
+    && echo "结束"
