@@ -1,3 +1,4 @@
 FROM dannydirect/tinyproxy
 
-RUN ln -s /proc/1/fd/1 /var/log/tinyproxy/tinyproxy.log
+# 用1不行
+RUN ln -s /proc/1/fd/2 /var/log/tinyproxy/tinyproxy.log
