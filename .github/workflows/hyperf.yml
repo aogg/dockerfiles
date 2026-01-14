@@ -180,6 +180,7 @@ jobs:
         # Adds labels with git repository information to the built image
         add_git_labels: true  
 
+   #########################  8.2 start ##########################################################
 
     - name: hyperf:8.2-alpine-v3.19-swoole-slim-env
       uses: docker/build-push-action@v1.1.0
@@ -224,6 +225,7 @@ jobs:
         add_git_labels: true  
    
            
+   #########################  8.2 start ##########################################################
            
     # - name: hyperf-7.4-alpine-v3.11-swoole-yasd-dev
     #   uses: docker/build-push-action@v1.1.0
