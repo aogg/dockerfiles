@@ -6,6 +6,9 @@ ARG BASE_FROM=mysql:5.7-debian
 
 FROM ${BASE_FROM}
 
+RUN apt update \
+    && apt install -y curl \
+    && rm -rf /var/lib/apt/lists/*
 # RUN apk add --update mysql-client bash && rm -rf /var/cache/apk/*
 COPY dump.sh /
 COPY import.sh /
