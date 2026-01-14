@@ -11,4 +11,10 @@
     done
 } &
 
+# 如果存在环境变量 DELETE_ALL_CONNECT_PORTS，则删除 ConnectPort 配置
+if [ -n "$DELETE_ALL_CONNECT_PORTS" ]; then
+    echo "删除所有 ConnectPort 配置"
+    sed -i "/ConnectPort/d" /etc/tinyproxy/tinyproxy.conf
+fi
+
 exec /opt/docker-tinyproxy/run.sh $@
