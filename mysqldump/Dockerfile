@@ -2,11 +2,11 @@
 # https://github.com/camilb/kube-mysqldump-cron/blob/master/Docker/Dockerfile
 
 # FROM camil/mysqldump
-ARG BASE_FROM=alpine:3.4
+ARG BASE_FROM=mysql:5.7-debian
 
 FROM ${BASE_FROM}
 
-RUN apk add --update mysql-client bash && rm -rf /var/cache/apk/*
+# RUN apk add --update mysql-client bash && rm -rf /var/cache/apk/*
 COPY dump.sh /
 COPY import.sh /
 
