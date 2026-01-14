@@ -31,6 +31,47 @@ jobs:
 # ##########  构建  ###########################
 
 
+# ##########  mysqldump/Dockerfile  start  ###########################
+
+    - name: 构建镜像  adockero/mysqldump:5.7
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/mysqldump:5.7
+        # tags: adockero/node-systemd:node-14
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./mysqldump
+        file: "./mysqldump/Dockerfile"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        build-args: BASE_FROM=alpine:3.4
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true    
+
+    - name: 构建镜像  adockero/mysqldump
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/mysqldump
+        # tags: adockero/node-systemd:node-14
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./mysqldump
+        file: "./mysqldump/Dockerfile"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        build-args: BASE_FROM=alpine:3.19
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true    
+
+# ##########  mysqldump/Dockerfile  end  ###########################
+
+
     - name: 构建镜像  adockero/mysqldump:tables-ssh-pv
       uses: docker/build-push-action@v3
       with:
@@ -100,24 +141,6 @@ jobs:
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./mysqldump/tables
         file: "./mysqldump/tables/Dockerfile"
-        # Always attempt to pull a newer version of the image
-        pull: true
-        push: true
-        # 构建参数
-        # build-args: NODE_VERSION=14
-        #   APK_ARG=rsync
-        # Adds labels with git repository information to the built image
-        labels: true    
-
-    - name: 构建镜像  adockero/mysqldump
-      uses: docker/build-push-action@v3
-      with:
-        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: adockero/mysqldump
-        # tags: adockero/node-systemd:node-14
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        context: ./mysqldump
-        file: "./mysqldump/Dockerfile"
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
