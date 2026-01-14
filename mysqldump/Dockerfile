@@ -7,8 +7,8 @@ ARG BASE_FROM=mysql:5.7-debian
 FROM ${BASE_FROM}
 
 RUN mv /etc/apt/sources.list.d/mysql.list /tmp/mysql.list \
-    && apt update; \
-    apt install -y curl \
+    && (apt update || echo 'update报错但依然运行'); \
+    && apt install -y curl \
     && rm -rf /var/lib/apt/lists/* \
     && mv /tmp/mysql.list /etc/apt/sources.list.d/mysql.list
 # RUN apk add --update mysql-client bash && rm -rf /var/cache/apk/*
