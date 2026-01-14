@@ -80,11 +80,11 @@ sed -i "s/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g" /etc/ssh/ss
 sed -i "s/^#\?AuthorizedKeysFile.*/AuthorizedKeysFile .ssh/authorized_keys/g" /etc/ssh/sshd_config 2>/dev/null || true
 
 # ===================== 设置 root 密码（传参时） =====================
-if [ -n "$SSH_PWD" ]; then
+if [ -n "$SSHD_PASSWORD" ]; then
     echo "=== 设置 root 密码 ==="
-    echo "root:${SSH_PWD}" | chpasswd
+    echo "root:${SSHD_PASSWORD}" | chpasswd
 else
-    echo "=== 未传入 SSH_PWD，跳过密码设置 ==="
+    echo "=== 未传入 SSHD_PASSWORD，跳过密码设置 ==="
 fi
 
 # ===================== 启动 sshd 服务 =====================
