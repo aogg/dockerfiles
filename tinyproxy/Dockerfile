@@ -8,4 +8,10 @@ FROM dannydirect/tinyproxy
 
 
 # 删除才能输出到docker日志
-RUN sed -i '/LogFile/d' /etc/tinyproxy/tinyproxy.conf
+RUN sed -i '/LogFile/d' /etc/tinyproxy/tinyproxy.conf \
+    && touch /var/log/tinyproxy/tinyproxy.log && \
+    chmod 777 /var/log/tinyproxy/tinyproxy.log
+
+
+
+CMD ["ANY"]
