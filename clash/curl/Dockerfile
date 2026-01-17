@@ -6,7 +6,7 @@ FROM dreamacro/clash
 RUN apk add --no-cache yq curl
 
 ENV PORT=7890
-ENV PROXIE_NAME="自动选择"
+ENV PROXIE_NAME="load"
 
 EXPOSE 7890
 

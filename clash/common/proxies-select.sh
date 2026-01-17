@@ -4,6 +4,13 @@ configFilePath="/root/.config/clash/config.yaml"
 curlHost=$(yq ".external-controller" $configFilePath)
 
 
+echo "选择代理节点: ${PROXIE_NAME}"
+echo curl --location --request PUT 'http://'"${curlHost}"'/proxies/GLOBAL' \
+--header 'Accept: application/json, text/plain, */*' \
+--header 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6' \
+--header 'Connection: keep-alive' \
+--header 'Content-Type: application/json' \
+--data '{"name":"'"${PROXIE_NAME}"'"}'
 
 
 curl --location --request PUT 'http://'"${curlHost}"'/proxies/GLOBAL' \
