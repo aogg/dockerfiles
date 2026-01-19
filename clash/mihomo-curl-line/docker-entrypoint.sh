@@ -221,6 +221,15 @@ parse_vmess() {
     local host_header=$(echo "$json_data" | yq -r '.host')
     local sni=$(echo "$json_data" | yq -r '.sni')
 
+    # 构建网络选项
+    local network_opts=""
+    if [ "$network" = "ws" ]; then
+        network_opts="\"ws-opts\": {\"path\": \"$path\", \"headers\": {\"Host\": \"$host_header\"}},"
+    elif [ "$network" = "grpc" ]; then
+        local grpc_service_name=${path:-""}
+        network_opts="\"grpc-opts\": {\"grpc-service-name\": \"$grpc_service_name\"},"
+    fi
+
     [ -z "$name" ] && [ -n "$server" ] && [ -n "$port" ] && name="vmess-${server}:${port}"
 
     if [ "$debugBool" = "true" ]; then
@@ -228,6 +237,10 @@ parse_vmess() {
       echo "json_data: $json_data"
 
       # 用 printf 转换为中文（%b 表示解析转义序列）
+      #  - { name: '日本大阪1-CDN | 1x', type: vmess, server: y6s2q6d.tencentapp.cn, port: 443, uuid: d0ce98e6-2415-4d0b-b612-11111, 
+      # alterId: 0, cipher: auto, udp: true, tls: true, servername: snlqwj.speed.jpsacibna.cccp.dcsubiuc.pp.ua, network: grpc, 
+      # grpc-opts: { grpc-service-name: m3u8 } }
+
       printf "%b" "$name"
       echo 
       echo "name: $name"
@@ -254,13 +267,13 @@ parse_vmess() {
           \"tls\": $([ "$tls_val" = "tls" ] && echo "true" || echo "false"),
           \"udp\": true,
           \"servername\": \"$sni\",
-          \"ws-opts\": {\"path\": \"$path\", \"headers\": {\"Host\": \"$host_header\"}}
+          $network_opts
       }]"
       echo "最后结果---------------------------------"
       return
     fi
 
-    yq -i ".proxies += [{\"name\": \"$name\", \"type\": \"vmess\", \"server\": \"$server\", \"port\": $port, \"uuid\": \"$uuid\", \"alterId\": $alterId, \"cipher\": \"auto\", \"network\": \"$network\", \"tls\": $([ "$tls_val" = "tls" ] && echo "true" || echo "false"), \"udp\": true, \"ws-opts\": {\"path\": \"$path\", \"headers\": {\"Host\": \"$host_header\"}}}]" "$configFilePath"
+    yq -i ".proxies += [{\"name\": \"$name\", \"type\": \"vmess\", \"server\": \"$server\", \"port\": $port, \"uuid\": \"$uuid\", \"alterId\": $alterId, \"cipher\": \"auto\", \"network\": \"$network\", \"tls\": $([ "$tls_val" = "tls" ] && echo "true" || echo "false"), \"udp\": true, \"servername\": \"$sni\", $network_opts}]" "$configFilePath"
     echo "$name"
 }
 
