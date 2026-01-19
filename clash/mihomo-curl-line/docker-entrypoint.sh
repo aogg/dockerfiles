@@ -224,10 +224,10 @@ parse_vmess() {
     # 构建网络选项
     local network_opts=""
     if [ "$network" = "ws" ]; then
-        network_opts="\"ws-opts\": {\"path\": \"$path\", \"headers\": {\"Host\": \"$host_header\"}},"
+        network_opts="\"ws-opts\": {\"path\": \"$path\", \"headers\": {\"Host\": \"$host_header\"}}"
     elif [ "$network" = "grpc" ]; then
         local grpc_service_name=${path:-""}
-        network_opts="\"grpc-opts\": {\"grpc-service-name\": \"$grpc_service_name\"},"
+        network_opts="\"grpc-opts\": {\"grpc-service-name\": \"$grpc_service_name\"}"
     fi
 
     [ -z "$name" ] && [ -n "$server" ] && [ -n "$port" ] && name="vmess-${server}:${port}"
