@@ -44,6 +44,6 @@ jobs:
         push: true
         # 构建参数
         build-args: |
-          FROM_ARG=node:22-alpine
+          FROM_ARG=node:22-slim
         # Adds labels with git repository information to the built image
         labels: true
