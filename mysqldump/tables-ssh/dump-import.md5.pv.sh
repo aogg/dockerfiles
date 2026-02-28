@@ -22,10 +22,12 @@ RUN_LIMIT_START_MYSQLDUMP=${RUN_LIMIT_START_MYSQLDUMP};
 if [[ -n "$CPUQUOTA" ]];then
         RUN_LIMIT_START="sudo systemd-run --uid=\$(whoami) --gid=\$(id -gn) --scope -p CPUQuota=$CPUQUOTA ";
         RUN_LIMIT_START_MYSQLDUMP="";
+        echo "通过systemd-run限制CPU配额 $CPUQUOTA";
 fi
 if [[ -n "$IONICE_C" ]];then
         RUN_LIMIT_START="ionice -c$IONICE_C "
         RUN_LIMIT_START_MYSQLDUMP=$RUN_LIMIT_START
+        echo "通过ionice限制CPU配额 $IONICE_C";
 fi
 
 # systemd-run --scope -p CPUQuota=30% 
@@ -61,6 +63,7 @@ STRICT_HOST_KEY_CHECKING=${STRICT_HOST_KEY_CHECKING:no}
 # 密码加引用就需要eval
 sshRun=$(echo sshpass -p \'"$SSH_PASSWORD"\' ssh -o "StrictHostKeyChecking=$STRICT_HOST_KEY_CHECKING" $SSH_ARGS $SSH_USER@$SSH_IP)
 # sshRun=$(echo $sshRun)
+echo '下面是执行的ssh'
 echo $sshRun
 
 eval "$sshRun pwd"
@@ -236,7 +239,7 @@ DB_PASS="${DB_PASS}";
 echo '开始运行mysqldump $db';
 mkdir -p /tmp/dump-import-ssh-temp/$db/;
 lastTable='';
-$RUN_LIMIT_START_MYSQLDUMP mysqldump --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db.log --no-create-info --skip-comments --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db | pv -L $DUMP_PV |grep -e '^INSERT INTO'  | while read -r line; do 
+$RUN_LIMIT_START_MYSQLDUMP mysqldump --no-tablespaces --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db.log --no-create-info --skip-comments --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db | pv -L $DUMP_PV |grep -e '^INSERT INTO'  | while read -r line; do 
         table=\$(echo "\$line" | awk -F '\`' '{print \$2}');
         echo -n "\$line" | md5sum | awk -v table="\$table" '{print table, \$1}' >> /tmp/dump-import-ssh-temp/$db/\$table.md5;
         if [[ -z "\$lastTable" ]];then
@@ -254,7 +257,7 @@ done;
 
 lastTable=\$(cat /tmp/dump-import-ssh-temp/$db.lastTable.log);
 if [[ -n "\$lastTable" ]];then
-        if [[ -f "/tmp/dump-import-ssh-diff/$db/\$lastTable.md5" ]]
+        if [[ -f "/tmp/dump-import-ssh-diff/$db/\$lastTable.md5" ]];then
                 if [[ "\$(cat /tmp/dump-import-ssh-temp/$db/\$lastTable.md5 | md5sum)" != "\$(cat /tmp/dump-import-ssh-diff/$db/\$lastTable.md5 | md5sum)" ]];then
                         echo '有差异表名 '\$lastTable;
                 fi;
@@ -293,14 +296,14 @@ BASH
                                 if [[ "$current_jobs" -lt "$ASYNC_WAIT_MAX" ]]; then
                                         {
                                                 echo "进程数小于最大等待数，异步导入--$db.$table";
-                                                time (mysqldump --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
+                                                time (mysqldump --no-tablespaces --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
                                                 echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$table";
                                         } &
                                         sleep $DUMP_WAIT_SECONDS;
                                 else
                                         echo "进程数大于最大等待数，同步等待导入-$db.$table";
                                         # sleep 20;
-                                        time (mysqldump --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
+                                        time (mysqldump --no-tablespaces --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
                                         echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$table";
                                 fi
                                 
