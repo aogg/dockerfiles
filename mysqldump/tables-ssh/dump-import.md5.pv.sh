@@ -17,6 +17,9 @@ ASYNC_WAIT_DB_MAX=${ASYNC_WAIT_DB_MAX:-10}
 DUMP_PV=${DUMP_PV:-6m}
 DUMP_WAIT_SECONDS=${DUMP_WAIT_SECONDS:-0.6}
 
+# MySQL数据目录，用于加速判断表文件是否修改
+MYSQL_DATA_DIR=${MYSQL_DATA_DIR:-}
+
 RUN_LIMIT_START=${RUN_LIMIT_START};
 RUN_LIMIT_START_MYSQLDUMP=${RUN_LIMIT_START_MYSQLDUMP};
 if [[ -n "$CPUQUOTA" ]];then
@@ -230,99 +233,114 @@ for ((i = 0; i < num_databases; i++)); do
         fi
         echo $db >> /tmp/databases_count.log;
 
-
-        {
-                echo "Dumping database: $db"
-                # 空文件的md5=d41d8cd98f00b204e9800998ecf8427e
-                command=$(cat << BASH
+        # 先通过SSH获取表列表
+        echo "获取数据库 $db 的表列表..."
+        tables=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SHOW TABLES;\" $db 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d "| " | grep -v -e '^$')
+        echo "获取到表列表: $tables"
+        
+        # 转为数组
+        tables_arr=();
+        for table in $tables; do
+                tables_arr+=($table)
+        done
+        num_tables=${#tables_arr[@]}
+        echo "数据库 $db 表数量: $num_tables"
+        
+        echo $db >> /tmp/databases_count.run.log;
+        
+        # 本地循环每个表，并发处理
+        for ((t = 0; t < num_tables; t++)); do
+                table=${tables_arr[$t]}
+                
+                # 并发控制：等待当前并发数小于最大值
+                while true; do
+                        current_jobs=$(pgrep -f "mysqldump" | wc -l)
+                        current_jobs=$(( $current_jobs + 1 ))
+                        if [[ "$current_jobs" -lt "$ASYNC_WAIT_MAX" ]]; then
+                                break
+                        fi
+                        echo "$(date "+%Y-%m-%d %H:%M:%S")--等待并发槽位 $db.$table 当前jobs=$current_jobs ASYNC_WAIT_MAX=$ASYNC_WAIT_MAX"
+                        sleep 1
+                done
+                
+                {
+                        # 单个表的SSH判断脚本：同时检查修改时间和MD5
+                        table_command=$(cat << BASH
 DB_PASS="${DB_PASS}";
-echo '开始运行mysqldump $db';
+MYSQL_DATA_DIR="${MYSQL_DATA_DIR}";
+table="${table}";
 mkdir -p /tmp/dump-import-ssh-temp/$db/;
-lastTable='';
-$RUN_LIMIT_START_MYSQLDUMP mysqldump --no-tablespaces --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db.log --no-create-info --skip-comments --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db | pv -L $DUMP_PV |grep -e '^INSERT INTO'  | while read -r line; do 
-        table=\$(echo "\$line" | awk -F '\`' '{print \$2}');
-        echo -n "\$line" | md5sum | awk -v table="\$table" '{print table, \$1}' >> /tmp/dump-import-ssh-temp/$db/\$table.md5;
-        if [[ -z "\$lastTable" ]];then
-                lastTable=\$table;
-                echo \$lastTable > /tmp/dump-import-ssh-temp/$db.lastTable.log;
-        fi;
-        if [[ "\$lastTable" != "\$table" ]];then
-                if [[ "\$(cat /tmp/dump-import-ssh-temp/$db/\$lastTable.md5 | md5sum)" != "\$(cat /tmp/dump-import-ssh-diff/$db/\$lastTable.md5 | md5sum)" ]];then
-                        echo '有差异表名 '\$lastTable;
-                fi
-                lastTable=\$table;
-                echo \$lastTable > /tmp/dump-import-ssh-temp/$db.lastTable.log;
-        fi;
-done;
+mkdir -p /tmp/dump-import-ssh-temp/mtime/$db/;
 
-lastTable=\$(cat /tmp/dump-import-ssh-temp/$db.lastTable.log);
-if [[ -n "\$lastTable" ]];then
-        if [[ -f "/tmp/dump-import-ssh-diff/$db/\$lastTable.md5" ]];then
-                if [[ "\$(cat /tmp/dump-import-ssh-temp/$db/\$lastTable.md5 | md5sum)" != "\$(cat /tmp/dump-import-ssh-diff/$db/\$lastTable.md5 | md5sum)" ]];then
-                        echo '有差异表名 '\$lastTable;
-                fi;
-        else
-                echo '有差异表名 '\$lastTable;
+mtime_changed=0;
+
+# 检查表文件修改时间是否改变（如果MYSQL_DATA_DIR存在）
+if [[ -n "\$MYSQL_DATA_DIR" && -d "\$MYSQL_DATA_DIR" ]]; then
+        db_dir="\${MYSQL_DATA_DIR}/$db";
+        if [[ -d "\$db_dir" ]]; then
+                mtime_file="";
+                if [[ -f "\${db_dir}/\${table}.ibd" ]]; then
+                        mtime_file="\${db_dir}/\${table}.ibd";
+                elif [[ -f "\${db_dir}/\${table}.MYD" ]]; then
+                        mtime_file="\${db_dir}/\${table}.MYD";
+                fi
+                
+                if [[ -n "\$mtime_file" ]]; then
+                        current_mtime=\$(stat -c %Y "\$mtime_file" 2>/dev/null || stat -f %m "\$mtime_file" 2>/dev/null);
+                        stored_mtime=\$(cat /tmp/dump-import-ssh-diff/mtime/$db/\${table}.mtime 2>/dev/null || echo 0);
+                        echo "\$current_mtime" > /tmp/dump-import-ssh-temp/mtime/$db/\${table}.mtime;
+                        
+                        if [[ "\$current_mtime" != "\$stored_mtime" ]]; then
+                                mtime_changed=1;
+                        fi
+                fi
         fi
 fi
 
-echo '结束运行mysqldump $db';
+# 导出表并计算MD5
+$RUN_LIMIT_START_MYSQLDUMP mysqldump --no-tablespaces --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db-\${table}.log --no-create-info --skip-comments --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db \$table 2>/dev/null | grep -e '^INSERT INTO' | md5sum | awk -v table="\$table" '{print table, \$1}' > /tmp/dump-import-ssh-temp/$db/\$table.md5;
+
+# 判断是否有差异
+temp_md5=\$(cat /tmp/dump-import-ssh-temp/$db/\$table.md5);
+
+if [[ -f "/tmp/dump-import-ssh-diff/$db/\$table.md5" ]]; then
+        diff_md5=\$(cat /tmp/dump-import-ssh-diff/$db/\$table.md5);
+        if [[ "\$temp_md5" != "\$diff_md5" ]]; then
+                echo "diff-sync 有差异表名 \$table";
+        elif [[ "\$mtime_changed" == "1" ]]; then
+                echo "diff-sync 文件修改时间改变 \$table";
+        fi
+else
+        echo "diff-sync 新表 \$table";
+fi
 
 BASH
-                )
-
-                # printf "%s\n" "$command"
-
-# todo 还要管道导出表
-# ionice -c3 
-                time (
-                        # printf "%s\n" "$command" | eval "$sshRun 'exec -a \"导出数据库-$db\" bash -s 2> /dev/null'" | while read -r line; do 
-                        # printf "%s\n" "$command" | eval "$sshRun 'ionice -c3 bash -s 2> /dev/null'" | while read -r line; do 
-                        printf "%s\n" "$command" | eval "$sshRun '$RUN_LIMIT_START bash -c \"exec -a 导出数据库-$db bash -s\" 2> /dev/null'" | while read -r line; do 
-                                echo $db.$line;
-                                if [[ $line = "开始运行mysqldump $db" ]];then
-                                        echo $db >> /tmp/databases_count.run.log;
-                                        continue;
-                                fi
-                                if [[ $line = "结束运行mysqldump $db" ]];then
-                                        echo $db >> /tmp/databases_count.end.log;
-                                        continue;
-                                fi
-
-                                table=$(echo $line | awk '{print $2}')
-                                current_jobs=$(pgrep -f "mysqldump" | wc -l)
-                                current_jobs=$(( $current_jobs + 1 ))
-
-                                if [[ "$current_jobs" -lt "$ASYNC_WAIT_MAX" ]]; then
-                                        {
-                                                echo "进程数小于最大等待数，异步导入--$db.$table";
-                                                time (mysqldump --no-tablespaces --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
-                                                echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$table";
-                                        } &
-                                        sleep $DUMP_WAIT_SECONDS;
-                                else
-                                        echo "进程数大于最大等待数，同步等待导入-$db.$table";
-                                        # sleep 20;
-                                        time (mysqldump --no-tablespaces --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 
-                                        echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$table";
-                                fi
+                        )
+                        
+                        # 执行SSH并处理输出
+                        printf "%s\n" "$table_command" | eval "$sshRun '$RUN_LIMIT_START bash -c \"exec -a 导出表-$db.$table bash -s\" 2> /dev/null'" | while read -r line; do
+                                echo "差异判断输出: " . $db.$line;
                                 
-                        done;
-                 )
-                # time (eval "$sshRun 'bash -s'" < $command)
-
-
-                sed -i "/$db/d" /tmp/databases_count.log;
-                # sed -i "/$db/d" /tmp/databases_count.run.log;
-                
-                
-                echo $(date "+%Y-%m-%d %H:%M:%S")"--异步导出库--结束--$db----continueBool=$continueBool--------------------------------------";
-
-
-                # 
-        # }
-        } &
-        sleep 2;
+                                # 只处理有差异的表
+                                if [[ $line == "diff-sync "* ]]; then
+                                        import_table=$(echo $line | awk '{print $3}')
+                                        
+                                        echo "进程数小于最大等待数，异步导入--$db.$import_table";
+                                        time (mysqldump --no-tablespaces --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") || echo "导入失败: $db.$import_table"
+                                        echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$import_table";
+                                fi
+                        done
+                } &
+                sleep $DUMP_WAIT_SECONDS;
+        done
+        
+        # 等待当前库的所有表处理完成
+        wait
+        
+        echo $db >> /tmp/databases_count.end.log;
+        sed -i "/$db/d" /tmp/databases_count.log;
+        
+        echo $(date "+%Y-%m-%d %H:%M:%S")"--异步导出库--结束--$db--------------------------------------";
 # exit;
     fi
 done
