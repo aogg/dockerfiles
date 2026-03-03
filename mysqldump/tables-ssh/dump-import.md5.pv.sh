@@ -105,6 +105,7 @@ echo \$(mpstat 1 1 |grep "Average:" | awk '{print "远端-CPU空闲率 "\$NF}');
 echo '远端-导出文件数量 '\$(ls -al /tmp/dump-import-ssh-temp/*/*.md5|wc -l);
 
 echo '远端-ps有mysqldump的数量 '\$(ps -ef|grep mysqldump|grep -v grep|wc -l);
+date "+%Y-%m-%d %H:%M:%S";
 sleep 2; 
 
 done
@@ -326,7 +327,13 @@ BASH
                                         import_table=$(echo $line | awk '{print $3}')
                                         
                                         echo "进程数小于最大等待数，异步导入--$db.$import_table";
-                                        time (mysqldump --no-tablespaces --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table"  | pv -L $DUMP_PV | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") || echo "导入失败: $db.$import_table"
+                                        for ((retry=1; retry<=3; retry++)); do
+                                                error_output=$(time (mysqldump --skip-ssl --no-tablespaces --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table"  | pv -L $DUMP_PV | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
+
+                                                echo "导入失败(第${retry}次): $db.$import_table"
+                                                echo "执行命令: mysqldump --skip-ssl --no-tablespaces --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" | pv -L $DUMP_PV | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
+                                                echo "错误信息: $error_output"
+                                        done
                                         echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$import_table";
                                 fi
                         done
@@ -335,7 +342,7 @@ BASH
         done
         
         # 等待当前库的所有表处理完成
-        wait
+        # wait
         
         echo $db >> /tmp/databases_count.end.log;
         sed -i "/$db/d" /tmp/databases_count.log;
