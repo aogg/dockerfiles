@@ -338,6 +338,13 @@ BASH
                                 
                                 # 只处理有差异的表
                                 if [[ $line == "diff-sync "* ]]; then
+                                
+                                        # 导入成功后立即保存到diff目录
+                                        {
+                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/mtime/$db && cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/ 2>/dev/null; cp /tmp/dump-import-ssh-temp/mtime/$db/$import_table.mtime /tmp/dump-import-ssh-diff/mtime/$db/ 2>/dev/null\""
+                                                echo "已保存到diff: $db.$import_table";
+                                        } &
+
                                         import_table=$(echo $line | awk '{print $3}')
                                         
                                         echo "进程数小于最大等待数，异步导入--$db.$import_table";
@@ -405,8 +412,8 @@ done
 
 echo $(date "+%Y-%m-%d %H:%M:%S")" 最后导入 last  mysqldump process has completed.  "${DB_HOST}
 
-# 运行成功就存储到diff
-eval "$sshRun bash -c \"pwd && rm -Rf /tmp/dump-import-ssh-diff && mv /tmp/dump-import-ssh-temp /tmp/dump-import-ssh-diff\""
+# 清理临时目录（已改为逐个保存到diff）
+eval "$sshRun bash -c \"rm -Rf /tmp/dump-import-ssh-temp\""
 
 
 echo $(date "+%Y-%m-%d %H:%M:%S")'-------全部结束--------'
