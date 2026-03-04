@@ -11,6 +11,7 @@ DB_TABLE_PORT=${DB_TABLE_PORT:-${DB_PORT}}
 DB_TABLE_HOST=${DB_TABLE_HOST:-${DB_HOST}}
 
 IGNORE_DATABASE=${IGNORE_DATABASE}
+IGNORE_TABLES=${IGNORE_TABLES}
 ASYNC_WAIT=${ASYNC_WAIT}
 ASYNC_WAIT_MAX=${ASYNC_WAIT_MAX:-100}
 ASYNC_WAIT_DB_MAX=${ASYNC_WAIT_DB_MAX:-10}
@@ -239,10 +240,23 @@ for ((i = 0; i < num_databases; i++)); do
         tables=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SHOW TABLES;\" $db 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d "| " | grep -v -e '^$')
         echo "获取到表列表: $tables"
         
-        # 转为数组
+        # 转为数组并过滤忽略的表
         tables_arr=();
+        echo "忽略表的列表: $IGNORE_TABLES"
+        IFS=',' read -ra IGNORE_TABLES_ARR <<< "$IGNORE_TABLES"
         for table in $tables; do
-                tables_arr+=($table)
+                # 检查是否在忽略列表中
+                skip_table=0
+                for ignore_table in "${IGNORE_TABLES_ARR[@]}"; do
+                        if [[ "$table" == "$ignore_table" ]]; then
+                                skip_table=1
+                                echo "忽略表: $db.$table"
+                                break
+                        fi
+                done
+                if [[ $skip_table -eq 0 ]]; then
+                        tables_arr+=($table)
+                fi
         done
         num_tables=${#tables_arr[@]}
         echo "数据库 $db 表数量: $num_tables"
@@ -353,15 +367,39 @@ BASH
 done
 
 
-# 检测 mysqldump 进程是否存在的函数
+# 非R状态计数器
+NON_R_COUNT=0
+NON_R_THRESHOLD=60  # 连续60次非R状态才判定结束
+
+# 检测 mysqldump 进程是否存在的函数（跳过睡眠状态和异常状态）
 check_mysqldump_process() {
-        # 使用 pgrep 命令查找与关键字匹配的进程 ID
-        pgrep -f "(ssh -o|mysql|sshpass -p)" >/dev/null 2>&1
+        # 获取匹配的进程 ID
+        local pids=$(pgrep -f "(ssh -o|mysql|sshpass -p)" 2>/dev/null)
+
+        # 如果没有进程，返回1（不存在）
+        [[ -z "$pids" ]] && return 1
+
+        # 检查每个进程的状态
+        for pid in $pids; do
+                local state=$(cat /proc/$pid/status 2>/dev/null | grep "^State:" | awk '{print $2}')
+                # 只保留运行状态(R)，跳过睡眠(S)、停止(T)、僵尸(Z)、不可中断睡眠(D)等
+                if [[ "$state" == "R" ]]; then
+                        NON_R_COUNT=0  # 发现运行中的进程，重置计数器
+                        return 0
+                fi
+        done
+
+        # 没有运行中的进程，增加计数器
+        ((NON_R_COUNT++))
+        if [[ $NON_R_COUNT -ge $NON_R_THRESHOLD ]]; then
+                return 1  # 连续达到阈值，判定结束
+        fi
+        return 0  # 未达阈值，继续检测
 }
 
 # 循环检测 mysqldump 进程是否存在
 while check_mysqldump_process; do
-        echo $(date "+%Y-%m-%d %H:%M:%S")" 最后导入 last  Waiting for mysqldump process to complete...${DB_HOST}  本地mysql数量=$(ps -ef|grep /usr/bin/mysql|wc -l)"
+        echo $(date "+%Y-%m-%d %H:%M:%S")" 最后导入 last  Waiting for mysqldump process to complete...${DB_HOST}  本地mysql数量=$(ps -ef|grep /usr/bin/mysql|wc -l)  非R计数=${NON_R_COUNT}/${NON_R_THRESHOLD}"
         sleep 1  # 等待 1 秒后重新检测
 done
 
