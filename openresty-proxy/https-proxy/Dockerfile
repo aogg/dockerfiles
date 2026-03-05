@@ -16,6 +16,7 @@ RUN echo '' >> /usr/local/openresty/nginx/conf/nginx.conf \
     && echo 'env PROXY_PASS_ALL;' >> /usr/local/openresty/nginx/conf/nginx.conf
 
 ENV CLIENT_MAX_BODY_SIZE=200M
+ENV PROXY_TIMEOUT=60s
 # http才指向PROXY_PASS_DEFAULT
 ENV PROXY_PASS_DEFAULT="http://nginx"
 # 不管是否http都指向PROXY_PASS_ALL
