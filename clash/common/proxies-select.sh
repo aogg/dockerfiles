@@ -1,6 +1,9 @@
 #!/usr/bin/env ash
 
-configFilePath="/root/.config/clash/config.yaml"
+defaultConfigFilePath="/root/.config/clash/config.yaml"
+
+# 如果 $1 不为空，则 newConfigPath=$1，否则 newConfigPath=$configFilePath
+configFilePath="${1:-$defaultConfigFilePath}"
 curlHost=$(yq ".external-controller" $configFilePath)
 
 

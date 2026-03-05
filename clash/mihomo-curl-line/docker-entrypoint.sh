@@ -78,6 +78,12 @@ parse_vless() {
     # 3. URL 解码（处理 %2F, %3D, %3F 等）
     local path=$(echo "$line" | sed -n 's/.*[?&]path=\([^&#]*\).*/\1/p' | perl -pe 's/%(..)/chr(hex($1))/eg')
     
+    # 提取 extra 参数（JSON 格式）
+    local extra=$(echo "$line" | sed -n 's/.*[?&]extra=\([^&#]*\).*/\1/p' | perl -pe 's/%(..)/chr(hex($1))/eg')
+    
+    # 提取 mode 参数
+    local mode=$(echo "$params" | sed -n 's/.*mode=\([^&]*\).*/\1/p')
+    
     # 构建 WebSocket 配置（仅当 network=ws 时）
     local ws_opts=""
     if [ "$network" = "ws" ]; then
@@ -85,6 +91,28 @@ parse_vless() {
         local ws_path=$( [ -n "$path" ] && echo "\"path\": \"$path\"," || echo "" )
         local ws_host=$( [ -n "$host_header" ] && echo "\"Host\": \"$host_header\"" || echo "" )
         ws_opts="\"ws-opts\": {${ws_path} \"headers\": {$ws_host}},"
+    fi
+    
+    # 构建 xhttp 配置（仅当 network=xhttp 时）
+    local xhttp_opts=""
+    if [ "$network" = "xhttp" ] && [ -n "$extra" ]; then
+        local xPaddingBytes=$(echo "$extra" | sed -n 's/.*"xPaddingBytes":"\([^"]*\)".*/\1/p')
+        local noGRPCHeader=$(echo "$extra" | sed -n 's/.*"noGRPCHeader":\([^,}]*\).*/\1/p')
+        local noSSEHeader=$(echo "$extra" | sed -n 's/.*"noSSEHeader":\([^,}]*\).*/\1/p')
+        local scMaxEachPostBytes=$(echo "$extra" | sed -n 's/.*"scMaxEachPostBytes":"\([^"]*\)".*/\1/p')
+        local scMinPostsIntervalMs=$(echo "$extra" | sed -n 's/.*"scMinPostsIntervalMs":"\([^"]*\)".*/\1/p')
+        local scStreamUpServerSecs=$(echo "$extra" | sed -n 's/.*"scStreamUpServerSecs":"\([^"]*\)".*/\1/p')
+        local xmux_maxConcurrency=$(echo "$extra" | sed -n 's/.*"maxConcurrency":"\([^"]*\)".*/\1/p')
+        local xmux_maxConnections=$(echo "$extra" | sed -n 's/.*"maxConnections":"\([^"]*\)".*/\1/p')
+        local xmux_cMaxReuseTimes=$(echo "$extra" | sed -n 's/.*"cMaxReuseTimes":"\([^"]*\)".*/\1/p')
+        local xmux_hMaxRequestTimes=$(echo "$extra" | sed -n 's/.*"hMaxRequestTimes":"\([^"]*\)".*/\1/p')
+        local xmux_hMaxReusableSecs=$(echo "$extra" | sed -n 's/.*"hMaxReusableSecs":"\([^"]*\)".*/\1/p')
+        local xmux_hKeepAlivePeriod=$(echo "$extra" | sed -n 's/.*"hKeepAlivePeriod":\([^,}]*\).*/\1/p')
+        
+        local xhttp_mode="packet-up"
+        [ "$mode" = "auto" ] && xhttp_mode="packet-up"
+        
+        xhttp_opts="\"xhttp-opts\": {\"path\": \"$path\", \"mode\": \"$xhttp_mode\", \"x-padding-bytes\": \"$xPaddingBytes\", \"no-grpc-header\": $noGRPCHeader, \"no-sse-header\": $noSSEHeader, \"sc-max-each-post-bytes\": \"$scMaxEachPostBytes\", \"sc-min-posts-interval-ms\": \"$scMinPostsIntervalMs\", \"sc-stream-up-server-secs\": \"$scStreamUpServerSecs\", \"xmux\": {\"max-concurrency\": \"$xmux_maxConcurrency\", \"max-connections\": \"$xmux_maxConnections\", \"c-max-reuse-times\": \"$xmux_cMaxReuseTimes\", \"h-max-request-times\": \"$xmux_hMaxRequestTimes\", \"h-max-reusable-secs\": \"$xmux_hMaxReusableSecs\", \"h-keep-alive-period\": $xmux_hKeepAlivePeriod}, \"host\": \"$servername\"},"
     fi
 
 
@@ -150,6 +178,7 @@ parse_vless() {
       echo "tfo: $tfo_enabled"
       echo "reality-opts: $reality_opts"
       echo "ws-opts: $ws_opts"
+      echo "xhttp-opts: $xhttp_opts"
       echo "alpn-opts: $alpn_opts"
       echo "最后结果----------proxies-----------------------"
 
@@ -169,6 +198,8 @@ parse_vless() {
           $alpn_opts
           $reality_opts
           $ws_opts
+          $xhttp_opts
+          \"encryption\": \"$encryption\",
           \"tcp-fast-open\": $tfo_enabled
       }]"
       echo "最后结果---------------------------------"
@@ -192,6 +223,8 @@ parse_vless() {
         $alpn_opts
         $reality_opts
         $ws_opts
+        $xhttp_opts
+        \"encryption\": \"$encryption\",
         \"tcp-fast-open\": $tfo_enabled
     }]" "$configFilePath"
 
@@ -447,7 +480,7 @@ while true; do
   
   # 首次启动后，在后台选择代理
 if [ -f "/proxies-select.sh" ]; then
-    (sleep 5 && /proxies-select.sh) &
+    (sleep 5 && /proxies-select.sh /root/.config/mihomo/config.yaml) &
 fi
 
   # 等待 24 小时
