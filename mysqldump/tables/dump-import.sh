@@ -5,6 +5,7 @@ DB_PASS=${DB_PASS:-${MYSQL_ENV_DB_PASS}}
 DB_NAME=${DB_NAME:-${MYSQL_ENV_DB_NAME}}
 DB_HOST=${DB_HOST:-${MYSQL_ENV_DB_HOST}}
 IGNORE_DATABASE=${IGNORE_DATABASE}
+ONLY_DATABASE=${ONLY_DATABASE}
 ASYNC_WAIT=${ASYNC_WAIT}
 ASYNC_WAIT_MAX=${ASYNC_WAIT_MAX:-100}
 
@@ -32,6 +33,12 @@ IFS=',' read -ra IGNORE_PAIRS <<< "$IGNORE_DATABASE_TABLES"
 
 databases=$(mysql --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" -e "SHOW DATABASES;" | tr -d "| " | grep -v Database)
 for db in $databases; do
+    if [[ -n "${ONLY_DATABASE}" ]]; then
+        if [[ ! ",${ONLY_DATABASE}," == *",${db},"* ]]; then
+            continue
+        fi
+    fi
+
     if [[ "$db" != "information_schema" ]] && [[ "$db" != "performance_schema" ]] && [[ "$db" != "mysql" ]] && [[ "$db" != _* ]] && [[ "$db" != "$IGNORE_DATABASE" ]]; then
         echo "Dumping database: $db"
         mkdir -p /mysqldump/$db
