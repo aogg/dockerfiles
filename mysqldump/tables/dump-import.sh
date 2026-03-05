@@ -5,7 +5,10 @@ DB_PASS=${DB_PASS:-${MYSQL_ENV_DB_PASS}}
 DB_NAME=${DB_NAME:-${MYSQL_ENV_DB_NAME}}
 DB_HOST=${DB_HOST:-${MYSQL_ENV_DB_HOST}}
 IGNORE_DATABASE=${IGNORE_DATABASE}
+# 只运行特定数据库，支持逗号分隔
 ONLY_DATABASE=${ONLY_DATABASE}
+# 导入时后缀
+IMPORT_DATABASE_SUFFIX=${IMPORT_DATABASE_SUFFIX}
 ASYNC_WAIT=${ASYNC_WAIT}
 ASYNC_WAIT_MAX=${ASYNC_WAIT_MAX:-100}
 
@@ -76,7 +79,7 @@ for db in $databases; do
                                 current_jobs=$(pgrep -f "$KEYWORD" | wc -l)
                                 if [[ "$current_jobs" -lt "$ASYNC_WAIT_MAX" ]]; then
                                         echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  ..."${db}"."${table}
-                                        mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db" &
+                                        mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db "$table"  | mysql --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db$IMPORT_DATABASE_SUFFIX" &
                                         break
                                 else
                                         echo $(date "+%Y-%m-%d %H:%M:%S")" dump-import.sh  Waiting for mysqldump process to complete..."${db}
