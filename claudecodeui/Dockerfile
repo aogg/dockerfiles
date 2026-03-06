@@ -9,7 +9,7 @@ RUN apt-get update && \
         @siteboon/claude-code-ui \
         @anthropic-ai/claude-code \
         @google/gemini-cli \
-        openai-codex-cli \
+        @openai/codex \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.npm
 
