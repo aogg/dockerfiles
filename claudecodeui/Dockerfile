@@ -8,7 +8,7 @@ RUN apt-get update && \
     && npm install -g \
         @siteboon/claude-code-ui \
         @anthropic-ai/claude-code \
-        @google/generative-ai-cli \
+        @google/gemini-cli \
         openai-codex-cli \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.npm
