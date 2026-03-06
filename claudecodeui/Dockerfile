@@ -6,6 +6,7 @@ RUN apt-get update && \
         git \
         curl \
     && npm install -g \
+        npx \
         @siteboon/claude-code-ui \
         @anthropic-ai/claude-code \
         @google/gemini-cli \
