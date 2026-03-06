@@ -6,12 +6,19 @@ RUN apt-get update && \
         git \
         curl \
     && npm install -g \
-        npx \
         @siteboon/claude-code-ui \
         @anthropic-ai/claude-code \
         @google/gemini-cli \
         @openai/codex \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.npm
+
+ENV WORKSPACES_ROOT=/
+
+ENV ANTHROPIC_BASE_URL ""
+ENV ANTHROPIC_AUTH_TOKEN ""
+
+ENV GOOGLE_GEMINI_BASE_URL ""
+ENV GEMINI_API_KEY ""
 
 CMD ["cloudcli"]
