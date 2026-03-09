@@ -14,7 +14,9 @@ git clone https://github.com/aogg/$GITHUB_NAME project
 cd project
 
 # Build image
+echo "开始构建--------------------------------------------------------------------"
 docker build -f $DOCKERFILE_PATH -t $IMAGE_NAME .
+echo "构建完成--------------------------------------------------------------------"
 
 # Push to registry
 docker push $IMAGE_NAME

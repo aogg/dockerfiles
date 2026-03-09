@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: 
       - "dockerfile/**"
-      - ".github/workflows/dockerfile.yml"
+      - ".github/workflows/dockerfile--tcp-proxy-base64.yml"
       - "!**.md"
 
 jobs:
