@@ -3,7 +3,7 @@ set -e
 
 GITHUB_NAME=$1
 DOCKERFILE_PATH=${3:-"./Dockerfile"}
-IMAGE_NAME=${2:-$1}
+IMAGE_NAME=${2:-"adockero/$1"}
 
 echo "Building Docker image for $GITHUB_NAME"
 echo "Dockerfile path: $DOCKERFILE_PATH"
