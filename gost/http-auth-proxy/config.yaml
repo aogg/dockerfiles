@@ -1,0 +1,25 @@
+services:
+- name: service-0
+  addr: ":8080"
+  handler:
+    type: auto
+    auther: auther-0
+    chain: chain-0
+  listener:
+    type: tcp
+authers:
+- name: auther-0
+  auths:
+  - username: admin
+    password: admin
+chains:
+- name: chain-0
+  hops:
+  - name: hop-0
+    nodes:
+    - name: node-0
+      addr: localhost:8888
+      connector:
+        type: http
+      dialer:
+        type: tcp    

@@ -29,6 +29,9 @@ for env in $(printenv | grep "^ENV_YAML_"); do
   
   # 去掉 ENV_YAML_ 前缀
   path="${key#ENV_YAML_}"
+  # path=authers__0__auths__0__password
+  # 将双下划线替换为点：authers__0__auths__0__password -> authers.0.auths.0.password
+  path=$(echo "$path" | sed 's/__/\./g')
   
   # 将路径转换为 yq 格式: authers.0.name.0.username -> .authers[0].name[0].username
   yq_path=$(echo ".$path" | sed 's/\.\([0-9]\+\)/[\1]/g')
