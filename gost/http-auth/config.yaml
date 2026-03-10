@@ -1,0 +1,13 @@
+services:
+- name: service-0
+  addr: ":8080"
+  handler:
+    type: http
+    auther: auther-0
+  listener:
+    type: tcp
+authers:
+- name: auther-0
+  auths:
+  - username: admin
+    password: admin
