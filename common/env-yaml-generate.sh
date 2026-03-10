@@ -37,7 +37,11 @@ for env in $(printenv | grep "^ENV_YAML_"); do
   yq_path=$(echo ".$path" | sed 's/\.\([0-9]\+\)/[\1]/g')
   
   # 使用 yq 更新 YAML 文件
-  yq eval -i "$yq_path = \"$val\"" "$yaml_file"
+  if [ "$val" = "true" ] || [ "$val" = "false" ]; then
+    yq eval -i "$yq_path = $val" "$yaml_file"
+  else
+    yq eval -i "$yq_path = \"$val\"" "$yaml_file"
+  fi
 done
 
 echo "YAML 文件已更新: $yaml_file"
