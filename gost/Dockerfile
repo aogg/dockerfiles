@@ -6,4 +6,6 @@ COPY gost/docker-entrypoint.sh /
 COPY gost/${CONFIG_DIR_NAME}/config.yaml /etc/gost/config.yaml
 COPY common/env-yaml-generate.sh /
 
+RUN apk add --no-cache yq
+
 ENTRYPOINT ["/docker-entrypoint.sh"]
