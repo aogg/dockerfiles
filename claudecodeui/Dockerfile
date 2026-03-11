@@ -6,6 +6,7 @@ RUN apt-get update && \
         git \
         curl \
         procps \
+    && git config --global --add safe.directory '*' \    
     && npm install -g \
         @siteboon/claude-code-ui \
         @anthropic-ai/claude-code \
