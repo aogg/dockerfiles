@@ -16,7 +16,7 @@ RUN apk add --no-cache ca-certificates tzdata yq curl perl
 # 环境变量
 ENV PORT=7890
 ENV EXTERNAL_PORT=9090
-ENV PROXIE_NAME="自动选择"
+ENV PROXIE_NAME="自动"
 
 EXPOSE 7890 9090
 
