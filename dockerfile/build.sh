@@ -10,7 +10,11 @@ echo "Dockerfile path: $DOCKERFILE_PATH"
 echo "Image name: $IMAGE_NAME"
 
 # Clone repository
-git clone https://github.com/aogg/$GITHUB_NAME project
+if [[ "$GITHUB_NAME" == http://* ]] || [[ "$GITHUB_NAME" == https://* ]]; then
+    git clone $GITHUB_NAME project
+else
+    git clone https://github.com/aogg/$GITHUB_NAME project
+fi
 cd project
 
 # Build image
