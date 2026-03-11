@@ -5,6 +5,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         git \
         curl \
+        procps \
     && npm install -g \
         @siteboon/claude-code-ui \
         @anthropic-ai/claude-code \
