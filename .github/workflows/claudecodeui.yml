@@ -31,11 +31,11 @@ jobs:
 # ##########  构建  ###########################
 
 
-    - name: 构建镜像  adockero/claudecodeui
+    - name: 构建镜像  adockero/claude-code-ui:origin
       uses: docker/build-push-action@v3
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: adockero/claudecodeui
+        tags: adockero/claude-code-ui:origin
         # tags: adockero/node-systemd:node-14
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./claudecodeui
