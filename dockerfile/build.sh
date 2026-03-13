@@ -16,6 +16,7 @@ else
     git clone https://github.com/aogg/$GITHUB_NAME project
 fi
 cd project
+rm -Rf ./.git
 
 # Build image
 echo "开始构建--------------------------------------------------------------------"
