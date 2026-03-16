@@ -89,7 +89,7 @@ if [[ "$a" != 1 ]];then
 fi
 
 # 初始化
-eval "$sshRun bash -c \"pwd && mkdir -p /tmp/dump-import-ssh-diff && rm -Rf /tmp/dump-import-ssh-temp && mkdir -p /tmp/dump-import-ssh-temp/mysql_error_log_dir\""
+eval "$sshRun bash -c \"pwd && mkdir -p /tmp/dump-import-ssh-diff && (ls -al /tmp/dump-import-ssh-diff/* | wc -l)  && rm -Rf /tmp/dump-import-ssh-temp && mkdir -p /tmp/dump-import-ssh-temp/mysql_error_log_dir\""
 
 
 
@@ -340,21 +340,21 @@ BASH
                                 if [[ $line == "diff-sync "* ]]; then
                                 
                                         import_table=$(echo $line | awk '{print $3}')
-                                        # 导入成功后立即保存到diff目录
-                                        {
-                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/mtime/$db && cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/ 2>/dev/null; cp /tmp/dump-import-ssh-temp/mtime/$db/$import_table.mtime /tmp/dump-import-ssh-diff/mtime/$db/ 2>/dev/null\""
-                                                echo "已保存到diff: $db.$import_table";
-                                        } &
-
                                         
                                         echo "进程数小于最大等待数，异步导入--$db.$import_table";
                                         for ((retry=1; retry<=3; retry++)); do
+                                                echo "执行命令(第${retry}次): mysqldump --skip-ssl --no-tablespaces --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" | pv -L $DUMP_PV | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
                                                 error_output=$(time (mysqldump --skip-ssl --no-tablespaces --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table"  | pv -L $DUMP_PV | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
 
                                                 echo "导入失败(第${retry}次): $db.$import_table"
-                                                echo "执行命令: mysqldump --skip-ssl --no-tablespaces --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" | pv -L $DUMP_PV | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
                                                 echo "错误信息: $error_output"
                                         done
+                                        
+                                        if [[ $? -eq 0 ]]; then
+                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/mtime/$db && cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/mtime/$db/$import_table.mtime /tmp/dump-import-ssh-diff/mtime/$db/\""
+                                                echo "已保存到diff: $db.$import_table";
+                                        fi
+                                        
                                         echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$import_table";
                                 fi
                         done
