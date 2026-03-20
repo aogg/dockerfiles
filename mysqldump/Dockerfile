@@ -13,7 +13,7 @@ RUN mv /etc/apt/sources.list.d/mysql.list /tmp/mysql.list \
         echo "deb http://archive.debian.org/debian buster-updates main contrib non-free" >> /etc/apt/sources.list; \
     fi \
     && (apt update || (echo 'update报错但依然运行' && true)) \
-    && apt install -y curl \
+    && apt install -y curl procps \
     && rm -rf /var/lib/apt/lists/* \
     && mv /tmp/mysql.list /etc/apt/sources.list.d/mysql.list
 # RUN apk add --update mysql-client bash && rm -rf /var/cache/apk/*
