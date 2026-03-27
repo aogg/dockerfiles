@@ -94,9 +94,9 @@ jobs:
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: adockero/mysqldump:tables-ssh-pv-mysql
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        # Path to the Dockerfile (使用Dockerfile.mysql构建原版MySQL客户端)
         context: ./mysqldump/tables-ssh
-        file: "./mysqldump/tables-ssh/Dockerfile"
+        file: "./mysqldump/tables-ssh/Dockerfile.mysql"
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
@@ -104,7 +104,6 @@ jobs:
         build-args: |
           APK_ARG=pv
           FILE_ARG=dump-import.md5.pv.sh
-          MYSQL_CLIENT=mysql
         # Adds labels with git repository information to the built image
         labels: true
 
