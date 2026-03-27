@@ -3,8 +3,21 @@
 
 # FROM camil/mysqldump
 
-FROM alpine:3.4
-RUN apk add --update mysql-client bash && rm -rf /var/cache/apk/*
+ARG BASE_FROM=mysql:5.7-debian
+
+FROM ${BASE_FROM}
+
+RUN mv /etc/apt/sources.list.d/mysql.list /tmp/mysql.list \
+    && if [ "$(cat /etc/os-release | grep VERSION_ID | cut -d'=' -f2 | tr -d '"')" -le 10 ]; then \
+        echo "deb http://archive.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list; \
+        echo "deb http://archive.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list; \
+        echo "deb http://archive.debian.org/debian buster-updates main contrib non-free" >> /etc/apt/sources.list; \
+    fi \
+    && (apt update || (echo 'update报错但依然运行' && true)) \
+    && apt install -y curl procps \
+    && rm -rf /var/lib/apt/lists/* \
+    && mv /tmp/mysql.list /etc/apt/sources.list.d/mysql.list
+
 COPY dump.sh /
 COPY import.sh /
 COPY dump-import.sh /

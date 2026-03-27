@@ -165,13 +165,11 @@ jobs:
         labels: true   
 
 
-
-
     - name: 构建镜像  adockero/mysqldump:tables
       uses: docker/build-push-action@v3
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: adockero/mysqldump:tables
+        tags: adockero/mysqldump:tables-5.7
         # tags: adockero/node-systemd:node-14
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./mysqldump/tables
@@ -180,7 +178,26 @@ jobs:
         pull: true
         push: true
         # 构建参数
-        # build-args: NODE_VERSION=14
+        build-args: BASE_FROM=mysql:debian
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true  
+
+
+    - name: 构建镜像  adockero/mysqldump:tables-5.7
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: adockero/mysqldump:tables-5.7
+        # tags: adockero/node-systemd:node-14
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./mysqldump/tables
+        file: "./mysqldump/tables/Dockerfile"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        build-args: BASE_FROM=mysql:5.7-debian
         #   APK_ARG=rsync
         # Adds labels with git repository information to the built image
         labels: true    
