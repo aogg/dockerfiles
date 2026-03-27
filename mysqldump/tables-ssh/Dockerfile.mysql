@@ -7,7 +7,7 @@ FROM debian:bullseye-slim
 ARG APK_ARG=
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    default-mysql-client bash openssh-client sshpass ${APK_ARG} && \
+    default-mysql-client bash openssh-client sshpass procps ${APK_ARG} && \
     rm -rf /var/lib/apt/lists/*
 
 ARG FILE_ARG=dump-import.sh
