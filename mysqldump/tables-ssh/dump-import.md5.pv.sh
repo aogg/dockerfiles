@@ -270,6 +270,9 @@ for ((i = 0; i < num_databases; i++)); do
         
         echo $db >> /tmp/databases_count.run.log;
         
+        # 提前创建该数据库相关的diff目录结构，避免后续多处重复创建
+        eval "$sshRun bash -c \"echo '开始mkdir';mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/schema/$db /tmp/dump-import-ssh-diff/pages/$db /tmp/dump-import-ssh-diff/mtime/$db\""
+        
         # 本地循环每个表，并发处理
         for ((t = 0; t < num_tables; t++)); do
                 table=${tables_arr[$t]}
@@ -411,35 +414,42 @@ if [[ "\$schema_changed" == "1" || "\$is_first_sync" == "1" ]]; then
                 # 清空旧的分页MD5文件
                 rm -f /tmp/dump-import-ssh-temp/pages/$db/$table/*.md5 2>/dev/null;
                 
-                # 迭代分页获取数据，不预先获取最大ID
+                # 迭代分页获取数据，使用 LIMIT 获取固定数量，动态计算分页范围
                 page_start=0;
                 page_num=0;
                 has_more=1;
                 
                 while [[ "\$has_more" == "1" ]]; do
-                        page_end_local=\$((page_start + PAGE_SIZE - 1));
+                        # 获取该页的主键范围（只查询主键列，提高效率）
+                        pk_list=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT \\\`\$primary_key\\\` FROM $db.\\\`$table\\\` WHERE \\\`\$primary_key\\\` > \$page_start ORDER BY \\\`\$primary_key\\\` LIMIT \${PAGE_SIZE};" 2>/dev/null);
                         
-                        # 获取该页数据并计算MD5（空数据也要保存MD5）
-                        page_data=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT * FROM $db.\`$table\` WHERE \`\$primary_key\` > \$page_start AND \`\$primary_key\` <= \$page_end_local ORDER BY \`\$primary_key\`;" 2>/dev/null);
-                        page_md5=\$(echo "\$page_data" | md5sum | awk '{print \$1}');
-                        
-                        # 保存分页MD5
-                        mkdir -p /tmp/dump-import-ssh-temp/pages/$db/$table/;
-                        echo "\$page_md5" > /tmp/dump-import-ssh-temp/pages/$db/$table/page_\${page_num}.md5;
-                        
-                        # 表结构改变或首次同步，所有分页都需要同步
-                        echo "page-diff \$table \$page_start \$page_end_local \$page_num";
-                        
-                        # 检查是否有更多数据
-                        if [[ -z "\$page_data" ]]; then
+                        # 检查是否有数据
+                        if [[ -z "\$pk_list" ]]; then
                                 has_more=0;
                         else
-                                # 获取该页最后一条记录的主键值作为下一页的起始点
-                                last_id=\$(echo "\$page_data" | tail -1 | awk '{print \$1}');
-                                if [[ -z "\$last_id" || "\$last_id" == "\$page_start" ]]; then
+                                # 获取本页的实际起始和结束主键值
+                                page_start_actual=\$(echo "\$pk_list" | head -1);
+                                page_end_local=\$(echo "\$pk_list" | tail -1);
+                                
+                                # 获取该页数据并计算MD5
+                                page_data=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT * FROM $db.\\\`$table\\\` WHERE \\\`\$primary_key\\\` >= \$page_start_actual AND \\\`\$primary_key\\\` <= \$page_end_local ORDER BY \\\`\$primary_key\\\`;" 2>/dev/null);
+                                page_md5=\$(echo "\$page_data" | md5sum | awk '{print \$1}');
+                                
+                                # 保存分页MD5
+                                mkdir -p /tmp/dump-import-ssh-temp/pages/$db/$table/;
+                                mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$table/;
+                                echo "\$page_md5" > /tmp/dump-import-ssh-temp/pages/$db/$table/page_\${page_num}.md5;
+                                echo "写入md5了，非首次---$db $table";
+                                
+                                # 表结构改变或首次同步，所有分页都需要同步
+                                echo "page-diff \$table \$page_start_actual \$page_end_local \$page_num";
+                                
+                                # 检查是否还有更多数据（获取的记录数小于PAGE_SIZE说明是最后一页）
+                                pk_count=\$(echo "\$pk_list" | wc -l);
+                                if [[ "\$pk_count" -lt "\${PAGE_SIZE}" ]]; then
                                         has_more=0;
                                 else
-                                        page_start=\$last_id;
+                                        page_start=\$page_end_local;
                                         ((page_num++));
                                 fi
                         fi
@@ -462,7 +472,7 @@ else
                 # 清空旧的分页MD5文件
                 rm -f /tmp/dump-import-ssh-temp/pages/$db/$table/*.md5 2>/dev/null;
                 
-                # 迭代分页获取数据，不预先获取最大ID
+                # 迭代分页获取数据，使用 LIMIT 获取固定数量，动态计算分页范围
                 page_start=0;
                 page_num=0;
                 has_more=1;
@@ -473,36 +483,43 @@ else
                                 sleep 0.5;
                         done
                         
-                        page_end_local=\$((page_start + PAGE_SIZE - 1));
+                        # 获取该页的主键范围（只查询主键列，提高效率）
+                        pk_list=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT \\\`\$primary_key\\\` FROM $db.\\\`$table\\\` WHERE \\\`\$primary_key\\\` > \$page_start ORDER BY \\\`\$primary_key\\\` LIMIT \${PAGE_SIZE};" 2>/dev/null);
                         
-                        # 获取该页数据并计算MD5（空数据也要保存MD5）
-                        page_data=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT * FROM $db.\`$table\` WHERE \`\$primary_key\` > \$page_start AND \`\$primary_key\` <= \$page_end_local ORDER BY \`\$primary_key\`;" 2>/dev/null);
-                        page_md5=\$(echo "\$page_data" | md5sum | awk '{print \$1}');
-                        
-                        # 保存分页MD5
-                        mkdir -p /tmp/dump-import-ssh-temp/pages/$db/$table/;
-                        echo "\$page_md5" > /tmp/dump-import-ssh-temp/pages/$db/$table/page_\${page_num}.md5;
-                        
-                        # 对比差异
-                        old_page_md5="";
-                        if [[ -f "/tmp/dump-import-ssh-diff/pages/$db/$table/page_\${page_num}.md5" ]]; then
-                                old_page_md5=\$(cat /tmp/dump-import-ssh-diff/pages/$db/$table/page_\${page_num}.md5);
-                        fi
-                        
-                        if [[ "\$page_md5" != "\$old_page_md5" ]]; then
-                                echo "page-diff \$table \$page_start \$page_end_local \$page_num";
-                        fi
-                        
-                        # 检查是否有更多数据
-                        if [[ -z "\$page_data" ]]; then
+                        # 检查是否有数据
+                        if [[ -z "\$pk_list" ]]; then
                                 has_more=0;
                         else
-                                # 获取该页最后一条记录的主键值作为下一页的起始点
-                                last_id=\$(echo "\$page_data" | tail -1 | awk '{print \$1}');
-                                if [[ -z "\$last_id" || "\$last_id" == "\$page_start" ]]; then
+                                # 获取本页的实际起始和结束主键值
+                                page_start_actual=\$(echo "\$pk_list" | head -1);
+                                page_end_local=\$(echo "\$pk_list" | tail -1);
+                                
+                                # 获取该页数据并计算MD5
+                                page_data=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT * FROM $db.\\\`$table\\\` WHERE \\\`\$primary_key\\\` >= \$page_start_actual AND \\\`\$primary_key\\\` <= \$page_end_local ORDER BY \\\`\$primary_key\\\`;" 2>/dev/null);
+                                page_md5=\$(echo "\$page_data" | md5sum | awk '{print \$1}');
+                                
+                                # 保存分页MD5
+                                mkdir -p /tmp/dump-import-ssh-temp/pages/$db/$table/;
+                                mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$table/;
+                                echo "\$page_md5" > /tmp/dump-import-ssh-temp/pages/$db/$table/page_\${page_num}.md5;
+                                echo "写入md5了，非首次---$db $table";
+                                
+                                # 对比差异
+                                old_page_md5="";
+                                if [[ -f "/tmp/dump-import-ssh-diff/pages/$db/$table/page_\${page_num}.md5" ]]; then
+                                        old_page_md5=\$(cat /tmp/dump-import-ssh-diff/pages/$db/$table/page_\${page_num}.md5);
+                                fi
+                                
+                                if [[ "\$page_md5" != "\$old_page_md5" ]]; then
+                                        echo "page-diff \$table \$page_start_actual \$page_end_local \$page_num";
+                                fi
+                                
+                                # 检查是否还有更多数据（获取的记录数小于PAGE_SIZE说明是最后一页）
+                                pk_count=\$(echo "\$pk_list" | wc -l);
+                                if [[ "\$pk_count" -lt "\${PAGE_SIZE}" ]]; then
                                         has_more=0;
                                 else
-                                        page_start=\$last_id;
+                                        page_start=\$page_end_local;
                                         ((page_num++));
                                 fi
                         fi
@@ -557,15 +574,15 @@ BASH
                                         echo "分页差异同步--$db.$import_table 页码=$page_num 范围=$page_start-$page_end; primary_key=$primary_key";
                                         
                                         for ((retry=1; retry<=3; retry++)); do
-                                                echo "执行分页同步命令(第${retry}次): mysqldump --skip-ssl --no-tablespaces --no-create-info --replace --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" --where=\"\`$primary_key\` > $page_start AND \`$primary_key\` <= $page_end\" | pv -L $DUMP_PV | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
-                                                error_output=$(time (mysqldump --skip-ssl --no-tablespaces --no-create-info --replace --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table" --where="\`$primary_key\` > $page_start AND \`$primary_key\` <= $page_end"  | pv -L $DUMP_PV | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
+                                                echo "执行分页同步命令(第${retry}次): mysqldump --skip-ssl --no-tablespaces --no-create-info --replace --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" --where=\"\`$primary_key\` >= $page_start AND \`$primary_key\` <= $page_end\" | pv -L $DUMP_PV | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
+                                                error_output=$(time (mysqldump --skip-ssl --no-tablespaces --no-create-info --replace --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table" --where="\`$primary_key\` >= $page_start AND \`$primary_key\` <= $page_end"  | pv -L $DUMP_PV | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
 
                                                 echo "分页导入失败(第${retry}次): $db.$import_table 页码=$page_num"
                                                 echo "错误信息: $error_output"
                                         done
                                         
                                         if [[ $? -eq 0 ]] && [[ -n "$import_table" ]]; then
-                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$import_table && cp /tmp/dump-import-ssh-temp/pages/$db/$import_table/page_${page_num}.md5 /tmp/dump-import-ssh-diff/pages/$db/$import_table/\""
+                                                eval "$sshRun bash -c \"echo /tmp/dump-import-ssh-diff/pages/$db/$import_table;mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$import_table; cp /tmp/dump-import-ssh-temp/pages/$db/$import_table/page_${page_num}.md5 /tmp/dump-import-ssh-diff/pages/$db/$import_table/\""
                                                 echo "已保存分页diff: $db.$import_table 页码=$page_num";
                                         fi
                                         
@@ -585,7 +602,7 @@ BASH
                                         done
                                         
                                         if [[ $? -eq 0 ]] && [[ -n "$import_table" ]]; then
-                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/schema/$db /tmp/dump-import-ssh-diff/pages/$db/$import_table && cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/; rm -Rf /tmp/dump-import-ssh-diff/pages/$db/$import_table/* 2>/dev/null; cp -r /tmp/dump-import-ssh-temp/pages/$db/$import_table/* /tmp/dump-import-ssh-diff/pages/$db/$import_table/ 2>/dev/null\""
+                                                eval "$sshRun bash -c \"echo /tmp/dump-import-ssh-diff/pages/$db/$import_table;mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$import_table; cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/; rm -Rf /tmp/dump-import-ssh-diff/pages/$db/$import_table/* 2>/dev/null; if ls /tmp/dump-import-ssh-temp/pages/$db/$import_table/*.md5 1> /dev/null 2>&1; then cp -r /tmp/dump-import-ssh-temp/pages/$db/$import_table/*.md5 /tmp/dump-import-ssh-diff/pages/$db/$import_table/; fi\""
                                                 echo "已保存到diff(含表结构): $db.$import_table";
                                         fi
                                         
@@ -606,7 +623,7 @@ BASH
                                         done
                                         
                                         if [[ $? -eq 0 ]] && [[ -n "$import_table" ]]; then
-                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/schema/$db /tmp/dump-import-ssh-diff/mtime/$db && cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/; cp /tmp/dump-import-ssh-temp/mtime/$db/$import_table.mtime /tmp/dump-import-ssh-diff/mtime/$db/ 2>/dev/null\""
+                                                eval "$sshRun bash -c \"echo /tmp/dump-import-ssh-temp/$db/$import_table.md5;cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/; cp /tmp/dump-import-ssh-temp/mtime/$db/$import_table.mtime /tmp/dump-import-ssh-diff/mtime/$db/ 2>/dev/null\""
                                                 echo "已保存到diff: $db.$import_table";
                                         fi
                                         
@@ -631,7 +648,7 @@ BASH
                                         echo "表结构改变/首次同步-分页同步完成--$db.$import_table";
                                         # 保存schema、整表MD5和所有分页MD5
                                         if [[ -n "$import_table" ]]; then
-                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/schema/$db /tmp/dump-import-ssh-diff/pages/$db/$import_table && cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/; rm -Rf /tmp/dump-import-ssh-diff/pages/$db/$import_table/* 2>/dev/null; cp -r /tmp/dump-import-ssh-temp/pages/$db/$import_table/* /tmp/dump-import-ssh-diff/pages/$db/$import_table/ 2>/dev/null\""
+                                                eval "$sshRun bash -c \"echo /tmp/dump-import-ssh-diff/pages/$db/$import_table;mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$import_table; cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/; rm -Rf /tmp/dump-import-ssh-diff/pages/$db/$import_table/* 2>/dev/null; if ls /tmp/dump-import-ssh-temp/pages/$db/$import_table/*.md5 1> /dev/null 2>&1; then cp -r /tmp/dump-import-ssh-temp/pages/$db/$import_table/*.md5 /tmp/dump-import-ssh-diff/pages/$db/$import_table/; fi\""
                                                 echo "已保存同步记录(含表结构和分页): $db.$import_table";
                                         fi
                                         
@@ -641,7 +658,7 @@ BASH
                                         echo "首次分页同步完成--$db.$import_table";
                                         # 保存schema、整表MD5和所有分页MD5
                                         if [[ -n "$import_table" ]]; then
-                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/schema/$db /tmp/dump-import-ssh-diff/pages/$db/$import_table && cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/; rm -Rf /tmp/dump-import-ssh-diff/pages/$db/$import_table/* 2>/dev/null; cp -r /tmp/dump-import-ssh-temp/pages/$db/$import_table/* /tmp/dump-import-ssh-diff/pages/$db/$import_table/ 2>/dev/null\""
+                                                eval "$sshRun bash -c \"echo /tmp/dump-import-ssh-diff/pages/$db/$import_table;mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$import_table; cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/; rm -Rf /tmp/dump-import-ssh-diff/pages/$db/$import_table/* 2>/dev/null; if ls /tmp/dump-import-ssh-temp/pages/$db/$import_table/*.md5 1> /dev/null 2>&1; then cp -r /tmp/dump-import-ssh-temp/pages/$db/$import_table/*.md5 /tmp/dump-import-ssh-diff/pages/$db/$import_table/; fi\""
                                                 echo "已保存首次同步记录: $db.$import_table";
                                         fi
                                         
@@ -651,7 +668,7 @@ BASH
                                         echo "分页同步完成--$db.$import_table";
                                         # 保存schema和整表MD5
                                         if [[ -n "$import_table" ]]; then
-                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/schema/$db && cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/\""
+                                                eval "$sshRun bash -c \"cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/\""
                                                 echo "已保存同步记录: $db.$import_table";
                                         fi
                                         
