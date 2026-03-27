@@ -21,6 +21,13 @@ DUMP_WAIT_SECONDS=${DUMP_WAIT_SECONDS:-0.6}
 # MySQL数据目录，用于加速判断表文件是否修改
 MYSQL_DATA_DIR=${MYSQL_DATA_DIR:-}
 
+# 分页同步配置
+PAGE_SYNC_ENABLED=${PAGE_SYNC_ENABLED:-1}                    # 是否启用分页同步（1启用，0禁用）
+PAGE_SIZE=${PAGE_SIZE:-5000}                                  # 每页数据量
+PAGE_CONCURRENT=${PAGE_CONCURRENT:-5}                         # 分页获取数据的并发数
+PAGE_SYNC_TABLES=${PAGE_SYNC_TABLES:-}                        # 指定启用分页同步的表（逗号分隔，为空则所有表）
+PAGE_SYNC_MIN_ROWS=${PAGE_SYNC_MIN_ROWS:-5000}                # 最小行数阈值，低于此值不分页
+
 RUN_LIMIT_START=${RUN_LIMIT_START};
 RUN_LIMIT_START_MYSQLDUMP=${RUN_LIMIT_START_MYSQLDUMP};
 if [[ -n "$CPUQUOTA" ]];then
@@ -65,7 +72,7 @@ IFS=',' read -ra IGNORE_PAIRS <<< "$IGNORE_DATABASE_TABLES"
 STRICT_HOST_KEY_CHECKING=${STRICT_HOST_KEY_CHECKING:no}
 
 # 密码加引用就需要eval
-sshRun=$(echo sshpass -p \'"$SSH_PASSWORD"\' ssh -o "StrictHostKeyChecking=$STRICT_HOST_KEY_CHECKING" $SSH_ARGS $SSH_USER@$SSH_IP)
+sshRun=$(echo sshpass -p \'"$SSH_PASSWORD"\' ssh -o "LogLevel=ERROR" -o "StrictHostKeyChecking=$STRICT_HOST_KEY_CHECKING" $SSH_ARGS $SSH_USER@$SSH_IP)
 # sshRun=$(echo $sshRun)
 echo '下面是执行的ssh'
 echo $sshRun
@@ -124,7 +131,7 @@ echo $cpuScript
 async_write_file(){
         {
 # 避免keyword匹配到
-        echo $cpuScript | (exec -a "监听CPU空闲率" sshpass -p "$SSH_PASSWORD" ssh $SSH_ARGS -v -o "StrictHostKeyChecking=$STRICT_HOST_KEY_CHECKING" $SSH_USER@$SSH_IP 'bash -s') | while IFS= read -r line; do
+        echo $cpuScript | (exec -a "监听CPU空闲率" sshpass -p "$SSH_PASSWORD" ssh $SSH_ARGS -v -o "LogLevel=ERROR" -o "StrictHostKeyChecking=$STRICT_HOST_KEY_CHECKING" $SSH_USER@$SSH_IP 'bash -s') | while IFS= read -r line; do
                 # echo $line > /tmp/get_remote_cpu_idle
                 # echo "cpu空闲率=${line}"
                 echo $line;
@@ -279,13 +286,21 @@ for ((i = 0; i < num_databases; i++)); do
                 done
                 
                 {
-                        # 单个表的SSH判断脚本：同时检查修改时间和MD5
+                        # 单个表的SSH判断脚本：同时检查修改时间和MD5，支持分页同步
                         table_command=$(cat << BASH
-DB_PASS="${DB_PASS}";
 MYSQL_DATA_DIR="${MYSQL_DATA_DIR}";
+DB_PASS="${DB_PASS}";
 table="${table}";
+PAGE_SYNC_ENABLED="${PAGE_SYNC_ENABLED}";
+PAGE_SIZE="${PAGE_SIZE}";
+PAGE_CONCURRENT="${PAGE_CONCURRENT}";
+PAGE_SYNC_TABLES="${PAGE_SYNC_TABLES}";
+PAGE_SYNC_MIN_ROWS="${PAGE_SYNC_MIN_ROWS}";
+
 mkdir -p /tmp/dump-import-ssh-temp/$db/;
 mkdir -p /tmp/dump-import-ssh-temp/mtime/$db/;
+mkdir -p /tmp/dump-import-ssh-temp/schema/$db/;
+mkdir -p /tmp/dump-import-ssh-temp/pages/$db/;
 
 mtime_changed=0;
 
@@ -312,21 +327,212 @@ if [[ -n "\$MYSQL_DATA_DIR" && -d "\$MYSQL_DATA_DIR" ]]; then
         fi
 fi
 
-# 导出表并计算MD5
-$RUN_LIMIT_START_MYSQLDUMP mysqldump --no-tablespaces --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db-\${table}.log --no-create-info --skip-comments --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db \$table 2>/dev/null | grep -e '^INSERT INTO' | md5sum | awk -v table="\$table" '{print table, \$1}' > /tmp/dump-import-ssh-temp/$db/\$table.md5;
+# 获取表结构并计算MD5
+schema_md5=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SHOW CREATE TABLE $db.\`$table\`;" 2>/dev/null | md5sum | awk '{print \$1}');
+echo "\$schema_md5" > /tmp/dump-import-ssh-temp/schema/$db/$table.schema.md5;
 
-# 判断是否有差异
-temp_md5=\$(cat /tmp/dump-import-ssh-temp/$db/\$table.md5);
-
-if [[ -f "/tmp/dump-import-ssh-diff/$db/\$table.md5" ]]; then
-        diff_md5=\$(cat /tmp/dump-import-ssh-diff/$db/\$table.md5);
-        if [[ "\$temp_md5" != "\$diff_md5" ]]; then
-                echo "diff-sync 有差异表名 \$table";
-        elif [[ "\$mtime_changed" == "1" ]]; then
-                echo "diff-sync 文件修改时间改变 \$table";
+# 检查表结构是否有差异或首次同步
+schema_changed=0;
+is_first_sync=0;
+if [[ -f "/tmp/dump-import-ssh-diff/schema/$db/$table.schema.md5" ]]; then
+        old_schema_md5=\$(cat /tmp/dump-import-ssh-diff/schema/$db/$table.schema.md5);
+        if [[ "\$schema_md5" != "\$old_schema_md5" ]]; then
+                schema_changed=1;
+                echo "schema-changed \$table";
         fi
 else
-        echo "diff-sync 新表 \$table";
+        # 首次同步
+        is_first_sync=1;
+        echo "first-sync \$table";
+fi
+
+# 获取表的主键信息
+primary_key=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='\$table' AND COLUMN_KEY='PRI' ORDER BY ORDINAL_POSITION LIMIT 1;" 2>/dev/null);
+
+
+#echo ------------------------------------
+#mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT COUNT(*) FROM $db.\\\`$table\\\`;";
+
+#mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT COUNT(*) FROM $db.\`$table\`;";
+
+#mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT COUNT(*) FROM qimall.qimall_user;";
+#echo ------------------------------------
+
+# 获取表行数
+table_rows=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT COUNT(*) FROM $db.\\\`$table\\\`;" 2>/dev/null);
+
+# 检查表是否有数据，没有数据则检查表结构是否改变
+if [[ -z "\$table_rows" || "\$table_rows" == "0" ]]; then
+        echo "empty-table \$table 行数=\$table_rows";
+        
+        # 检查表结构是否有差异
+        if [[ "\$schema_changed" == "1" ]]; then
+                # 表结构改变，需要同步结构
+                echo "empty-table-schema-changed \$table";
+        elif [[ "\$is_first_sync" == "1" ]]; then
+                # 首次同步，需要同步结构
+                echo "empty-table-first-sync \$table";
+        else
+                echo "empty-table-schema-same \$table";
+        fi
+        
+        # 保存schema MD5
+        cat /tmp/dump-import-ssh-temp/schema/$db/$table.schema.md5 > /tmp/dump-import-ssh-diff/schema/$db/$table.schema.md5 2>/dev/null || mkdir -p /tmp/dump-import-ssh-diff/schema/$db && cp /tmp/dump-import-ssh-temp/schema/$db/$table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/;
+        echo "empty-table-done \$table";
+else
+        # 有数据，继续判断是否启用分页同步
+use_page_sync=0;
+if [[ "\$PAGE_SYNC_ENABLED" == "1" && -n "\$primary_key" && "\$table_rows" -ge "\$PAGE_SYNC_MIN_ROWS" ]]; then
+        # 检查主键是否是数值类型（支持 id > 0 分页）
+        pk_type=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='\$table' AND COLUMN_NAME='\$primary_key';" 2>/dev/null);
+        
+        if [[ "\$pk_type" =~ ^(int|bigint|smallint|tinyint|mediumint)$ ]]; then
+                # 检查是否在指定表列表中（如果配置了）
+                if [[ -z "\$PAGE_SYNC_TABLES" ]]; then
+                        use_page_sync=1;
+                else
+                        IFS=',' read -ra PAGE_TABLES_ARR <<< "\$PAGE_SYNC_TABLES";
+                        for pt in "\${PAGE_TABLES_ARR[@]}"; do
+                                if [[ "\$table" == "\$pt" || "\$db.\$table" == "\$pt" ]]; then
+                                        use_page_sync=1;
+                                        break;
+                                fi
+                        done
+                fi
+        fi
+fi
+
+# 表结构改变或首次同步：先同步表结构，再检查是否支持分页同步数据
+if [[ "\$schema_changed" == "1" || "\$is_first_sync" == "1" ]]; then
+        if [[ "\$use_page_sync" == "1" ]]; then
+                # 支持分页同步：先同步表结构，再用分页同步数据
+                echo "schema-page-sync \$table 主键=\$primary_key 行数=\$table_rows";
+                
+                # 清空旧的分页MD5文件
+                rm -f /tmp/dump-import-ssh-temp/pages/$db/$table/*.md5 2>/dev/null;
+                
+                # 迭代分页获取数据，不预先获取最大ID
+                page_start=0;
+                page_num=0;
+                has_more=1;
+                
+                while [[ "\$has_more" == "1" ]]; do
+                        page_end_local=\$((page_start + PAGE_SIZE - 1));
+                        
+                        # 获取该页数据并计算MD5（空数据也要保存MD5）
+                        page_data=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT * FROM $db.\`$table\` WHERE \`\$primary_key\` > \$page_start AND \`\$primary_key\` <= \$page_end_local ORDER BY \`\$primary_key\`;" 2>/dev/null);
+                        page_md5=\$(echo "\$page_data" | md5sum | awk '{print \$1}');
+                        
+                        # 保存分页MD5
+                        mkdir -p /tmp/dump-import-ssh-temp/pages/$db/$table/;
+                        echo "\$page_md5" > /tmp/dump-import-ssh-temp/pages/$db/$table/page_\${page_num}.md5;
+                        
+                        # 表结构改变或首次同步，所有分页都需要同步
+                        echo "page-diff \$table \$page_start \$page_end_local \$page_num";
+                        
+                        # 检查是否有更多数据
+                        if [[ -z "\$page_data" ]]; then
+                                has_more=0;
+                        else
+                                # 获取该页最后一条记录的主键值作为下一页的起始点
+                                last_id=\$(echo "\$page_data" | tail -1 | awk '{print \$1}');
+                                if [[ -z "\$last_id" || "\$last_id" == "\$page_start" ]]; then
+                                        has_more=0;
+                                else
+                                        page_start=\$last_id;
+                                        ((page_num++));
+                                fi
+                        fi
+                done
+                
+                # 合并所有分页MD5作为整表MD5
+                cat /tmp/dump-import-ssh-temp/pages/$db/$table/*.md5 2>/dev/null | sort | md5sum | awk -v table="\$table" '{print table, \$1}' > /tmp/dump-import-ssh-temp/$db/\$table.md5;
+                
+                echo "schema-page-sync-done \$table 总页数=\$((page_num + 1))";
+        else
+                # 不支持分页同步：全量同步（表结构+数据）
+                $RUN_LIMIT_START_MYSQLDUMP mysqldump --no-tablespaces --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db-\${table}.log --skip-comments --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db \$table 2>/dev/null | md5sum | awk -v table="\$table" '{print table, \$1}' > /tmp/dump-import-ssh-temp/$db/\$table.md5;
+                echo "full-sync \$table";
+        fi
+else
+        # 非首次同步且表结构未改变，检查分页差异
+        if [[ "\$use_page_sync" == "1" ]]; then
+                echo "page-sync 启用分页同步 \$table 主键=\$primary_key 行数=\$table_rows";
+                
+                # 清空旧的分页MD5文件
+                rm -f /tmp/dump-import-ssh-temp/pages/$db/$table/*.md5 2>/dev/null;
+                
+                # 迭代分页获取数据，不预先获取最大ID
+                page_start=0;
+                page_num=0;
+                has_more=1;
+                
+                while [[ "\$has_more" == "1" ]]; do
+                        # 并发控制
+                        while [[ \$(jobs -r | wc -l) -ge \$PAGE_CONCURRENT ]]; do
+                                sleep 0.5;
+                        done
+                        
+                        page_end_local=\$((page_start + PAGE_SIZE - 1));
+                        
+                        # 获取该页数据并计算MD5（空数据也要保存MD5）
+                        page_data=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT * FROM $db.\`$table\` WHERE \`\$primary_key\` > \$page_start AND \`\$primary_key\` <= \$page_end_local ORDER BY \`\$primary_key\`;" 2>/dev/null);
+                        page_md5=\$(echo "\$page_data" | md5sum | awk '{print \$1}');
+                        
+                        # 保存分页MD5
+                        mkdir -p /tmp/dump-import-ssh-temp/pages/$db/$table/;
+                        echo "\$page_md5" > /tmp/dump-import-ssh-temp/pages/$db/$table/page_\${page_num}.md5;
+                        
+                        # 对比差异
+                        old_page_md5="";
+                        if [[ -f "/tmp/dump-import-ssh-diff/pages/$db/$table/page_\${page_num}.md5" ]]; then
+                                old_page_md5=\$(cat /tmp/dump-import-ssh-diff/pages/$db/$table/page_\${page_num}.md5);
+                        fi
+                        
+                        if [[ "\$page_md5" != "\$old_page_md5" ]]; then
+                                echo "page-diff \$table \$page_start \$page_end_local \$page_num";
+                        fi
+                        
+                        # 检查是否有更多数据
+                        if [[ -z "\$page_data" ]]; then
+                                has_more=0;
+                        else
+                                # 获取该页最后一条记录的主键值作为下一页的起始点
+                                last_id=\$(echo "\$page_data" | tail -1 | awk '{print \$1}');
+                                if [[ -z "\$last_id" || "\$last_id" == "\$page_start" ]]; then
+                                        has_more=0;
+                                else
+                                        page_start=\$last_id;
+                                        ((page_num++));
+                                fi
+                        fi
+                done
+                
+                # 等待所有后台任务完成
+                wait;
+                
+                # 合并所有分页MD5作为整表MD5
+                cat /tmp/dump-import-ssh-temp/pages/$db/$table/*.md5 2>/dev/null | sort | md5sum | awk -v table="\$table" '{print table, \$1}' > /tmp/dump-import-ssh-temp/$db/\$table.md5;
+                
+                echo "page-sync-done \$table 总页数=\$((page_num + 1))";
+        else
+                # 传统方式：导出表并计算MD5
+                $RUN_LIMIT_START_MYSQLDUMP mysqldump --no-tablespaces --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db-\${table}.log --no-create-info --skip-comments --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db \$table 2>/dev/null | grep -e '^INSERT INTO' | md5sum | awk -v table="\$table" '{print table, \$1}' > /tmp/dump-import-ssh-temp/$db/\$table.md5;
+                
+                # 判断是否有差异
+                temp_md5=\$(cat /tmp/dump-import-ssh-temp/$db/\$table.md5 2>/dev/null || echo "");
+                
+                if [[ -f "/tmp/dump-import-ssh-diff/$db/\$table.md5" ]]; then
+                        diff_md5=\$(cat /tmp/dump-import-ssh-diff/$db/\$table.md5);
+                        if [[ "\$temp_md5" != "\$diff_md5" ]]; then
+                                echo "diff-sync \$table";
+                        elif [[ "\$mtime_changed" == "1" ]]; then
+                                echo "diff-sync 文件修改时间改变 \$table";
+                        fi
+                fi
+        fi
+fi
+# 关闭空表检查的else块
 fi
 
 BASH
@@ -334,14 +540,42 @@ BASH
                         
                         # 执行SSH并处理输出
                         printf "%s\n" "$table_command" | eval "$sshRun '$RUN_LIMIT_START bash -c \"exec -a 导出表-$db.$table bash -s\" 2> /dev/null'" | while read -r line; do
-                                echo "差异判断输出: " . $db.$line;
+                                echo "原文输出: " $db.$line;
                                 
-                                # 只处理有差异的表
-                                if [[ $line == "diff-sync "* ]]; then
-                                
-                                        import_table=$(echo $line | awk '{print $3}')
+                                # 处理分页差异同步（包括首次同步和增量同步）
+                                if [[ $line == "page-diff "* ]]; then
+                                        import_table=$(echo $line | awk '{print $2}')
+                                        page_start=$(echo $line | awk '{print $3}')
+                                        page_end=$(echo $line | awk '{print $4}')
+                                        page_num=$(echo $line | awk '{print $5}')
                                         
-                                        echo "进程数小于最大等待数，异步导入--$db.$import_table";
+                                        
+                                        # 获取主键名称
+                                        pk_result=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$import_table' AND COLUMN_KEY='PRI' ORDER BY ORDINAL_POSITION LIMIT 1;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
+                                        primary_key=$(echo "$pk_result" | tr -d '[:space:]')
+
+                                        echo "分页差异同步--$db.$import_table 页码=$page_num 范围=$page_start-$page_end; primary_key=$primary_key";
+                                        
+                                        for ((retry=1; retry<=3; retry++)); do
+                                                echo "执行分页同步命令(第${retry}次): mysqldump --skip-ssl --no-tablespaces --no-create-info --replace --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" --where=\"\`$primary_key\` > $page_start AND \`$primary_key\` <= $page_end\" | pv -L $DUMP_PV | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
+                                                error_output=$(time (mysqldump --skip-ssl --no-tablespaces --no-create-info --replace --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table" --where="\`$primary_key\` > $page_start AND \`$primary_key\` <= $page_end"  | pv -L $DUMP_PV | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
+
+                                                echo "分页导入失败(第${retry}次): $db.$import_table 页码=$page_num"
+                                                echo "错误信息: $error_output"
+                                        done
+                                        
+                                        if [[ $? -eq 0 ]] && [[ -n "$import_table" ]]; then
+                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$import_table && cp /tmp/dump-import-ssh-temp/pages/$db/$import_table/page_${page_num}.md5 /tmp/dump-import-ssh-diff/pages/$db/$import_table/\""
+                                                echo "已保存分页diff: $db.$import_table 页码=$page_num";
+                                        fi
+                                        
+                                        echo $(date "+%Y-%m-%d %H:%M:%S")"--分页同步结束  $db.$import_table 页码=$page_num";
+                                        
+                                # 处理全量同步（表结构改变或首次同步不支持分页）
+                                elif [[ $line == "full-sync "* ]]; then
+                                        import_table=$(echo $line | awk '{print $2}')
+                                        
+                                        echo "全量同步--$db.$import_table";
                                         for ((retry=1; retry<=3; retry++)); do
                                                 echo "执行命令(第${retry}次): mysqldump --skip-ssl --no-tablespaces --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" | pv -L $DUMP_PV | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
                                                 error_output=$(time (mysqldump --skip-ssl --no-tablespaces --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table"  | pv -L $DUMP_PV | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
@@ -350,12 +584,117 @@ BASH
                                                 echo "错误信息: $error_output"
                                         done
                                         
-                                        if [[ $? -eq 0 ]]; then
-                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/mtime/$db && cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/mtime/$db/$import_table.mtime /tmp/dump-import-ssh-diff/mtime/$db/\""
+                                        if [[ $? -eq 0 ]] && [[ -n "$import_table" ]]; then
+                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/schema/$db /tmp/dump-import-ssh-diff/pages/$db/$import_table && cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/; rm -Rf /tmp/dump-import-ssh-diff/pages/$db/$import_table/* 2>/dev/null; cp -r /tmp/dump-import-ssh-temp/pages/$db/$import_table/* /tmp/dump-import-ssh-diff/pages/$db/$import_table/ 2>/dev/null\""
+                                                echo "已保存到diff(含表结构): $db.$import_table";
+                                        fi
+                                        
+                                        echo $(date "+%Y-%m-%d %H:%M:%S")"--全量同步结束  $db.$import_table";
+                                        
+                                # 处理普通差异同步（非分页模式）
+                                elif [[ $line == "diff-sync "* ]]; then
+                                
+                                        import_table=$(echo $line | awk '{print $3}')
+                                        
+                                        echo "差异同步--$db.$import_table";
+                                        for ((retry=1; retry<=3; retry++)); do
+                                                echo "执行命令(第${retry}次): mysqldump --skip-ssl --no-tablespaces --no-create-info --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" | pv -L $DUMP_PV | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
+                                                error_output=$(time (mysqldump --skip-ssl --no-tablespaces --no-create-info --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table"  | pv -L $DUMP_PV | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
+
+                                                echo "导入失败(第${retry}次): $db.$import_table"
+                                                echo "错误信息: $error_output"
+                                        done
+                                        
+                                        if [[ $? -eq 0 ]] && [[ -n "$import_table" ]]; then
+                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/schema/$db /tmp/dump-import-ssh-diff/mtime/$db && cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/; cp /tmp/dump-import-ssh-temp/mtime/$db/$import_table.mtime /tmp/dump-import-ssh-diff/mtime/$db/ 2>/dev/null\""
                                                 echo "已保存到diff: $db.$import_table";
                                         fi
                                         
-                                        echo $(date "+%Y-%m-%d %H:%M:%S")"--导入结束  $db.$import_table";
+                                        echo $(date "+%Y-%m-%d %H:%M:%S")"--差异同步结束  $db.$import_table";
+                                        
+                                # 处理表结构改变或首次同步的分页同步开始
+                                elif [[ $line == "schema-page-sync "* ]]; then
+                                        import_table=$(echo $line | awk '{print $2}')
+                                        echo "表结构改变/首次同步-分页同步--$db.$import_table";
+                                        # 先同步表结构
+                                        for ((retry=1; retry<=3; retry++)); do
+                                                echo "同步表结构(第${retry}次): mysqldump --skip-ssl --no-tablespaces --no-data --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
+                                                error_output=$(time (mysqldump --skip-ssl --no-tablespaces --no-data --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table" | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
+                                                echo "表结构同步失败(第${retry}次): $db.$import_table"
+                                                echo "错误信息: $error_output"
+                                        done
+                                        echo "表结构同步完成--$db.$import_table";
+                                        
+                                # 处理表结构改变或首次同步的分页同步完成
+                                elif [[ $line == "schema-page-sync-done "* ]]; then
+                                        import_table=$(echo $line | awk '{print $2}')
+                                        echo "表结构改变/首次同步-分页同步完成--$db.$import_table";
+                                        # 保存schema、整表MD5和所有分页MD5
+                                        if [[ -n "$import_table" ]]; then
+                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/schema/$db /tmp/dump-import-ssh-diff/pages/$db/$import_table && cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/; rm -Rf /tmp/dump-import-ssh-diff/pages/$db/$import_table/* 2>/dev/null; cp -r /tmp/dump-import-ssh-temp/pages/$db/$import_table/* /tmp/dump-import-ssh-diff/pages/$db/$import_table/ 2>/dev/null\""
+                                                echo "已保存同步记录(含表结构和分页): $db.$import_table";
+                                        fi
+                                        
+                                # 处理首次分页同步完成（旧逻辑保留兼容）
+                                elif [[ $line == "first-page-sync-done "* ]]; then
+                                        import_table=$(echo $line | awk '{print $2}')
+                                        echo "首次分页同步完成--$db.$import_table";
+                                        # 保存schema、整表MD5和所有分页MD5
+                                        if [[ -n "$import_table" ]]; then
+                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/schema/$db /tmp/dump-import-ssh-diff/pages/$db/$import_table && cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/; rm -Rf /tmp/dump-import-ssh-diff/pages/$db/$import_table/* 2>/dev/null; cp -r /tmp/dump-import-ssh-temp/pages/$db/$import_table/* /tmp/dump-import-ssh-diff/pages/$db/$import_table/ 2>/dev/null\""
+                                                echo "已保存首次同步记录: $db.$import_table";
+                                        fi
+                                        
+                                # 处理分页同步完成
+                                elif [[ $line == "page-sync-done "* ]]; then
+                                        import_table=$(echo $line | awk '{print $2}')
+                                        echo "分页同步完成--$db.$import_table";
+                                        # 保存schema和整表MD5
+                                        if [[ -n "$import_table" ]]; then
+                                                eval "$sshRun bash -c \"mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/schema/$db && cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/schema/$db/$import_table.schema.md5 /tmp/dump-import-ssh-diff/schema/$db/\""
+                                                echo "已保存同步记录: $db.$import_table";
+                                        fi
+                                        
+                                # 处理空表结构改变（需要同步结构）
+                                elif [[ $line == "empty-table-schema-changed "* ]]; then
+                                        import_table=$(echo $line | awk '{print $2}')
+                                        echo "空表结构改变--$db.$import_table 同步表结构";
+                                        # 同步表结构
+                                        for ((retry=1; retry<=3; retry++)); do
+                                                echo "同步空表结构(第${retry}次): mysqldump --skip-ssl --no-tablespaces --no-data --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
+                                                error_output=$(time (mysqldump --skip-ssl --no-tablespaces --no-data --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table" | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
+                                                echo "空表结构同步失败(第${retry}次): $db.$import_table"
+                                                echo "错误信息: $error_output"
+                                        done
+                                        echo "空表结构同步完成--$db.$import_table";
+                                        
+                                # 处理空表首次同步（需要同步结构）
+                                elif [[ $line == "empty-table-first-sync "* ]]; then
+                                        import_table=$(echo $line | awk '{print $2}')
+                                        echo "空表首次同步--$db.$import_table 同步表结构";
+                                        # 同步表结构
+                                        for ((retry=1; retry<=3; retry++)); do
+                                                echo "同步空表结构(第${retry}次): mysqldump --skip-ssl --no-tablespaces --no-data --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
+                                                error_output=$(time (mysqldump --skip-ssl --no-tablespaces --no-data --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table" | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
+                                                echo "空表结构同步失败(第${retry}次): $db.$import_table"
+                                                echo "错误信息: $error_output"
+                                        done
+                                        echo "空表首次同步完成--$db.$import_table";
+                                        
+                                # 处理空表结构未改变
+                                elif [[ $line == "empty-table-schema-same "* ]]; then
+                                        import_table=$(echo $line | awk '{print $2}')
+                                        echo "空表结构未变--$db.$import_table 跳过同步";
+                                        
+                                # 处理空表（无数据，旧格式兼容）
+                                elif [[ $line == "empty-table "* ]]; then
+                                        import_table=$(echo $line | awk '{print $2}')
+                                        echo "空表跳过同步--$db.$import_table";
+                                        
+                                # 处理空表完成
+                                elif [[ $line == "empty-table-done "* ]]; then
+                                        import_table=$(echo $line | awk '{print $2}')
+                                        echo "空表处理完成--$db.$import_table (之前已经已保存schema)";
                                 fi
                         done
                 } &

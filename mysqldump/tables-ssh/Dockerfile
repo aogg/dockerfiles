@@ -6,8 +6,15 @@
 FROM alpine
 
 ARG APK_ARG=
+# MYSQL_CLIENT: mariadb (默认) 或 mysql (原版MySQL客户端)
+ARG MYSQL_CLIENT=mariadb
 
-RUN apk add --update mysql-client bash openssh-client sshpass ${APK_ARG} && rm -rf /var/cache/apk/*
+RUN if [ "$MYSQL_CLIENT" = "mysql" ]; then \
+        apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community \
+            mysql-community-client bash openssh-client sshpass ${APK_ARG}; \
+    else \
+        apk add --update mysql-client bash openssh-client sshpass ${APK_ARG}; \
+    fi && rm -rf /var/cache/apk/*
 
 ARG FILE_ARG=dump-import.sh
 ENV ENTRYPOINT_RUN /$FILE_ARG
