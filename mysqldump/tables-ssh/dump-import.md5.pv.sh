@@ -24,7 +24,6 @@ MYSQL_DATA_DIR=${MYSQL_DATA_DIR:-}
 # 分页同步配置
 PAGE_SYNC_ENABLED=${PAGE_SYNC_ENABLED:-1}                    # 是否启用分页同步（1启用，0禁用）
 PAGE_SIZE=${PAGE_SIZE:-5000}                                  # 每页数据量
-PAGE_CONCURRENT=${PAGE_CONCURRENT:-5}                         # 分页获取数据的并发数
 PAGE_SYNC_TABLES=${PAGE_SYNC_TABLES:-}                        # 指定启用分页同步的表（逗号分隔，为空则所有表）
 PAGE_SYNC_MIN_ROWS=${PAGE_SYNC_MIN_ROWS:-5000}                # 最小行数阈值，低于此值不分页
 
@@ -271,7 +270,7 @@ for ((i = 0; i < num_databases; i++)); do
         echo $db >> /tmp/databases_count.run.log;
         
         # 提前创建该数据库相关的diff目录结构，避免后续多处重复创建
-        eval "$sshRun bash -c \"echo '开始mkdir';mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/schema/$db /tmp/dump-import-ssh-diff/pages/$db /tmp/dump-import-ssh-diff/mtime/$db;echo 0 > /tmp/dump-import-ssh-temp/page_concurrent_count;\""
+        eval "$sshRun bash -c \"echo '开始mkdir';mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/schema/$db /tmp/dump-import-ssh-diff/pages/$db /tmp/dump-import-ssh-diff/mtime/$db;\""
         
         # 本地循环每个表，并发处理
         for ((t = 0; t < num_tables; t++)); do
@@ -287,8 +286,26 @@ for ((i = 0; i < num_databases; i++)); do
                         echo "$(date "+%Y-%m-%d %H:%M:%S")--等待并发槽位 $db.$table 当前jobs=$current_jobs ASYNC_WAIT_MAX=$ASYNC_WAIT_MAX"
                         sleep 1
                 done
+
+
+
+
+
                 
                 {
+                        # 检查目标表是否存在，不存在则先同步表结构
+                        table_exists=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table';" 2>/dev/null)
+                        if [[ "$table_exists" == "0" ]]; then
+                                echo "目标表不存在，先同步表结构: $db.$table"
+                                for ((schema_retry=1; schema_retry<=3; schema_retry++)); do
+                                        mysqldump --skip-ssl --skip-add-locks --no-tablespaces --no-data --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table"
+                                
+                                        error_output=$(time (mysqldump --skip-ssl --skip-add-locks --no-tablespaces --no-data --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table" | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
+                                        echo "同步表结构失败(第${schema_retry}次): $db.$table"
+                                        echo "错误信息: $error_output"
+                                done
+                        fi
+                        
                         # 单个表的SSH判断脚本：同时检查修改时间和MD5，支持分页同步
                         table_command=$(cat << BASH
 MYSQL_DATA_DIR="${MYSQL_DATA_DIR}";
@@ -296,7 +313,6 @@ DB_PASS="${DB_PASS}";
 table="${table}";
 PAGE_SYNC_ENABLED="${PAGE_SYNC_ENABLED}";
 PAGE_SIZE="${PAGE_SIZE}";
-PAGE_CONCURRENT="${PAGE_CONCURRENT}";
 PAGE_SYNC_TABLES="${PAGE_SYNC_TABLES}";
 PAGE_SYNC_MIN_ROWS="${PAGE_SYNC_MIN_ROWS}";
 
@@ -307,7 +323,6 @@ mkdir -p /tmp/dump-import-ssh-temp/pages/$db/;
 
 # 初始化跨表共享的分页并发计数器
 mkdir -p /tmp/dump-import-ssh-temp/;
-[[ ! -f /tmp/dump-import-ssh-temp/page_concurrent_count ]] && echo 0 > /tmp/dump-import-ssh-temp/page_concurrent_count;
 
 mtime_changed=0;
 
@@ -350,7 +365,7 @@ if [[ -f "/tmp/dump-import-ssh-diff/schema/$db/$table.schema.md5" ]]; then
 else
         # 首次同步
         is_first_sync=1;
-        echo "first-sync \$table";
+        echo "触发首次同步 \$table";
 fi
 
 # 获取表的主键信息
@@ -422,34 +437,21 @@ if [[ "\$schema_changed" == "1" || "\$is_first_sync" == "1" ]]; then
                 page_start=0;
                 page_num=0;
                 has_more=1;
+
                 
                 while [[ "\$has_more" == "1" ]]; do
                         # 并发控制（跨表共享）
-                        while true; do
-                                (
-                                        flock -x 200
-                                        count=\$(cat /tmp/dump-import-ssh-temp/page_concurrent_count 2>/dev/null || echo 0)
-                                        if [[ \$count -lt \$PAGE_CONCURRENT ]]; then
-                                                echo \$((count + 1)) > /tmp/dump-import-ssh-temp/page_concurrent_count
-                                                exit 0
-                                        fi
-                                        exit 1
-                                ) 200>/tmp/dump-import-ssh-temp/page_concurrent_lock && break
-                                sleep 0.5
-                        done
+                        echo "表结构同步后同步数据的等待--schema-page-sync  db=$db table=\$table has_more=\$has_more-----"\$(date "+%Y-%m-%d %H:%M:%S")
                         
                         # 获取该页的主键范围（只查询主键列，提高效率）
                         pk_list=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT \\\`\$primary_key\\\` FROM $db.\\\`$table\\\` WHERE \\\`\$primary_key\\\` > \$page_start ORDER BY \\\`\$primary_key\\\` LIMIT \${PAGE_SIZE};" 2>/dev/null);
+
+                        
+                        echo "表结构同步后同步数据的等待--schema-page-sync-- db=$db table=\$table----pk_list=\$pk_list"
                         
                         # 检查是否有数据
                         if [[ -z "\$pk_list" ]]; then
                                 has_more=0;
-                                # 释放并发槽位
-                                (
-                                        flock -x 200
-                                        count=\$(cat /tmp/dump-import-ssh-temp/page_concurrent_count 2>/dev/null || echo 1)
-                                        echo \$((count - 1)) > /tmp/dump-import-ssh-temp/page_concurrent_count
-                                ) 200>/tmp/dump-import-ssh-temp/page_concurrent_lock
                         else
                                 # 获取本页的实际起始和结束主键值
                                 page_start_actual=\$(echo "\$pk_list" | head -1);
@@ -468,13 +470,7 @@ if [[ "\$schema_changed" == "1" || "\$is_first_sync" == "1" ]]; then
                                 # 表结构改变或首次同步，所有分页都需要同步
                                 echo "page-diff \$table \$page_start_actual \$page_end_local \$page_num";
                                 
-                                # 释放并发槽位
-                                (
-                                        flock -x 200
-                                        count=\$(cat /tmp/dump-import-ssh-temp/page_concurrent_count 2>/dev/null || echo 1)
-                                        echo \$((count - 1)) > /tmp/dump-import-ssh-temp/page_concurrent_count
-                                ) 200>/tmp/dump-import-ssh-temp/page_concurrent_lock
-                                
+
                                 # 检查是否还有更多数据（获取的记录数小于PAGE_SIZE说明是最后一页）
                                 pk_count=\$(echo "\$pk_list" | wc -l);
                                 if [[ "\$pk_count" -lt "\${PAGE_SIZE}" ]]; then
@@ -498,7 +494,7 @@ if [[ "\$schema_changed" == "1" || "\$is_first_sync" == "1" ]]; then
 else
         # 非首次同步且表结构未改变，检查分页差异
         if [[ "\$use_page_sync" == "1" ]]; then
-                echo "page-sync 启用分页同步 \$table 主键=\$primary_key 行数=\$table_rows";
+                echo "启用分页同步 \$table 主键=\$primary_key 行数=\$table_rows";
                 
                 # 清空旧的分页MD5文件
                 rm -f /tmp/dump-import-ssh-temp/pages/$db/$table/*.md5 2>/dev/null;
@@ -509,19 +505,6 @@ else
                 has_more=1;
                 
                 while [[ "\$has_more" == "1" ]]; do
-                        # 并发控制（跨表共享）
-                        while true; do
-                                (
-                                        flock -x 200
-                                        count=\$(cat /tmp/dump-import-ssh-temp/page_concurrent_count 2>/dev/null || echo 0)
-                                        if [[ \$count -lt \$PAGE_CONCURRENT ]]; then
-                                                echo \$((count + 1)) > /tmp/dump-import-ssh-temp/page_concurrent_count
-                                                exit 0
-                                        fi
-                                        exit 1
-                                ) 200>/tmp/dump-import-ssh-temp/page_concurrent_lock && break
-                                sleep 0.5
-                        done
                         
                         # 获取该页的主键范围（只查询主键列，提高效率）
                         pk_list=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT \\\`\$primary_key\\\` FROM $db.\\\`$table\\\` WHERE \\\`\$primary_key\\\` > \$page_start ORDER BY \\\`\$primary_key\\\` LIMIT \${PAGE_SIZE};" 2>/dev/null);
@@ -529,12 +512,6 @@ else
                         # 检查是否有数据
                         if [[ -z "\$pk_list" ]]; then
                                 has_more=0;
-                                # 释放并发槽位
-                                (
-                                        flock -x 200
-                                        count=\$(cat /tmp/dump-import-ssh-temp/page_concurrent_count 2>/dev/null || echo 1)
-                                        echo \$((count - 1)) > /tmp/dump-import-ssh-temp/page_concurrent_count
-                                ) 200>/tmp/dump-import-ssh-temp/page_concurrent_lock
                         else
                                 # 获取本页的实际起始和结束主键值
                                 page_start_actual=\$(echo "\$pk_list" | head -1);
@@ -559,13 +536,6 @@ else
                                 if [[ "\$page_md5" != "\$old_page_md5" ]]; then
                                         echo "page-diff \$table \$page_start_actual \$page_end_local \$page_num";
                                 fi
-                                
-                                # 释放并发槽位
-                                (
-                                        flock -x 200
-                                        count=\$(cat /tmp/dump-import-ssh-temp/page_concurrent_count 2>/dev/null || echo 1)
-                                        echo \$((count - 1)) > /tmp/dump-import-ssh-temp/page_concurrent_count
-                                ) 200>/tmp/dump-import-ssh-temp/page_concurrent_lock
                                 
                                 # 检查是否还有更多数据（获取的记录数小于PAGE_SIZE说明是最后一页）
                                 pk_count=\$(echo "\$pk_list" | wc -l);
@@ -597,7 +567,7 @@ else
                         if [[ "\$temp_md5" != "\$diff_md5" ]]; then
                                 echo "diff-sync \$table";
                         elif [[ "\$mtime_changed" == "1" ]]; then
-                                echo "diff-sync 文件修改时间改变 \$table";
+                                echo "diff-sync \$table 文件修改时间改变";
                         fi
                 fi
         fi
@@ -635,8 +605,17 @@ BASH
                                                 continue;
                                         fi
 
-
                                         
+                                        # 检查目标表是否存在，不存在则先同步表结构
+                                        table_exists=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$import_table';" 2>/dev/null)
+                                        if [[ "$table_exists" == "0" ]]; then
+                                                echo "分页导入--目标表不存在，先同步表结构: $db.$import_table"
+                                                for ((schema_retry=1; schema_retry<=3; schema_retry++)); do
+                                                        error_output=$(time (mysqldump --skip-ssl --skip-add-locks --no-tablespaces --no-data --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table" | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
+                                                        echo "同步表结构失败(第${schema_retry}次): $db.$import_table"
+                                                        echo "错误信息: $error_output"
+                                                done
+                                        fi
                                         
                                         for ((retry=1; retry<=3; retry++)); do
                                                 echo "执行分页同步命令(第${retry}次): mysqldump --skip-ssl --skip-add-locks --no-tablespaces --no-create-info --replace --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" --where=\"\`$primary_key\` >= $page_start AND \`$primary_key\` <= $page_end\" | pv -L $DUMP_PV | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
@@ -705,7 +684,7 @@ BASH
                                 # 处理表结构改变或首次同步的分页同步开始
                                 elif [[ $line == "schema-page-sync "* ]]; then
                                         import_table=$(echo $line | awk '{print $2}')
-                                        echo "表结构改变/首次同步-分页同步--$db.$import_table";
+                                        echo "schema-page-sync-表结构改变/首次同步-分页同步--$db.$import_table";
                                         
                                         if [[ -z "$import_table" ]]; then
                                                 continue;
@@ -718,7 +697,7 @@ BASH
                                                 echo "表结构同步失败(第${retry}次): $db.$import_table"
                                                 echo "错误信息: $error_output"
                                         done
-                                        echo "表结构同步完成--$db.$import_table";
+                                        echo "schema-page-sync-表结构同步完成--$db.$import_table";
                                         
                                 # 处理表结构改变或首次同步的分页同步完成
                                 elif [[ $line == "schema-page-sync-done "* ]]; then
