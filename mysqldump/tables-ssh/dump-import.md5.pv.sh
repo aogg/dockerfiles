@@ -312,8 +312,9 @@ for ((i = 0; i < num_databases; i++)); do
                 schema_changed=0
                 is_first_sync=0
                 
-                schema_md5=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SHOW CREATE TABLE $db.\`$table\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | md5sum | awk '{print $1}')
-                eval "$sshRun bash -c \"echo '$schema_md5' > /tmp/dump-import-ssh-temp/schema/$db/$table.schema.md5\""
+                # 发给ssh时候`要三个\反义
+                schema_md5_data=$(echo "DB_PASS=\"${DB_PASS}\";mysql --skip-ssl --default-character-set=utf8mb4 --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SHOW CREATE TABLE $db.\\\`$table\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
+                schema_md5=$(echo "$schema_md5_data"|md5sum | awk '{print $1}')
                 
                 table_exists=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table';" 2>/dev/null)
                 
@@ -321,11 +322,14 @@ for ((i = 0; i < num_databases; i++)); do
                         is_first_sync=1
                         echo "目标表不存在，首次同步: $db.$table"
                 else
-                        target_schema_md5=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SHOW CREATE TABLE $db.\`$table\`;" 2>/dev/null | md5sum | awk '{print $1}')
+                        target_schema_md5_data=$(mysql --skip-ssl --default-character-set=utf8mb4 --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SHOW CREATE TABLE $db.\`$table\`;" 2>/dev/null)
+                        target_schema_md5=$(echo "$target_schema_md5_data"|md5sum | awk '{print $1}')
                         
                         if [[ "$schema_md5" != "$target_schema_md5" ]]; then
                                 schema_changed=1
                                 echo "表结构有差异: $db.$table"
+                                echo "远端表结构: $schema_md5_data"
+                                echo "target端表结构: $target_schema_md5_data"
                         else
                                 echo "表结构无差异: $db.$table"
                         fi
@@ -355,7 +359,6 @@ PAGE_SYNC_MIN_ROWS="${PAGE_SYNC_MIN_ROWS}";
 
 mkdir -p /tmp/dump-import-ssh-temp/$db/;
 mkdir -p /tmp/dump-import-ssh-temp/mtime/$db/;
-mkdir -p /tmp/dump-import-ssh-temp/schema/$db/;
 mkdir -p /tmp/dump-import-ssh-temp/pages/$db/;
 
 # 初始化跨表共享的分页并发计数器
@@ -445,7 +448,7 @@ if [[ "\$schema_changed" == "1" || "\$is_first_sync" == "1" ]]; then
                                 mkdir -p /tmp/dump-import-ssh-temp/pages/$db/$table/;
                                 mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$table/;
                                 echo "\$page_md5" > /tmp/dump-import-ssh-temp/pages/$db/$table/page_\${page_num}.md5;
-                                echo "写入md5了，非首次---$db $table";
+                                echo "写入md5了1，非首次---$db $table  \$page_end_local \$page_num";
                                 
                                 # 表结构改变或首次同步，所有分页都需要同步
                                 echo "page-diff \$table \$page_start_actual \$page_end_local \$page_num";
@@ -505,7 +508,7 @@ else
                                 mkdir -p /tmp/dump-import-ssh-temp/pages/$db/$table/;
                                 mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$table/;
                                 echo "\$page_md5" > /tmp/dump-import-ssh-temp/pages/$db/$table/page_\${page_num}.md5;
-                                echo "写入md5了，非首次---$db $table";
+                                echo "写入md5了2，非首次---$db $table  \$page_end_local \$page_num";
                                 
                                 # 对比差异
                                 old_page_md5="";
