@@ -1,6 +1,10 @@
 #!/bin/bash
 set +x
 
+# ai要求
+# 变量table不用规则时，需要后面加个空格"$table "
+# ai要求
+
 DB_USER=${DB_USER:-${MYSQL_ENV_DB_USER}}
 DB_PASS=${DB_PASS:-${MYSQL_ENV_DB_PASS}}
 DB_NAME=${DB_NAME:-${MYSQL_ENV_DB_NAME}}
@@ -280,7 +284,7 @@ for ((i = 0; i < num_databases; i++)); do
                 for ignore_table in "${IGNORE_TABLES_ARR[@]}"; do
                         if [[ "$table" == "$ignore_table" ]]; then
                                 skip_table=1
-                                echo "忽略表: $db.$table"
+                                echo "忽略表: $db.$table "
                                 break
                         fi
                 done
@@ -294,7 +298,7 @@ for ((i = 0; i < num_databases; i++)); do
                         done
                         if [[ $found -eq 0 ]]; then
                                 skip_table=1
-                                echo "不在同步列表，跳过: $db.$table"
+                                echo "不在同步列表，跳过: $db.$table "
                         fi
                 fi
                 if [[ $skip_table -eq 0 ]]; then
@@ -335,26 +339,26 @@ for ((i = 0; i < num_databases; i++)); do
                 
                 if [[ "$table_exists" == "0" ]]; then
                         is_first_sync=1
-                        echo "目标表不存在，首次同步: $db.$table"
+                        echo "目标表不存在，首次同步: $db.$table "
                 else
                         target_schema_md5_data=$(mysql --skip-ssl --default-character-set=utf8mb4 --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SHOW CREATE TABLE $db.\`$table\`;" 2>/dev/null)
                         target_schema_md5=$(echo "$target_schema_md5_data" | sed 's/AUTO_INCREMENT=[0-9]*//g' | md5sum | awk '{print $1}')
                         
                         if [[ "$schema_md5" != "$target_schema_md5" ]]; then
                                 schema_changed=1
-                                echo "表结构有差异: $db.$table"
+                                echo "表结构有差异: $db.$table "
                                 echo "远端表结构: $schema_md5_data"
                                 echo "target端表结构: $target_schema_md5_data"
                         else
-                                echo "表结构无差异: $db.$table"
+                                echo "表结构无差异: $db.$table "
                         fi
                 fi
                 
                 if [[ "$schema_changed" == "1" || "$is_first_sync" == "1" ]]; then
-                        echo "同步表结构: $db.$table"
+                        echo "同步表结构: $db.$table "
                         for ((schema_retry=1; schema_retry<=3; schema_retry++)); do
                                 error_output=$(time (mysqldump --skip-ssl --skip-add-locks --no-tablespaces --no-data --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table" | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
-                                echo "同步表结构失败(第${schema_retry}次): $db.$table"
+                                echo "同步表结构失败(第${schema_retry}次): $db.$table "
                                 echo "错误信息: $error_output"
                         done
                 fi
@@ -571,7 +575,7 @@ else
                         if [[ "\$temp_md5" != "\$diff_md5" ]]; then
                                 echo "diff-sync \$table";
                         else
-                                echo "数据没有差异 \$table";
+                                echo "数据没有差异 \$table ";
                         fi
                 else
                         echo "diff-sync \$table";
@@ -586,7 +590,7 @@ BASH
                         
                         # 执行SSH并处理输出
                         printf "%s\n" "$table_command" | eval "$sshRun '$RUN_LIMIT_START bash -c \"exec -a 导出表-$db.$table bash -s\" 2> /dev/null'" | while read -r line; do
-                                echo "原文输出: " $db.$line;
+                                echo "原文输出: " $db.$line " ";
                                 
                                 # 处理分页差异同步（包括首次同步和增量同步）
                                 if [[ $line == "page-diff "* ]]; then
