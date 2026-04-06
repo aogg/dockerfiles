@@ -1,4 +1,5 @@
 #!/bin/bash
+set +x
 
 DB_USER=${DB_USER:-${MYSQL_ENV_DB_USER}}
 DB_PASS=${DB_PASS:-${MYSQL_ENV_DB_PASS}}
@@ -12,6 +13,7 @@ DB_TABLE_HOST=${DB_TABLE_HOST:-${DB_HOST}}
 
 IGNORE_DATABASE=${IGNORE_DATABASE}
 IGNORE_TABLES=${IGNORE_TABLES}
+MYSQL_TABLES_ONLY_SYNC=${MYSQL_TABLES_ONLY_SYNC}
 ASYNC_WAIT=${ASYNC_WAIT}
 ASYNC_WAIT_MAX=${ASYNC_WAIT_MAX:-100}
 ASYNC_WAIT_DB_MAX=${ASYNC_WAIT_DB_MAX:-10}
@@ -109,7 +111,7 @@ cpuScript=$(cat <<EOF
 while true; do 
 echo \$(mpstat 1 1 |grep "Average:" | awk '{print "远端-CPU空闲率 "\$NF}'); 
 
-echo '远端-导出文件数量 '\$(ls -al /tmp/dump-import-ssh-temp/*/*.md5|wc -l);
+echo '远端-导出文件数量 '\$(ls -al /tmp/dump-import-ssh-temp/*/*.md5|wc -l || echo "temp下的md5空, 无需理会");
 
 echo '远端-ps有mysqldump的数量 '\$(ps -ef|grep mysqldump|grep -v grep|wc -l);
 date "+%Y-%m-%d %H:%M:%S";
@@ -272,8 +274,8 @@ for ((i = 0; i < num_databases; i++)); do
         tables_arr=();
         echo "忽略表的列表: $IGNORE_TABLES"
         IFS=',' read -ra IGNORE_TABLES_ARR <<< "$IGNORE_TABLES"
+        IFS=',' read -ra ONLY_SYNC_TABLES_ARR <<< "$MYSQL_TABLES_ONLY_SYNC"
         for table in $tables; do
-                # 检查是否在忽略列表中
                 skip_table=0
                 for ignore_table in "${IGNORE_TABLES_ARR[@]}"; do
                         if [[ "$table" == "$ignore_table" ]]; then
@@ -282,6 +284,19 @@ for ((i = 0; i < num_databases; i++)); do
                                 break
                         fi
                 done
+                if [[ $skip_table -eq 0 && -n "$MYSQL_TABLES_ONLY_SYNC" ]]; then
+                        found=0
+                        for only_table in "${ONLY_SYNC_TABLES_ARR[@]}"; do
+                                if [[ "$table" == "$only_table" || "$db.$table" == "$only_table" ]]; then
+                                        found=1
+                                        break
+                                fi
+                        done
+                        if [[ $found -eq 0 ]]; then
+                                skip_table=1
+                                echo "不在同步列表，跳过: $db.$table"
+                        fi
+                fi
                 if [[ $skip_table -eq 0 ]]; then
                         tables_arr+=($table)
                 fi
@@ -314,7 +329,7 @@ for ((i = 0; i < num_databases; i++)); do
                 
                 # 发给ssh时候`要三个\反义
                 schema_md5_data=$(echo "DB_PASS=\"${DB_PASS}\";mysql --skip-ssl --default-character-set=utf8mb4 --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SHOW CREATE TABLE $db.\\\`$table\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
-                schema_md5=$(echo "$schema_md5_data"|md5sum | awk '{print $1}')
+                schema_md5=$(echo "$schema_md5_data" | sed 's/AUTO_INCREMENT=[0-9]*//g' | md5sum | awk '{print $1}')
                 
                 table_exists=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table';" 2>/dev/null)
                 
@@ -323,7 +338,7 @@ for ((i = 0; i < num_databases; i++)); do
                         echo "目标表不存在，首次同步: $db.$table"
                 else
                         target_schema_md5_data=$(mysql --skip-ssl --default-character-set=utf8mb4 --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SHOW CREATE TABLE $db.\`$table\`;" 2>/dev/null)
-                        target_schema_md5=$(echo "$target_schema_md5_data"|md5sum | awk '{print $1}')
+                        target_schema_md5=$(echo "$target_schema_md5_data" | sed 's/AUTO_INCREMENT=[0-9]*//g' | md5sum | awk '{print $1}')
                         
                         if [[ "$schema_md5" != "$target_schema_md5" ]]; then
                                 schema_changed=1
@@ -349,6 +364,8 @@ for ((i = 0; i < num_databases; i++)); do
                         is_first_sync=$is_first_sync
                         # 单个表的SSH判断脚本：同时检查修改时间和MD5，支持分页同步
                         table_command=$(cat << BASH
+set +x;
+
 MYSQL_DATA_DIR="${MYSQL_DATA_DIR}";
 DB_PASS="${DB_PASS}";
 table="${table}";
@@ -379,6 +396,7 @@ primary_key=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_P
 
 # 获取表行数
 table_rows=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT COUNT(*) FROM $db.\\\`$table\\\`;" 2>/dev/null);
+echo "$table 行数=\$table_rows";
 
 # 检查表是否有数据，没有数据则跳过
 if [[ -z "\$table_rows" || "\$table_rows" == "0" ]]; then
@@ -406,6 +424,9 @@ if [[ "\$PAGE_SYNC_ENABLED" == "1" && -n "\$primary_key" && "\$table_rows" -ge "
                 fi
         fi
 fi
+
+
+echo "$table schema_changed=\$schema_changed  is_first_sync=\$is_first_sync  use_page_sync=\$use_page_sync";
 
 # 表结构改变或首次同步：数据需要全量同步
 if [[ "\$schema_changed" == "1" || "\$is_first_sync" == "1" ]]; then
@@ -549,7 +570,11 @@ else
                         diff_md5=\$(cat /tmp/dump-import-ssh-diff/$db/\$table.md5);
                         if [[ "\$temp_md5" != "\$diff_md5" ]]; then
                                 echo "diff-sync \$table";
+                        else
+                                echo "数据没有差异 \$table";
                         fi
+                else
+                        echo "diff-sync \$table";
                 fi
         fi
 fi
