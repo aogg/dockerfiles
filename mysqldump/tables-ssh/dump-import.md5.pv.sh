@@ -697,6 +697,25 @@ BASH
                                                 continue;
                                         fi
                                         
+                                        # 删除目标表中超过源表最大主键的数据
+                                        pk_result=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$import_table' AND COLUMN_KEY='PRI' ORDER BY ORDINAL_POSITION LIMIT 1;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
+                                        primary_key=$(echo "$pk_result" | tr -d '[:space:]')
+                                        
+                                        if [[ -n "$primary_key" ]]; then
+                                                # 获取源表最大主键
+                                                src_max_id=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT MAX(\\\`$primary_key\\\`) FROM $db.\\\`$import_table\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
+                                                # 获取目标表最大主键
+                                                dst_max_id=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT MAX(\`$primary_key\`) FROM $db.\`$import_table\`;" 2>/dev/null | tr -d '[:space:]')
+                                                
+                                                echo "删除后续数据检查--$db.$import_table 源表最大ID=$src_max_id 目标表最大ID=$dst_max_id";
+                                                
+                                                if [[ -n "$src_max_id" && -n "$dst_max_id" && "$dst_max_id" -gt "$src_max_id" ]]; then
+                                                        echo "删除目标表后续数据--$db.$import_table 删除 $primary_key > $src_max_id 的数据";
+                                                        mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -e "DELETE FROM $db.\`$import_table\` WHERE \`$primary_key\` > $src_max_id;" 2>/dev/null
+                                                        echo "已删除后续数据: $db.$import_table";
+                                                fi
+                                        fi
+                                        
                                         # 保存schema、整表MD5和所有分页MD5
                                         if [[ -n "$import_table" ]]; then
                                                 eval "$sshRun bash -c \"echo /tmp/dump-import-ssh-diff/pages/$db/$import_table;mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$import_table; cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; rm -Rf /tmp/dump-import-ssh-diff/pages/$db/$import_table/* 2>/dev/null; if ls /tmp/dump-import-ssh-temp/pages/$db/$import_table/*.md5 1> /dev/null 2>&1; then cp -r /tmp/dump-import-ssh-temp/pages/$db/$import_table/*.md5 /tmp/dump-import-ssh-diff/pages/$db/$import_table/; fi\""
@@ -717,6 +736,30 @@ BASH
                                 elif [[ $line == "page-sync-done "* ]]; then
                                         import_table=$(echo $line | awk '{print $2}')
                                         echo "分页同步完成--$db.$import_table";
+                                        
+                                        if [[ -z "$import_table" ]]; then
+                                                continue;
+                                        fi
+                                        
+                                        # 删除目标表中超过源表最大主键的数据
+                                        pk_result=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$import_table' AND COLUMN_KEY='PRI' ORDER BY ORDINAL_POSITION LIMIT 1;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
+                                        primary_key=$(echo "$pk_result" | tr -d '[:space:]')
+                                        
+                                        if [[ -n "$primary_key" ]]; then
+                                                # 获取源表最大主键
+                                                src_max_id=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT MAX(\\\`$primary_key\\\`) FROM $db.\\\`$import_table\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
+                                                # 获取目标表最大主键
+                                                dst_max_id=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT MAX(\`$primary_key\`) FROM $db.\`$import_table\`;" 2>/dev/null | tr -d '[:space:]')
+                                                
+                                                echo "删除后续数据检查--$db.$import_table 源表最大ID=$src_max_id 目标表最大ID=$dst_max_id";
+                                                
+                                                if [[ -n "$src_max_id" && -n "$dst_max_id" && "$dst_max_id" -gt "$src_max_id" ]]; then
+                                                        echo "删除目标表后续数据--$db.$import_table 删除 $primary_key > $src_max_id 的数据";
+                                                        mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -e "DELETE FROM $db.\`$import_table\` WHERE \`$primary_key\` > $src_max_id;" 2>/dev/null
+                                                        echo "已删除后续数据: $db.$import_table";
+                                                fi
+                                        fi
+                                        
                                         # 保存schema和整表MD5
                                         if [[ -n "$import_table" ]]; then
                                                 eval "$sshRun bash -c \"cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/;\""
