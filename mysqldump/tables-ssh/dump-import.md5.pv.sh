@@ -46,7 +46,7 @@ if [[ -n "$IONICE_C" ]];then
         echo "通过ionice限制CPU配额 $IONICE_C";
 fi
 
-# systemd-run --scope -p CPUQuota=30% 
+# systemd-run --scope -p CPUQuota=30%
 # ionice -c3
 
 # DUMP_ARGS=
@@ -101,7 +101,7 @@ if [[ "$a" != 1 ]];then
 fi
 
 # 初始化
-eval "$sshRun bash -c \"pwd && mkdir -p /tmp/dump-import-ssh-diff && (ls -al /tmp/dump-import-ssh-diff/* | wc -l)  && rm -Rf /tmp/dump-import-ssh-temp && mkdir -p /tmp/dump-import-ssh-temp/mysql_error_log_dir\""
+eval "$sshRun bash -c \"pwd && rm -Rf /tmp/dump-import-ssh-temp && mkdir -p /tmp/dump-import-ssh-temp/mysql_error_log_dir\""
 
 
 
@@ -112,14 +112,14 @@ eval "$sshRun bash -c \"pwd && mkdir -p /tmp/dump-import-ssh-diff && (ls -al /tm
 # 使用SSH执行远程命令来获取CPU空闲率
 cpuScript=$(cat <<EOF
 
-while true; do 
-echo \$(mpstat 1 1 |grep "Average:" | awk '{print "远端-CPU空闲率 "\$NF}'); 
+while true; do
+echo \$(mpstat 1 1 |grep "Average:" | awk '{print "远端-CPU空闲率 "\$NF}');
 
 echo '远端-导出文件数量 '\$(ls -al /tmp/dump-import-ssh-temp/*/*.md5|wc -l || echo "temp下的md5空, 无需理会");
 
 echo '远端-ps有mysqldump的数量 '\$(ps -ef|grep mysqldump|grep -v grep|wc -l);
 date "+%Y-%m-%d %H:%M:%S";
-sleep 2; 
+sleep 2;
 
 done
 
@@ -128,7 +128,7 @@ EOF
 
 echo '监听cpu空闲率的脚本'
 echo $cpuScript
-        
+
 
 # get_remote_cpu_idle
 #  exec -a "aaa" $(eval echo $sshRun)
@@ -143,7 +143,7 @@ async_write_file(){
                 echo $line | grep 'mysqldump的' | awk '{print $2}' > /tmp/remote_mysqldump_num;
         done
         } &
-} 
+}
 async_write_file
 {
         sleep 2;
@@ -155,7 +155,6 @@ async_write_file
         done
 } &
 echo '监听cpu空闲率'
-
 
 
 
@@ -198,14 +197,14 @@ DB_CONTINUE_BOOL_USE=0
 # 使用全局变量: DB_WAIT_NUM, DB_CONTINUE_BOOL, DB_CONTINUE_BOOL_USE, ASYNC_WAIT_DB_MAX
 wait_db_async_slot() {
         local db=$1
-        
+
         while true; do
                 local current_jobs=$(pgrep -f "mysqldump" | wc -l)
                 current_jobs=$(( current_jobs + 1 ))
                 local running_count=$(cat /tmp/databases_count.log | grep -v -e '^$' | wc -l)
                 local remote_mysqldump_num=$(cat /tmp/remote_mysqldump_num 2>/dev/null || echo 0)
                 local run_log_count=$(cat /tmp/databases_count.run.log | wc -l)
-                
+
                 # 检查当前运行库数量是否达到上限
                 if [[ "$running_count" -ge "$ASYNC_WAIT_DB_MAX" ]]; then
                         # 远端mysqldump已结束，可以放行新的库
@@ -223,7 +222,7 @@ wait_db_async_slot() {
                         else
                                 DB_WAIT_NUM=0;
                         fi
-                        
+
                         # 检查是否需要继续等待
                         if [[ "$DB_CONTINUE_BOOL" -lt 1 ]];then
                                 echo "$(date "+%Y-%m-%d %H:%M:%S")--本地等待库${db}  当前${current_jobs}  waitNum=${DB_WAIT_NUM}";
@@ -252,7 +251,7 @@ wait_db_async_slot() {
                         break;
                 fi
         done
-        
+
         # 可以继续处理，记录到日志
         echo $db >> /tmp/databases_count.log;
 }
@@ -273,7 +272,7 @@ for ((i = 0; i < num_databases; i++)); do
         echo "获取数据库 $db 的表列表..."
         tables=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SHOW TABLES;\" $db 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d "| " | grep -v -e '^$')
         echo "获取到表列表: $tables"
-        
+
         # 转为数组并过滤忽略的表
         tables_arr=();
         echo "忽略表的列表: $IGNORE_TABLES"
@@ -307,16 +306,13 @@ for ((i = 0; i < num_databases; i++)); do
         done
         num_tables=${#tables_arr[@]}
         echo "数据库 $db 表数量: $num_tables"
-        
+
         echo $db >> /tmp/databases_count.run.log;
-        
-        # 提前创建该数据库相关的diff目录结构，避免后续多处重复创建
-        eval "$sshRun bash -c \"echo '开始mkdir';mkdir -p /tmp/dump-import-ssh-diff/$db /tmp/dump-import-ssh-diff/pages/$db /tmp/dump-import-ssh-diff/mtime/$db;\""
-        
+
         # 本地循环每个表，并发处理
         for ((t = 0; t < num_tables; t++)); do
                 table=${tables_arr[$t]}
-                
+
                 # 并发控制：等待当前并发数小于最大值
                 while true; do
                         current_jobs=$(pgrep -f "mysqldump" | wc -l)
@@ -330,20 +326,20 @@ for ((i = 0; i < num_databases; i++)); do
 
                 schema_changed=0
                 is_first_sync=0
-                
+
                 # 发给ssh时候`要三个\反义
                 schema_md5_data=$(echo "DB_PASS=\"${DB_PASS}\";mysql --skip-ssl --default-character-set=utf8mb4 --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SHOW CREATE TABLE $db.\\\`$table\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
                 schema_md5=$(echo "$schema_md5_data" | sed 's/AUTO_INCREMENT=[0-9]*//g' | md5sum | awk '{print $1}')
-                
+
                 table_exists=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table';" 2>/dev/null)
-                
+
                 if [[ "$table_exists" == "0" ]]; then
                         is_first_sync=1
                         echo "目标表不存在，首次同步: $db.$table "
                 else
                         target_schema_md5_data=$(mysql --skip-ssl --default-character-set=utf8mb4 --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SHOW CREATE TABLE $db.\`$table\`;" 2>/dev/null)
                         target_schema_md5=$(echo "$target_schema_md5_data" | sed 's/AUTO_INCREMENT=[0-9]*//g' | md5sum | awk '{print $1}')
-                        
+
                         if [[ "$schema_md5" != "$target_schema_md5" ]]; then
                                 schema_changed=1
                                 echo "表结构有差异: $db.$table "
@@ -353,7 +349,7 @@ for ((i = 0; i < num_databases; i++)); do
                                 echo "表结构无差异: $db.$table "
                         fi
                 fi
-                
+
                 if [[ "$schema_changed" == "1" || "$is_first_sync" == "1" ]]; then
                         echo "同步表结构: $db.$table "
                         for ((schema_retry=1; schema_retry<=3; schema_retry++)); do
@@ -362,431 +358,285 @@ for ((i = 0; i < num_databases; i++)); do
                                 echo "错误信息: $error_output"
                         done
                 fi
-                
+
                 {
-                        schema_changed=$schema_changed
-                        is_first_sync=$is_first_sync
-                        # 单个表的SSH判断脚本：同时检查修改时间和MD5，支持分页同步
-                        table_command=$(cat << BASH
-set +x;
+                        # 不依赖远端存储diff，直接在本地处理
+                        # 获取远端表的主键信息
+                        remote_pk_result=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table' AND COLUMN_KEY='PRI' ORDER BY ORDINAL_POSITION LIMIT 1;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
+                        primary_key=$(echo "$remote_pk_result" | tr -d '[:space:]')
 
-MYSQL_DATA_DIR="${MYSQL_DATA_DIR}";
-DB_PASS="${DB_PASS}";
-table="${table}";
-PAGE_SYNC_ENABLED="${PAGE_SYNC_ENABLED}";
-PAGE_SIZE="${PAGE_SIZE}";
-PAGE_SYNC_TABLES="${PAGE_SYNC_TABLES}";
-PAGE_SYNC_MIN_ROWS="${PAGE_SYNC_MIN_ROWS}";
+                        # 获取远端表行数
+                        remote_table_rows=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT COUNT(*) FROM $db.\\\`$table\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
+                        echo "$table 远端行数=$remote_table_rows"
 
-mkdir -p /tmp/dump-import-ssh-temp/$db/;
-mkdir -p /tmp/dump-import-ssh-temp/mtime/$db/;
-mkdir -p /tmp/dump-import-ssh-temp/pages/$db/;
-
-# 初始化跨表共享的分页并发计数器
-mkdir -p /tmp/dump-import-ssh-temp/;
-
-
-# 获取表的主键信息
-primary_key=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='\$table' AND COLUMN_KEY='PRI' ORDER BY ORDINAL_POSITION LIMIT 1;" 2>/dev/null);
-
-
-#echo ------------------------------------
-#mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT COUNT(*) FROM $db.\\\`$table\\\`;";
-
-#mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT COUNT(*) FROM $db.\`$table\`;";
-
-#mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT COUNT(*) FROM qimall.qimall_user;";
-#echo ------------------------------------
-
-# 获取表行数
-table_rows=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT COUNT(*) FROM $db.\\\`$table\\\`;" 2>/dev/null);
-echo "$table 行数=\$table_rows";
-
-# 检查表是否有数据，没有数据则跳过
-if [[ -z "\$table_rows" || "\$table_rows" == "0" ]]; then
-        echo "empty-table \$table 行数=\$table_rows";
-        echo "empty-table-done \$table";
-else
-        # 有数据，继续判断是否启用分页同步
-use_page_sync=0;
-if [[ "\$PAGE_SYNC_ENABLED" == "1" && -n "\$primary_key" && "\$table_rows" -ge "\$PAGE_SYNC_MIN_ROWS" ]]; then
-        # 检查主键是否是数值类型（支持 id > 0 分页）
-        pk_type=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='\$table' AND COLUMN_NAME='\$primary_key';" 2>/dev/null);
-        
-        if [[ "\$pk_type" =~ ^(int|bigint|smallint|tinyint|mediumint)$ ]]; then
-                # 检查是否在指定表列表中（如果配置了）
-                if [[ -z "\$PAGE_SYNC_TABLES" ]]; then
-                        use_page_sync=1;
-                else
-                        IFS=',' read -ra PAGE_TABLES_ARR <<< "\$PAGE_SYNC_TABLES";
-                        for pt in "\${PAGE_TABLES_ARR[@]}"; do
-                                if [[ "\$table" == "\$pt" || "\$db.\$table" == "\$pt" ]]; then
-                                        use_page_sync=1;
-                                        break;
-                                fi
-                        done
-                fi
-        fi
-fi
-
-
-echo "$table schema_changed=\$schema_changed  is_first_sync=\$is_first_sync  use_page_sync=\$use_page_sync";
-
-# 表结构改变或首次同步：数据需要全量同步
-if [[ "\$schema_changed" == "1" || "\$is_first_sync" == "1" ]]; then
-        if [[ "\$use_page_sync" == "1" ]]; then
-                # 支持分页同步：全量分页同步数据
-                echo "schema-page-sync \$table 主键=\$primary_key 行数=\$table_rows";
-                
-                # 清空旧的分页MD5文件
-                rm -f /tmp/dump-import-ssh-temp/pages/$db/$table/*.md5 2>/dev/null;
-                
-                # 迭代分页获取数据，使用 LIMIT 获取固定数量，动态计算分页范围
-                page_start=0;
-                page_num=0;
-                has_more=1;
-
-                
-                while [[ "\$has_more" == "1" ]]; do
-                        # 并发控制（跨表共享）
-                        echo "表结构同步后同步数据的等待--schema-page-sync  db=$db table=\$table has_more=\$has_more-----"\$(date "+%Y-%m-%d %H:%M:%S")
-                        
-                        # 获取该页的主键范围（只查询主键列，提高效率）
-                        pk_list=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT \\\`\$primary_key\\\` FROM $db.\\\`$table\\\` WHERE \\\`\$primary_key\\\` > \$page_start ORDER BY \\\`\$primary_key\\\` LIMIT \${PAGE_SIZE};" 2>/dev/null);
-
-                        
-                        echo "表结构同步后同步数据的等待--schema-page-sync-- db=$db table=\$table pk_list=\${#pk_list[@]}"
-                        
-                        # 检查是否有数据
-                        if [[ -z "\$pk_list" ]]; then
-                                has_more=0;
+                        # 检查表是否有数据
+                        if [[ -z "$remote_table_rows" || "$remote_table_rows" == "0" ]]; then
+                                echo "空表跳过同步--$db.$table"
                         else
-                                # 获取本页的实际起始和结束主键值
-                                page_start_actual=\$(echo "\$pk_list" | head -1);
-                                page_end_local=\$(echo "\$pk_list" | tail -1);
-                                
-                                # 获取该页数据并计算MD5
-                                page_data=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT * FROM $db.\\\`$table\\\` WHERE \\\`\$primary_key\\\` >= \$page_start_actual AND \\\`\$primary_key\\\` <= \$page_end_local ORDER BY \\\`\$primary_key\\\`;" 2>/dev/null);
-                                page_md5=\$(echo "\$page_data" | md5sum | awk '{print \$1}');
-                                
-                                # 保存分页MD5
-                                mkdir -p /tmp/dump-import-ssh-temp/pages/$db/$table/;
-                                mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$table/;
-                                echo "\$page_md5" > /tmp/dump-import-ssh-temp/pages/$db/$table/page_\${page_num}.md5;
-                                echo "写入md5了1，非首次---$db $table  \$page_end_local \$page_num";
-                                
-                                # 表结构改变或首次同步，所有分页都需要同步
-                                echo "page-diff \$table \$page_start_actual \$page_end_local \$page_num";
-                                
+                                # 判断是否启用分页同步
+                                use_page_sync=0
+                                if [[ "$PAGE_SYNC_ENABLED" == "1" && -n "$primary_key" && "$remote_table_rows" -ge "$PAGE_SYNC_MIN_ROWS" ]]; then
+                                        # 检查主键是否是数值类型
+                                        remote_pk_type=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table' AND COLUMN_NAME='$primary_key';\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
 
-                                # 检查是否还有更多数据（获取的记录数小于PAGE_SIZE说明是最后一页）
-                                pk_count=\$(echo "\$pk_list" | wc -l);
-                                if [[ "\$pk_count" -lt "\${PAGE_SIZE}" ]]; then
-                                        has_more=0;
-                                else
-                                        page_start=\$page_end_local;
-                                        ((page_num++));
-                                fi
-                        fi
-                done
-                
-                # 合并所有分页MD5作为整表MD5
-                cat /tmp/dump-import-ssh-temp/pages/$db/$table/*.md5 2>/dev/null | sort | md5sum | awk -v table="\$table" '{print table, \$1}' > /tmp/dump-import-ssh-temp/$db/\$table.md5;
-                
-                echo "schema-page-sync-done \$table 总页数=\$((page_num + 1))";
-        else
-                # 不支持分页同步：全量同步（表结构+数据）
-                $RUN_LIMIT_START_MYSQLDUMP mysqldump --no-tablespaces --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db-\${table}.log --skip-comments --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db \$table 2>/dev/null | md5sum | awk -v table="\$table" '{print table, \$1}' > /tmp/dump-import-ssh-temp/$db/\$table.md5;
-                echo "full-sync \$table";
-        fi
-else
-        # 非首次同步且表结构未改变，检查分页差异
-        if [[ "\$use_page_sync" == "1" ]]; then
-                echo "启用分页同步 \$table 主键=\$primary_key 行数=\$table_rows";
-                
-                # 清空旧的分页MD5文件
-                rm -f /tmp/dump-import-ssh-temp/pages/$db/$table/*.md5 2>/dev/null;
-                
-                # 迭代分页获取数据，使用 LIMIT 获取固定数量，动态计算分页范围
-                page_start=0;
-                page_num=0;
-                has_more=1;
-                
-                while [[ "\$has_more" == "1" ]]; do
-                        
-                        # 获取该页的主键范围（只查询主键列，提高效率）
-                        pk_list=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT \\\`\$primary_key\\\` FROM $db.\\\`$table\\\` WHERE \\\`\$primary_key\\\` > \$page_start ORDER BY \\\`\$primary_key\\\` LIMIT \${PAGE_SIZE};" 2>/dev/null);
-                        
-                        # 检查是否有数据
-                        if [[ -z "\$pk_list" ]]; then
-                                has_more=0;
-                        else
-                                # 获取本页的实际起始和结束主键值
-                                page_start_actual=\$(echo "\$pk_list" | head -1);
-                                page_end_local=\$(echo "\$pk_list" | tail -1);
-                                
-                                # 获取该页数据并计算MD5
-                                page_data=\$(mysql --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" -N -e "SELECT * FROM $db.\\\`$table\\\` WHERE \\\`\$primary_key\\\` >= \$page_start_actual AND \\\`\$primary_key\\\` <= \$page_end_local ORDER BY \\\`\$primary_key\\\`;" 2>/dev/null);
-                                page_md5=\$(echo "\$page_data" | md5sum | awk '{print \$1}');
-                                
-                                # 保存分页MD5
-                                mkdir -p /tmp/dump-import-ssh-temp/pages/$db/$table/;
-                                mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$table/;
-                                echo "\$page_md5" > /tmp/dump-import-ssh-temp/pages/$db/$table/page_\${page_num}.md5;
-                                echo "写入md5了2，非首次---$db $table  \$page_end_local \$page_num";
-                                
-                                # 对比差异
-                                old_page_md5="";
-                                if [[ -f "/tmp/dump-import-ssh-diff/pages/$db/$table/page_\${page_num}.md5" ]]; then
-                                        old_page_md5=\$(cat /tmp/dump-import-ssh-diff/pages/$db/$table/page_\${page_num}.md5);
-                                fi
-                                
-                                if [[ "\$page_md5" != "\$old_page_md5" ]]; then
-                                        echo "page-diff \$table \$page_start_actual \$page_end_local \$page_num";
-                                fi
-                                
-                                # 检查是否还有更多数据（获取的记录数小于PAGE_SIZE说明是最后一页）
-                                pk_count=\$(echo "\$pk_list" | wc -l);
-                                if [[ "\$pk_count" -lt "\${PAGE_SIZE}" ]]; then
-                                        has_more=0;
-                                else
-                                        page_start=\$page_end_local;
-                                        ((page_num++));
-                                fi
-                        fi
-                done
-                
-                # 等待所有后台任务完成
-                wait;
-                
-                # 合并所有分页MD5作为整表MD5
-                cat /tmp/dump-import-ssh-temp/pages/$db/$table/*.md5 2>/dev/null | sort | md5sum | awk -v table="\$table" '{print table, \$1}' > /tmp/dump-import-ssh-temp/$db/\$table.md5;
-                
-                echo "page-sync-done \$table 总页数=\$((page_num + 1))";
-        else
-                # 传统方式：导出表并计算MD5
-                $RUN_LIMIT_START_MYSQLDUMP mysqldump --no-tablespaces --log-error=/tmp/dump-import-ssh-temp/mysql_error_log_dir/$db-\${table}.log --no-create-info --skip-comments --user="${DB_USER}" --port="${DB_PORT}" --password="\${DB_PASS}" --host="${DB_HOST}" $DUMP_ARGS $db \$table 2>/dev/null | grep -e '^INSERT INTO' | md5sum | awk -v table="\$table" '{print table, \$1}' > /tmp/dump-import-ssh-temp/$db/\$table.md5;
-                
-                # 判断是否有差异
-                temp_md5=\$(cat /tmp/dump-import-ssh-temp/$db/\$table.md5 2>/dev/null || echo "");
-                
-                if [[ -f "/tmp/dump-import-ssh-diff/$db/\$table.md5" ]]; then
-                        diff_md5=\$(cat /tmp/dump-import-ssh-diff/$db/\$table.md5);
-                        if [[ "\$temp_md5" != "\$diff_md5" ]]; then
-                                echo "diff-sync \$table";
-                        else
-                                echo "数据没有差异 \$table ";
-                        fi
-                else
-                        echo "diff-sync \$table";
-                fi
-        fi
-fi
-# 关闭空表检查的else块
-fi
-
-BASH
-                        )
-                        
-                        # 执行SSH并处理输出
-                        printf "%s\n" "$table_command" | eval "$sshRun '$RUN_LIMIT_START bash -c \"exec -a 导出表-$db.$table bash -s\" 2> /dev/null'" | while read -r line; do
-                                echo "原文输出: " $db.$line " ";
-                                
-                                # 处理分页差异同步（包括首次同步和增量同步）
-                                if [[ $line == "page-diff "* ]]; then
-                                        import_table=$(echo $line | awk '{print $2}')
-                                        page_start=$(echo $line | awk '{print $3}')
-                                        page_end=$(echo $line | awk '{print $4}')
-                                        page_num=$(echo $line | awk '{print $5}')
-                                        
-                                        
-                                        # 获取主键名称
-                                        pk_result=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$import_table' AND COLUMN_KEY='PRI' ORDER BY ORDINAL_POSITION LIMIT 1;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
-                                        primary_key=$(echo "$pk_result" | tr -d '[:space:]')
-
-                                        echo "分页差异同步--$db.$import_table 页码=$page_num 范围=$page_start-$page_end; primary_key=$primary_key";
-
-                                        
-                                        if [[ -z "$import_table" ]]; then
-                                                continue;
-                                        fi
-                                        
-                                        if [[ -z "$primary_key" ]]; then
-                                                continue;
-                                        fi
-
-                                        for ((retry=1; retry<=3; retry++)); do
-                                                echo "执行分页同步命令(第${retry}次): mysqldump --skip-ssl --skip-add-locks --no-tablespaces --no-create-info --replace --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" --where=\"\`$primary_key\` >= $page_start AND \`$primary_key\` <= $page_end\" | pv -L $DUMP_PV | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
-                                                error_output=$(time (mysqldump --skip-ssl --skip-add-locks --no-tablespaces --no-create-info --replace --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table" --where="\`$primary_key\` >= $page_start AND \`$primary_key\` <= $page_end"  | pv -L $DUMP_PV | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
-
-                                                echo "分页导入失败(第${retry}次): $db.$import_table 页码=$page_num"
-                                                echo "错误信息: $error_output"
-                                        done
-                                        
-                                        if [[ $? -eq 0 ]] && [[ -n "$import_table" ]]; then
-                                                eval "$sshRun bash -c \"echo /tmp/dump-import-ssh-diff/pages/$db/$import_table;mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$import_table; cp /tmp/dump-import-ssh-temp/pages/$db/$import_table/page_${page_num}.md5 /tmp/dump-import-ssh-diff/pages/$db/$import_table/\""
-                                                echo "已保存分页diff: $db.$import_table 页码=$page_num";
-                                        fi
-                                        
-                                        echo $(date "+%Y-%m-%d %H:%M:%S")"--分页同步结束  $db.$import_table 页码=$page_num";
-                                        
-                                # 处理全量同步（表结构改变或首次同步不支持分页）
-                                elif [[ $line == "full-sync "* ]]; then
-                                        import_table=$(echo $line | awk '{print $2}')
-                                        echo "全量同步--$db.$import_table";
-                                        
-                                        if [[ -z "$import_table" ]]; then
-                                                continue;
-                                        fi
-
-                                        for ((retry=1; retry<=3; retry++)); do
-                                                echo "执行命令(第${retry}次): mysqldump --skip-ssl --skip-add-locks --no-tablespaces --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" | pv -L $DUMP_PV | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
-                                                error_output=$(time (mysqldump --skip-ssl --skip-add-locks --no-tablespaces --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table"  | pv -L $DUMP_PV | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
-
-                                                echo "全量同步--导入失败(第${retry}次): $db.$import_table"
-                                                echo "错误信息: $error_output"
-                                        done
-                                        
-                                        if [[ $? -eq 0 ]] && [[ -n "$import_table" ]]; then
-                                                eval "$sshRun bash -c \"echo /tmp/dump-import-ssh-diff/pages/$db/$import_table;mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$import_table; cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; rm -Rf /tmp/dump-import-ssh-diff/pages/$db/$import_table/* 2>/dev/null; if ls /tmp/dump-import-ssh-temp/pages/$db/$import_table/*.md5 1> /dev/null 2>&1; then cp -r /tmp/dump-import-ssh-temp/pages/$db/$import_table/*.md5 /tmp/dump-import-ssh-diff/pages/$db/$import_table/; fi\""
-                                                echo "已保存到diff(含表结构): $db.$import_table";
-                                        fi
-                                        
-                                        echo $(date "+%Y-%m-%d %H:%M:%S")"--全量同步结束  $db.$import_table";
-                                        
-                                # 处理普通差异同步（非分页模式）
-                                elif [[ $line == "diff-sync "* ]]; then
-                                
-                                        import_table=$(echo $line | awk '{print $2}')
-                                        echo "差异同步--$db.$import_table";
-
-                                        if [[ -z "$import_table" ]]; then
-                                                continue;
-                                        fi
-                                        
-                                        for ((retry=1; retry<=3; retry++)); do
-                                                echo "执行命令(第${retry}次): mysqldump --skip-ssl --replace --skip-add-locks --no-tablespaces --no-create-info --user=\"${DB_USER}\" --port=\"${DB_TABLE_PORT}\" --password=\"***\" --host=\"${DB_TABLE_HOST}\" $DUMP_ARGS $db \"$import_table\" | pv -L $DUMP_PV | mysql --skip-ssl --user=\"${IMPORT_DB_USER}\" --password=\"***\" --host=\"${IMPORT_DB_HOST}\" $IMPORT_ARGS \"$db\""
-                                                error_output=$(time (mysqldump --skip-ssl --replace --skip-add-locks --no-tablespaces --no-create-info --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$import_table"  | pv -L $DUMP_PV | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
-
-                                                echo "差异同步--导入失败(第${retry}次): $db.$import_table"
-                                                echo "错误信息: $error_output"
-                                        done
-                                        
-                                        if [[ $? -eq 0 ]] && [[ -n "$import_table" ]]; then
-                                                eval "$sshRun bash -c \"echo /tmp/dump-import-ssh-temp/$db/$import_table.md5;cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; cp /tmp/dump-import-ssh-temp/mtime/$db/$import_table.mtime /tmp/dump-import-ssh-diff/mtime/$db/ 2>/dev/null\""
-                                                echo "已保存到diff: $db.$import_table";
-                                        fi
-                                        
-                                        echo $(date "+%Y-%m-%d %H:%M:%S")"--差异同步结束  $db.$import_table";
-                                        
-                                # 处理表结构改变或首次同步的分页同步开始
-                                elif [[ $line == "schema-page-sync "* ]]; then
-                                        import_table=$(echo $line | awk '{print $2}')
-                                        echo "schema-page-sync-分页同步--$db.$import_table";
-                                        
-                                        if [[ -z "$import_table" ]]; then
-                                                continue;
-                                        fi
-                                        
-                                # 处理表结构改变或首次同步的分页同步完成
-                                elif [[ $line == "schema-page-sync-done "* ]]; then
-                                        import_table=$(echo $line | awk '{print $2}')
-                                        echo "表结构改变/首次同步-分页同步完成--$db.$import_table";
-                                        
-                                        if [[ -z "$import_table" ]]; then
-                                                continue;
-                                        fi
-                                        
-                                        # 删除目标表中超过源表最大主键的数据
-                                        pk_result=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$import_table' AND COLUMN_KEY='PRI' ORDER BY ORDINAL_POSITION LIMIT 1;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
-                                        primary_key=$(echo "$pk_result" | tr -d '[:space:]')
-                                        
-                                        if [[ -n "$primary_key" ]]; then
-                                                # 获取源表最大主键
-                                                src_max_id=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT MAX(\\\`$primary_key\\\`) FROM $db.\\\`$import_table\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
-                                                # 获取目标表最大主键
-                                                dst_max_id=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT MAX(\`$primary_key\`) FROM $db.\`$import_table\`;" 2>/dev/null | tr -d '[:space:]')
-                                                
-                                                echo "删除后续数据检查--$db.$import_table 源表最大ID=$src_max_id 目标表最大ID=$dst_max_id";
-                                                
-                                                if [[ -n "$src_max_id" && -n "$dst_max_id" && "$dst_max_id" -gt "$src_max_id" ]]; then
-                                                        echo "删除目标表后续数据--$db.$import_table 删除 $primary_key > $src_max_id 的数据";
-                                                        mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -e "DELETE FROM $db.\`$import_table\` WHERE \`$primary_key\` > $src_max_id;" 2>/dev/null
-                                                        echo "已删除后续数据: $db.$import_table";
+                                        if [[ "$remote_pk_type" =~ ^(int|bigint|smallint|tinyint|mediumint)$ ]]; then
+                                                if [[ -z "$PAGE_SYNC_TABLES" ]]; then
+                                                        use_page_sync=1
+                                                else
+                                                        IFS=',' read -ra PAGE_TABLES_ARR <<< "$PAGE_SYNC_TABLES"
+                                                        for pt in "${PAGE_TABLES_ARR[@]}"; do
+                                                                if [[ "$table" == "$pt" || "$db.$table" == "$pt" ]]; then
+                                                                        use_page_sync=1
+                                                                        break
+                                                                fi
+                                                        done
                                                 fi
                                         fi
-                                        
-                                        # 保存schema、整表MD5和所有分页MD5
-                                        if [[ -n "$import_table" ]]; then
-                                                eval "$sshRun bash -c \"echo /tmp/dump-import-ssh-diff/pages/$db/$import_table;mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$import_table; cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; rm -Rf /tmp/dump-import-ssh-diff/pages/$db/$import_table/* 2>/dev/null; if ls /tmp/dump-import-ssh-temp/pages/$db/$import_table/*.md5 1> /dev/null 2>&1; then cp -r /tmp/dump-import-ssh-temp/pages/$db/$import_table/*.md5 /tmp/dump-import-ssh-diff/pages/$db/$import_table/; fi\""
-                                                echo "已保存同步记录(含表结构和分页): $db.$import_table";
-                                        fi
-                                        
-                                # 处理首次分页同步完成（旧逻辑保留兼容）
-                                elif [[ $line == "first-page-sync-done "* ]]; then
-                                        import_table=$(echo $line | awk '{print $2}')
-                                        echo "首次分页同步完成--$db.$import_table";
-                                        # 保存schema、整表MD5和所有分页MD5
-                                        if [[ -n "$import_table" ]]; then
-                                                eval "$sshRun bash -c \"echo /tmp/dump-import-ssh-diff/pages/$db/$import_table;mkdir -p /tmp/dump-import-ssh-diff/pages/$db/$import_table; cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/; rm -Rf /tmp/dump-import-ssh-diff/pages/$db/$import_table/* 2>/dev/null; if ls /tmp/dump-import-ssh-temp/pages/$db/$import_table/*.md5 1> /dev/null 2>&1; then cp -r /tmp/dump-import-ssh-temp/pages/$db/$import_table/*.md5 /tmp/dump-import-ssh-diff/pages/$db/$import_table/; fi\""
-                                                echo "已保存首次同步记录: $db.$import_table";
-                                        fi
-                                        
-                                # 处理分页同步完成
-                                elif [[ $line == "page-sync-done "* ]]; then
-                                        import_table=$(echo $line | awk '{print $2}')
-                                        echo "分页同步完成--$db.$import_table";
-                                        
-                                        if [[ -z "$import_table" ]]; then
-                                                continue;
-                                        fi
-                                        
-                                        # 删除目标表中超过源表最大主键的数据
-                                        pk_result=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$import_table' AND COLUMN_KEY='PRI' ORDER BY ORDINAL_POSITION LIMIT 1;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
-                                        primary_key=$(echo "$pk_result" | tr -d '[:space:]')
-                                        
-                                        if [[ -n "$primary_key" ]]; then
-                                                # 获取源表最大主键
-                                                src_max_id=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT MAX(\\\`$primary_key\\\`) FROM $db.\\\`$import_table\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
-                                                # 获取目标表最大主键
-                                                dst_max_id=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT MAX(\`$primary_key\`) FROM $db.\`$import_table\`;" 2>/dev/null | tr -d '[:space:]')
-                                                
-                                                echo "删除后续数据检查--$db.$import_table 源表最大ID=$src_max_id 目标表最大ID=$dst_max_id";
-                                                
-                                                if [[ -n "$src_max_id" && -n "$dst_max_id" && "$dst_max_id" -gt "$src_max_id" ]]; then
-                                                        echo "删除目标表后续数据--$db.$import_table 删除 $primary_key > $src_max_id 的数据";
-                                                        mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -e "DELETE FROM $db.\`$import_table\` WHERE \`$primary_key\` > $src_max_id;" 2>/dev/null
-                                                        echo "已删除后续数据: $db.$import_table";
-                                                fi
-                                        fi
-                                        
-                                        # 保存schema和整表MD5
-                                        if [[ -n "$import_table" ]]; then
-                                                eval "$sshRun bash -c \"cp /tmp/dump-import-ssh-temp/$db/$import_table.md5 /tmp/dump-import-ssh-diff/$db/;\""
-                                                echo "已保存同步记录: $db.$import_table";
-                                        fi
-                                        
-                                # 处理空表（无数据）
-                                elif [[ $line == "empty-table "* ]]; then
-                                        import_table=$(echo $line | awk '{print $2}')
-                                        echo "空表跳过同步--$db.$import_table";
-                                        
-                                # 处理空表完成
-                                elif [[ $line == "empty-table-done "* ]]; then
-                                        import_table=$(echo $line | awk '{print $2}')
-                                        echo "空表处理完成--$db.$import_table";
                                 fi
-                        done
+
+                                echo "$table schema_changed=$schema_changed is_first_sync=$is_first_sync use_page_sync=$use_page_sync"
+
+                                # 表结构改变或首次同步：数据需要全量同步
+                                if [[ "$schema_changed" == "1" || "$is_first_sync" == "1" ]]; then
+                                        if [[ "$use_page_sync" == "1" ]]; then
+                                                echo "schema-page-sync $table 主键=$primary_key 行数=$remote_table_rows"
+
+                                                # 先获取所有分页的主键范围
+                                                page_start=0
+                                                all_pages=()
+
+                                                while true; do
+                                                        remote_pk_list=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT \\\`$primary_key\\\` FROM $db.\\\`$table\\\` WHERE \\\`$primary_key\\\` > \$page_start ORDER BY \\\`$primary_key\\\` LIMIT ${PAGE_SIZE};\" 2>/dev/null" | eval "$sshRun 'bash -s'")
+
+                                                        if [[ -z "$remote_pk_list" ]]; then
+                                                                break
+                                                        else
+                                                                page_start_actual=$(echo "$remote_pk_list" | head -1)
+                                                                page_end_local=$(echo "$remote_pk_list" | tail -1)
+                                                                all_pages+=("$page_start_actual:$page_end_local")
+
+                                                                pk_count=$(echo "$remote_pk_list" | wc -l)
+                                                                if [[ "$pk_count" -lt "${PAGE_SIZE}" ]]; then
+                                                                        break
+                                                                else
+                                                                        page_start=$page_end_local
+                                                                fi
+                                                        fi
+                                                done
+
+                                                total_pages=${#all_pages[@]}
+                                                echo "总页数=$total_pages"
+
+                                                # 并发计数器
+                                                echo 0 > /tmp/page_async_count_${db}_${table}
+
+                                                # 并发同步所有分页，受ASYNC_WAIT_MAX限制
+                                                for page_info in "${all_pages[@]}"; do
+                                                        page_start_actual=${page_info%%:*}
+                                                        page_end_local=${page_info##*:}
+
+                                                        # 并发控制
+                                                        while true; do
+                                                                cur_count=$(cat /tmp/page_async_count_${db}_${table} 2>/dev/null || echo 0)
+                                                                if [[ "$cur_count" -lt "$ASYNC_WAIT_MAX" ]]; then
+                                                                        break
+                                                                fi
+                                                                sleep 0.3
+                                                        done
+                                                        echo $(( $(cat /tmp/page_async_count_${db}_${table} 2>/dev/null || echo 0) + 1 )) > /tmp/page_async_count_${db}_${table}
+
+                                                        # 后台同步该页
+                                                        (
+                                                                echo "分页同步--$db.$table 范围=$page_start_actual-$page_end_local"
+                                                                for ((retry=1; retry<=3; retry++)); do
+                                                                        error_output=$(time (mysqldump --skip-ssl --skip-add-locks --no-tablespaces --no-create-info --replace --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table" --where="\`$primary_key\` >= $page_start_actual AND \`$primary_key\` <= $page_end_local" | pv -L $DUMP_PV | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
+                                                                        echo "分页同步失败(第${retry}次): $db.$table 范围=$page_start_actual-$page_end_local"
+                                                                        echo "错误信息: $error_output"
+                                                                done
+                                                                echo $(( $(cat /tmp/page_async_count_${db}_${table} 2>/dev/null || echo 0) - 1 )) > /tmp/page_async_count_${db}_${table}
+                                                        ) &
+                                                done
+
+                                                # 等待所有分页完成
+                                                wait
+                                                rm -f /tmp/page_async_count_${db}_${table}
+
+                                                # 删除目标表中超过源表最大主键的数据
+                                                if [[ ${#all_pages[@]} -gt 0 ]]; then
+                                                        src_max_id=${all_pages[-1]##*:}
+                                                        dst_max_id=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT MAX(\`$primary_key\`) FROM $db.\`$table\`;" 2>/dev/null | tr -d '[:space:]')
+                                                        echo "删除后续数据检查--$db.$table 源表最大ID=$src_max_id 目标表最大ID=$dst_max_id"
+                                                        if [[ -n "$src_max_id" && -n "$dst_max_id" && "$dst_max_id" -gt "$src_max_id" ]]; then
+                                                                echo "删除目标表后续数据--$db.$table 删除 $primary_key > $src_max_id 的数据"
+                                                                mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -e "DELETE FROM $db.\`$table\` WHERE \`$primary_key\` > $src_max_id;" 2>/dev/null
+                                                        fi
+                                                        src_auto_increment=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table';\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
+                                                        if [[ -n "$src_auto_increment" ]]; then
+                                                                echo "同步自增ID--$db.$table 源表AUTO_INCREMENT=$src_auto_increment"
+                                                                mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -e "ALTER TABLE $db.\`$table\` AUTO_INCREMENT=$src_auto_increment;" 2>/dev/null
+                                                        fi
+                                                fi
+
+                                                echo "schema-page-sync-done $table 总页数=$total_pages"
+                                        else
+                                                # 不支持分页同步：全量同步
+                                                echo "全量同步--$db.$table"
+                                                for ((retry=1; retry<=3; retry++)); do
+                                                        error_output=$(time (mysqldump --skip-ssl --skip-add-locks --no-tablespaces --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table" | pv -L $DUMP_PV | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
+                                                        echo "全量同步失败(第${retry}次): $db.$table"
+                                                        echo "错误信息: $error_output"
+                                                done
+                                                echo "全量同步结束--$db.$table"
+                                        fi
+                                else
+                                        # 非首次同步且表结构未改变，并发对比MD5
+                                        if [[ "$use_page_sync" == "1" ]]; then
+                                                echo "启用分页同步 $table 主键=$primary_key 行数=$remote_table_rows"
+
+                                                # 先获取所有分页的主键范围
+                                                page_start=0
+                                                all_pages=()
+
+                                                while true; do
+                                                        remote_pk_list=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT \\\`$primary_key\\\` FROM $db.\\\`$table\\\` WHERE \\\`$primary_key\\\` > \$page_start ORDER BY \\\`$primary_key\\\` LIMIT ${PAGE_SIZE};\" 2>/dev/null" | eval "$sshRun 'bash -s'")
+
+                                                        if [[ -z "$remote_pk_list" ]]; then
+                                                                break
+                                                        else
+                                                                page_start_actual=$(echo "$remote_pk_list" | head -1)
+                                                                page_end_local=$(echo "$remote_pk_list" | tail -1)
+                                                                all_pages+=("$page_start_actual:$page_end_local")
+
+                                                                pk_count=$(echo "$remote_pk_list" | wc -l)
+                                                                if [[ "$pk_count" -lt "${PAGE_SIZE}" ]]; then
+                                                                        break
+                                                                else
+                                                                        page_start=$page_end_local
+                                                                fi
+                                                        fi
+                                                done
+
+                                                total_pages=${#all_pages[@]}
+                                                echo "总页数=$total_pages"
+
+                                                # 并发计数器
+                                                echo 0 > /tmp/page_async_count_${db}_${table}
+
+                                                # 并发获取远端和IMPORT端MD5对比，受ASYNC_WAIT_MAX限制
+                                                for page_info in "${all_pages[@]}"; do
+                                                        page_start_actual=${page_info%%:*}
+                                                        page_end_local=${page_info##*:}
+
+                                                        # 并发控制
+                                                        while true; do
+                                                                cur_count=$(cat /tmp/page_async_count_${db}_${table} 2>/dev/null || echo 0)
+                                                                if [[ "$cur_count" -lt "$ASYNC_WAIT_MAX" ]]; then
+                                                                        break
+                                                                fi
+                                                                sleep 0.3
+                                                        done
+                                                        echo $(( $(cat /tmp/page_async_count_${db}_${table} 2>/dev/null || echo 0) + 1 )) > /tmp/page_async_count_${db}_${table}
+
+                                                        # 后台并发获取远端和IMPORT端MD5并对比
+                                                        (
+                                                                # 临时文件用于存储并发结果
+                                                                tmp_remote_md5="/tmp/remote_md5_${db}_${table}_$$_$page_start_actual"
+                                                                tmp_import_md5="/tmp/import_md5_${db}_${table}_$$_$page_start_actual"
+
+                                                                # 并发获取远端MD5
+                                                                (
+                                                                        remote_page_data=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT * FROM $db.\\\`$table\\\` WHERE \\\`$primary_key\\\` >= $page_start_actual AND \\\`$primary_key\\\` <= $page_end_local ORDER BY \\\`$primary_key\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
+                                                                        echo "$remote_page_data" | md5sum | awk '{print $1}' > "$tmp_remote_md5"
+                                                                ) &
+                                                                pid_remote=$!
+
+                                                                # 并发获取IMPORT端MD5
+                                                                (
+                                                                        import_page_data=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT * FROM $db.\`$table\` WHERE \`$primary_key\` >= $page_start_actual AND \`$primary_key\` <= $page_end_local ORDER BY \`$primary_key\`;" 2>/dev/null)
+                                                                        echo "$import_page_data" | md5sum | awk '{print $1}' > "$tmp_import_md5"
+                                                                ) &
+                                                                pid_import=$!
+
+                                                                # 等待两个并发查询都完成
+                                                                wait $pid_remote $pid_import
+
+                                                                # 读取结果
+                                                                remote_page_md5=$(cat "$tmp_remote_md5" 2>/dev/null || echo "")
+                                                                import_page_md5=$(cat "$tmp_import_md5" 2>/dev/null || echo "")
+
+                                                                # 清理临时文件
+                                                                rm -f "$tmp_remote_md5" "$tmp_import_md5"
+
+                                                                if [[ "$remote_page_md5" == "$import_page_md5" ]]; then
+                                                                        echo "分页MD5一致，跳过--$db.$table 范围=$page_start_actual-$page_end_local"
+                                                                else
+                                                                        echo "分页MD5差异，同步--$db.$table 范围=$page_start_actual-$page_end_local 远端=$remote_page_md5 IMPORT端=$import_page_md5"
+                                                                        for ((retry=1; retry<=3; retry++)); do
+                                                                                error_output=$(time (mysqldump --skip-ssl --skip-add-locks --no-tablespaces --no-create-info --replace --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table" --where="\`$primary_key\` >= $page_start_actual AND \`$primary_key\` <= $page_end_local" | pv -L $DUMP_PV | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
+                                                                                echo "分页同步失败(第${retry}次): $db.$table 范围=$page_start_actual-$page_end_local"
+                                                                                echo "错误信息: $error_output"
+                                                                        done
+                                                                fi
+
+                                                                echo $(( $(cat /tmp/page_async_count_${db}_${table} 2>/dev/null || echo 0) - 1 )) > /tmp/page_async_count_${db}_${table}
+                                                        ) &
+                                                done
+
+                                                # 等待所有分页完成
+                                                wait
+                                                rm -f /tmp/page_async_count_${db}_${table}
+
+                                                # 删除目标表中超过源表最大主键的数据
+                                                if [[ ${#all_pages[@]} -gt 0 ]]; then
+                                                        src_max_id=${all_pages[-1]##*:}
+                                                        dst_max_id=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT MAX(\`$primary_key\`) FROM $db.\`$table\`;" 2>/dev/null | tr -d '[:space:]')
+                                                        echo "删除后续数据检查--$db.$table 源表最大ID=$src_max_id 目标表最大ID=$dst_max_id"
+                                                        if [[ -n "$src_max_id" && -n "$dst_max_id" && "$dst_max_id" -gt "$src_max_id" ]]; then
+                                                                echo "删除目标表后续数据--$db.$table 删除 $primary_key > $src_max_id 的数据"
+                                                                mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -e "DELETE FROM $db.\`$table\` WHERE \`$primary_key\` > $src_max_id;" 2>/dev/null
+                                                        fi
+                                                        src_auto_increment=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table';\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
+                                                        if [[ -n "$src_auto_increment" ]]; then
+                                                                echo "同步自增ID--$db.$table 源表AUTO_INCREMENT=$src_auto_increment"
+                                                                mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -e "ALTER TABLE $db.\`$table\` AUTO_INCREMENT=$src_auto_increment;" 2>/dev/null
+                                                        fi
+                                                fi
+
+                                                echo "分页同步完成--$db.$table"
+                                        else
+                                                # 传统方式：整表MD5对比
+                                                # 获取远端整表MD5（单条命令）
+                                                remote_table_data=$(echo "DB_PASS=\"${DB_PASS}\";mysqldump --no-tablespaces --no-create-info --skip-comments --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" $DUMP_ARGS $db $table 2>/dev/null" | eval "$sshRun 'bash -s'" | grep -e '^INSERT INTO')
+                                                remote_table_md5=$(echo "$remote_table_data" | md5sum | awk '{print $1}')
+
+                                                # 获取IMPORT端整表MD5
+                                                import_table_data=$(mysqldump --skip-ssl --no-tablespaces --no-create-info --skip-comments --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS $db "$table" 2>/dev/null | grep -e '^INSERT INTO')
+                                                import_table_md5=$(echo "$import_table_data" | md5sum | awk '{print $1}')
+
+                                                if [[ "$remote_table_md5" == "$import_table_md5" ]]; then
+                                                        echo "整表MD5一致，跳过--$db.$table"
+                                                else
+                                                        echo "整表MD5差异，同步--$db.$table 远端=$remote_table_md5 IMPORT端=$import_table_md5"
+                                                        for ((retry=1; retry<=3; retry++)); do
+                                                                error_output=$(time (mysqldump --skip-ssl --replace --skip-add-locks --no-tablespaces --no-create-info --user="${DB_USER}" --port="${DB_TABLE_PORT}" --password="${DB_PASS}" --host="${DB_TABLE_HOST}" $DUMP_ARGS $db "$table" | pv -L $DUMP_PV | mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" $IMPORT_ARGS "$db") 2>&1) && break
+                                                                echo "差异同步失败(第${retry}次): $db.$table"
+                                                                echo "错误信息: $error_output"
+                                                        done
+                                                fi
+                                                echo "整表MD5对比处理结束--$db.$table"
+                                        fi
+                                fi
+                        fi
                 } &
                 sleep $DUMP_WAIT_SECONDS;
         done
-        
+
         # 等待当前库的所有表处理完成
         # wait
-        
+
         echo $db >> /tmp/databases_count.end.log;
         sed -i "/$db/d" /tmp/databases_count.log;
-        
+
         echo $(date "+%Y-%m-%d %H:%M:%S")"--异步导出库--结束--$db--------------------------------------";
 # exit;
     fi
@@ -831,7 +681,7 @@ done
 
 echo $(date "+%Y-%m-%d %H:%M:%S")" 最后导入 last  mysqldump process has completed.  "${DB_HOST}
 
-# 清理临时目录（已改为逐个保存到diff）
+# 清理临时目录
 eval "$sshRun bash -c \"rm -Rf /tmp/dump-import-ssh-temp\""
 
 
