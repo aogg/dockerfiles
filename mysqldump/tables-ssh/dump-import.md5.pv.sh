@@ -15,6 +15,10 @@ DB_PORT=${DB_PORT:-3306}
 DB_TABLE_PORT=${DB_TABLE_PORT:-${DB_PORT}}
 DB_TABLE_HOST=${DB_TABLE_HOST:-${DB_HOST}}
 
+# 用于SSH远端执行的MySQL连接信息（远端可能需要内网IP）
+DB_HOST_BY_SSH=${DB_HOST_BY_SSH:-${DB_HOST}}
+DB_PORT_BY_SSH=${DB_PORT_BY_SSH:-${DB_PORT}}
+
 IGNORE_DATABASE=${IGNORE_DATABASE}
 IGNORE_TABLES=${IGNORE_TABLES}
 MYSQL_TABLES_ONLY_SYNC=${MYSQL_TABLES_ONLY_SYNC}
@@ -161,9 +165,9 @@ echo '监听cpu空闲率'
 
 
 echo '开始循环数据库--下面是执行的命令';
-echo eval "$sshRun 'mysql --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST}\" -e \"SHOW DATABASES;\"'"
+echo eval "$sshRun 'mysql --user=\"${DB_USER}\" --password=\"${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" --port=\"${DB_PORT_BY_SSH}\" -e \"SHOW DATABASES;\"'"
 
-databases=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -e \"SHOW DATABASES;\"" | eval "$sshRun 'bash -s'" | tr -d "| " | grep -v Database)
+databases=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" --port=\"${DB_PORT_BY_SSH}\" -e \"SHOW DATABASES;\"" | eval "$sshRun 'bash -s'" | tr -d "| " | grep -v Database)
 echo '开始循环数据库---'$databases;
 
 num_databases=0;
@@ -264,7 +268,7 @@ page_sync_table() {
         local counter_file="/tmp/dump-import-ssh-temp/page_async_count_${db}_${table}"
         echo 0 > "$counter_file"
 
-        local all_columns_list=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table' ORDER BY ORDINAL_POSITION;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]' | sed 's/$/`/' | sed 's/^/`/' | paste -sd ',' -)
+        local all_columns_list=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table' ORDER BY ORDINAL_POSITION;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]' | sed 's/$/`/' | sed 's/^/`/' | paste -sd ',' -)
         local all_columns_import=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table' ORDER BY ORDINAL_POSITION;" 2>/dev/null | tr -d '[:space:]' | sed 's/$/`/' | sed 's/^/`/' | paste -sd ',' -)
         local all_columns=""
         if [[ -n "$all_columns_list" ]]; then
@@ -292,7 +296,7 @@ page_sync_table() {
                 local skip_md5=$3
 
                 if [[ "$skip_md5" == "0" ]]; then
-                        remote_checksum=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT CRC32(GROUP_CONCAT((CONCAT_WS('|', $all_columns)) ORDER BY \\\`$primary_key\\\` SEPARATOR '')) FROM $db.\\\`$table\\\` WHERE \\\`$primary_key\\\` >= $page_start_actual AND \\\`$primary_key\\\` <= $page_end_local;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
+                        remote_checksum=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"SELECT CRC32(GROUP_CONCAT((CONCAT_WS('|', $all_columns)) ORDER BY \\\`$primary_key\\\` SEPARATOR '')) FROM $db.\\\`$table\\\` WHERE \\\`$primary_key\\\` >= $page_start_actual AND \\\`$primary_key\\\` <= $page_end_local;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
                         import_checksum=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT CRC32(GROUP_CONCAT(CRC32(CONCAT_WS('|', $all_columns)) ORDER BY \`$primary_key\` SEPARATOR '')) FROM $db.\`$table\` WHERE \`$primary_key\` >= $page_start_actual AND \`$primary_key\` <= $page_end_local;" 2>/dev/null | tr -d '[:space:]')
 
                         if [[ "$remote_checksum" == "$import_checksum" ]]; then
@@ -329,11 +333,11 @@ page_sync_table() {
                 done
                 increment_counter
 
-                # echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT \\\`$primary_key\\\` FROM $db.\\\`$table\\\` WHERE \\\`$primary_key\\\` > $page_start ORDER BY \\\`$primary_key\\\` LIMIT ${PAGE_SIZE};\""
+                # echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"SELECT \\\`$primary_key\\\` FROM $db.\\\`$table\\\` WHERE \\\`$primary_key\\\` > $page_start ORDER BY \\\`$primary_key\\\` LIMIT ${PAGE_SIZE};\""
 
-                # echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT \\\`$primary_key\\\` FROM $db.\\\`$table\\\` WHERE \\\`$primary_key\\\` > $page_start ORDER BY \\\`$primary_key\\\` LIMIT ${PAGE_SIZE};\"" | eval "$sshRun 'bash -s'"
+                # echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"SELECT \\\`$primary_key\\\` FROM $db.\\\`$table\\\` WHERE \\\`$primary_key\\\` > $page_start ORDER BY \\\`$primary_key\\\` LIMIT ${PAGE_SIZE};\"" | eval "$sshRun 'bash -s'"
 
-                remote_pk_list=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT \\\`$primary_key\\\` FROM $db.\\\`$table\\\` WHERE \\\`$primary_key\\\` > $page_start ORDER BY \\\`$primary_key\\\` LIMIT ${PAGE_SIZE};\" 2>/dev/null" | eval "$sshRun 'bash -s'")
+                remote_pk_list=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"SELECT \\\`$primary_key\\\` FROM $db.\\\`$table\\\` WHERE \\\`$primary_key\\\` > $page_start ORDER BY \\\`$primary_key\\\` LIMIT ${PAGE_SIZE};\" 2>/dev/null" | eval "$sshRun 'bash -s'")
 
                 if [[ -z "$remote_pk_list" ]]; then
                         echo "没有数据 remote_pk_list  $db.$table "
@@ -370,7 +374,7 @@ page_sync_table() {
                         echo "删除目标表后续数据--$db.$table 删除 $primary_key > $src_max_id 的数据"
                         mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -e "DELETE FROM $db.\`$table\` WHERE \`$primary_key\` > $src_max_id;" 2>/dev/null
                 fi
-                src_auto_increment=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table';\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
+                src_auto_increment=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table';\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
                 if [[ -n "$src_auto_increment" ]]; then
                         echo "同步自增ID--$db.$table 源表AUTO_INCREMENT=$src_auto_increment"
                         mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -e "ALTER TABLE $db.\`$table\` AUTO_INCREMENT=$src_auto_increment;" 2>/dev/null
@@ -392,7 +396,7 @@ for ((i = 0; i < num_databases; i++)); do
 
         # 先通过SSH获取表列表
         echo "获取数据库 $db 的表列表..."
-        tables=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SHOW TABLES;\" $db 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d "| " | grep -v -e '^$')
+        tables=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"SHOW TABLES;\" $db 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d "| " | grep -v -e '^$')
         # echo "获取到表列表: $tables"
 
         # 转为数组并过滤忽略的表
@@ -452,7 +456,7 @@ for ((i = 0; i < num_databases; i++)); do
                 is_first_sync=0
 
                 # 发给ssh时候`要三个\反义
-                schema_md5_data=$(echo "DB_PASS=\"${DB_PASS}\";mysql --skip-ssl --default-character-set=utf8mb4 --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SHOW CREATE TABLE $db.\\\`$table\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
+                schema_md5_data=$(echo "DB_PASS=\"${DB_PASS}\";mysql --skip-ssl --default-character-set=utf8mb4 --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"SHOW CREATE TABLE $db.\\\`$table\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
                 schema_md5=$(echo "$schema_md5_data" | sed 's/AUTO_INCREMENT=[0-9]*//g' | md5sum | awk '{print $1}')
 
                 table_exists=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table';" 2>/dev/null)
@@ -486,11 +490,11 @@ for ((i = 0; i < num_databases; i++)); do
                 {
                         # 不依赖远端存储diff，直接在本地处理
                         # 获取远端表的主键信息
-                        remote_pk_result=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table' AND COLUMN_KEY='PRI' ORDER BY ORDINAL_POSITION LIMIT 1;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
+                        remote_pk_result=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table' AND COLUMN_KEY='PRI' ORDER BY ORDINAL_POSITION LIMIT 1;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
                         primary_key=$(echo "$remote_pk_result" | tr -d '[:space:]')
 
                         # 获取远端表行数
-                        remote_table_rows=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT COUNT(*) FROM $db.\\\`$table\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
+                        remote_table_rows=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"SELECT COUNT(*) FROM $db.\\\`$table\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
                         echo "$table 远端行数=$remote_table_rows"
 
                         # 检查表是否有数据
@@ -501,7 +505,7 @@ for ((i = 0; i < num_databases; i++)); do
                                 use_page_sync=0
                                 if [[ "$PAGE_SYNC_ENABLED" == "1" && -n "$primary_key" && "$remote_table_rows" -ge "$PAGE_SYNC_MIN_ROWS" ]]; then
                                         # 检查主键是否是数值类型
-                                        remote_pk_type=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table' AND COLUMN_NAME='$primary_key';\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
+                                        remote_pk_type=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table' AND COLUMN_NAME='$primary_key';\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]')
 
                                         if [[ "$remote_pk_type" =~ ^(int|bigint|smallint|tinyint|mediumint)$ ]]; then
                                                 if [[ -z "$PAGE_SYNC_TABLES" ]]; then
@@ -543,7 +547,7 @@ for ((i = 0; i < num_databases; i++)); do
                                                 page_sync_table "$db" "$table" "$primary_key" "$remote_table_rows" 0
                                                 echo "分页同步完成--$db.$table "
                                         else
-                                                remote_checksum=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST}\" -N -e \"CHECKSUM TABLE $db.\\\`$table\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | awk '{print $2}' | tail -1)
+                                                remote_checksum=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"CHECKSUM TABLE $db.\\\`$table\\\`;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | awk '{print $2}' | tail -1)
                                                 import_checksum=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "CHECKSUM TABLE $db.\`$table\`;" 2>/dev/null | awk '{print $2}' | tail -1)
 
                                                 if [[ "$remote_checksum" == "$import_checksum" ]]; then
