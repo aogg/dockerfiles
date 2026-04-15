@@ -257,6 +257,11 @@ wait_db_async_slot() {
         DB_RUNNING_STATUS[$db]=1
 }
 
+
+mkdir -p /tmp/dump-import-ssh-temp/;
+counter_file="/tmp/dump-import-ssh-temp/page_async_count"
+echo 0 > "$counter_file"
+
 page_sync_table() {
         local db=$1
         local table=$2
@@ -264,12 +269,9 @@ page_sync_table() {
         local remote_table_rows=$4
         local skip_md5=$5
 
-        mkdir -p /tmp/dump-import-ssh-temp/;
-        local counter_file="/tmp/dump-import-ssh-temp/page_async_count_${db}_${table}"
-        echo 0 > "$counter_file"
 
-        local all_columns_list=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table' ORDER BY ORDINAL_POSITION;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '[:space:]' | sed 's/$/`/' | sed 's/^/`/' | paste -sd ',' -)
-        local all_columns_import=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table' ORDER BY ORDINAL_POSITION;" 2>/dev/null | tr -d '[:space:]' | sed 's/$/`/' | sed 's/^/`/' | paste -sd ',' -)
+        local all_columns_list=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table' ORDER BY ORDINAL_POSITION;\" 2>/dev/null" | eval "$sshRun 'bash -s'" | tr -d '\r' | awk 'NF{printf "\\\\\\`%s\\\\\\`,", $0}' | sed 's/,$//')
+        local all_columns_import=$(mysql --skip-ssl --user="${IMPORT_DB_USER}" --password="${IMPORT_DB_PASS}" --host="${IMPORT_DB_HOST}" -N -e "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table' ORDER BY ORDINAL_POSITION;" 2>/dev/null | tr -d '\r' | awk 'NF{printf "\\\\\\`%s\\\\\\`,", $0}' | sed 's/,$//')
         local all_columns=""
         if [[ -n "$all_columns_list" ]]; then
                 all_columns="$all_columns_list"
@@ -279,6 +281,7 @@ page_sync_table() {
                 all_columns="\`$primary_key\`"
                 echo "无法获取列名，使用主键列--$db.$table"
         fi
+        echo "$db.$table all_columns=$all_columns"
 
         increment_counter() {
                 flock -x "$counter_file.lock" -c "echo \$(( \$(cat '$counter_file' 2>/dev/null || echo 0) + 1 )) > '$counter_file'"
@@ -488,6 +491,8 @@ for ((i = 0; i < num_databases; i++)); do
                 fi
 
                 {
+                        echo "开始判断表数据同步  $db.$table "
+
                         # 不依赖远端存储diff，直接在本地处理
                         # 获取远端表的主键信息
                         remote_pk_result=$(echo "DB_PASS=\"${DB_PASS}\";mysql --user=\"${DB_USER}\" --port=\"${DB_PORT_BY_SSH}\" --password=\"\${DB_PASS}\" --host=\"${DB_HOST_BY_SSH}\" -N -e \"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$db' AND TABLE_NAME='$table' AND COLUMN_KEY='PRI' ORDER BY ORDINAL_POSITION LIMIT 1;\" 2>/dev/null" | eval "$sshRun 'bash -s'")
