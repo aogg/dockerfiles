@@ -31,6 +31,8 @@ jobs:
 # ##########  构建  ###########################
 
 
+## [1.29.5]() (2026-04-16)
+
     - name: 构建镜像  adockero/claude-code-ui:origin
       uses: docker/build-push-action@v3
       with:
