@@ -1,7 +1,7 @@
 ---
 name: new编写新容器
 description: new编写新容器
-allowed-tools: question, bash, read, glob, grep, webfetch
+allowed-tools: All
 ---
 
 
