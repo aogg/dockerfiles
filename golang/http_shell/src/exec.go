@@ -19,8 +19,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	cmdBase64 := r.FormValue("cmd-base64")
 	cmdBaseUrl64 := r.FormValue("cmd-base64-url")
 	cmdFile, _, err := r.FormFile("cmd-file")
-
-	if cmdFile != nil {
+	if err == nil && cmdFile != nil {
 		data, err := io.ReadAll(cmdFile)
 		cmdFile.Close()
 		if err != nil {
@@ -29,8 +28,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		cmd = string(data)
-	} else if err != nil {
-		log.Printf("获取文件参数错误 cmd-file, 错误信息: %v", err)
 	}
 
 	if cmdBaseUrl64 != "" {
