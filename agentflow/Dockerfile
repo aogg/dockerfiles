@@ -20,16 +20,22 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.npm
 
+
+USER claude
+
 # /root/.agentflow/data/agentflow.env
 RUN curl -fsSL https://agentflow.geili.ai/installer/getagentflow.sh | bash \
-    && sed -i "s/^HOST=.*/HOST=0.0.0.0/" /root/.agentflow/data/agentflow.env \
-    && sed -i "s/^host=.*/host=0.0.0.0/" /root/.agentflow/data/agentflow.env \
-    && cat /root/.agentflow/data/agentflow.env
+    && AgentFlow --help \
+    && (ls -al /home/claude/.agentflow || echo 1) \
+    && (sed -i "s/^HOST=.*/HOST=0.0.0.0/" /home/claude/.agentflow/data/agentflow.env || echo 1) \
+    && (sed -i "s/^host=.*/host=0.0.0.0/" /home/claude/.agentflow/data/agentflow.env || echo 1) \
+    && (cat /home/claude/.agentflow/data/agentflow.env || echo 1) \
+    && echo "结束"
 
 ENV ANTHROPIC_BASE_URL ""
 ENV ANTHROPIC_AUTH_TOKEN ""
 
-USER claude
+VOLUME /home/claude/.agentflow/data
 
 COPY docker-entrypoint.sh /
 

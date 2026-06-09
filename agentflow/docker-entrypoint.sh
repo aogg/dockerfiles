@@ -1,6 +1,7 @@
 #!/usr/bin/env ash 
 
 
-/root/.agentflow/bin/agentflow start
+/home/claude/.agentflow/bin/agentflow start
+# AgentFlow
 
 exec tail -f /dev/null
