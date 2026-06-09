@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"os/exec"
 )
 
@@ -19,16 +18,19 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	// 有+号需要请求端urlencode
 	cmdBase64 := r.FormValue("cmd-base64")
 	cmdBaseUrl64 := r.FormValue("cmd-base64-url")
-	cmdFile := r.FormValue("cmd-file")
+	cmdFile, _, err := r.FormFile("cmd-file")
 
-	if cmdFile != "" {
-		data, err := os.ReadFile(cmdFile)
+	if cmdFile != nil {
+		data, err := io.ReadAll(cmdFile)
+		cmdFile.Close()
 		if err != nil {
-			log.Printf("读取文件错误 cmd-file='%s', 错误信息: %v", cmdFile, err)
-			http.Error(w, fmt.Sprintf("读取文件错误 cmd-file='%s', 错误信息: %v", cmdFile, err), http.StatusBadRequest)
+			log.Printf("读取文件错误 cmd-file, 错误信息: %v", err)
+			http.Error(w, fmt.Sprintf("读取文件错误 cmd-file, 错误信息: %v", err), http.StatusBadRequest)
 			return
 		}
 		cmd = string(data)
+	} else if err != nil {
+		log.Printf("获取文件参数错误 cmd-file, 错误信息: %v", err)
 	}
 
 	if cmdBaseUrl64 != "" {
