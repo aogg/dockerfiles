@@ -25,10 +25,11 @@ USER claude
 
 # /root/.agentflow/data/agentflow.env
 RUN curl -fsSL https://agentflow.geili.ai/installer/getagentflow.sh | bash \
+    && /home/claude/.agentflow/bin/agentflow start \
+    && echo "export PATH=\"\$HOME/.agentflow/bin:\$PATH\"" >> /etc/profile \
     # && AgentFlow --help \
     && (ls -al /home/claude/.agentflow || echo 1) \
     && (sed -i "s/^HOST=.*/HOST=0.0.0.0/" /home/claude/.agentflow/data/agentflow.env || echo 1) \
-    && (sed -i "s/^host=.*/host=0.0.0.0/" /home/claude/.agentflow/data/agentflow.env || echo 1) \
     && (cat /home/claude/.agentflow/data/agentflow.env || echo 1) \
     && echo "结束"
 
