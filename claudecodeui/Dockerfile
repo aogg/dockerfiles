@@ -9,12 +9,12 @@ RUN apt-get update && \
         sudo \
     && git config --global --add safe.directory '*' \
     && npm install -g \
-        @siteboon/claude-code-ui \
+        @cloudcli-ai/cloudcli@latest \
         @anthropic-ai/claude-code \
         @google/gemini-cli \
         @openai/codex \
     && npm list -g \
-        @siteboon/claude-code-ui \
+        @cloudcli-ai/cloudcli@latest \
         @anthropic-ai/claude-code \
         @google/gemini-cli \
         @openai/codex \
