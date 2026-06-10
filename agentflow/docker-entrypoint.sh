@@ -1,4 +1,4 @@
-#!/usr/bin/env ash 
+#!/usr/bin/env bash 
 
 
 # /home/claude/.agentflow/bin/agentflow start
