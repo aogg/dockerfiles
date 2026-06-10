@@ -18,9 +18,9 @@ RUN apt-get update && \
         @anthropic-ai/claude-code \
         @google/gemini-cli \
         @openai/codex \
-    && useradd -m -g root -s /bin/bash claude \
+    && usermod -aG root node \
+    && mkhomedir_helper node \
     && echo "claude ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
-    && chown -R claude:root /usr/local/lib/node_modules \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.npm
 
@@ -32,6 +32,6 @@ ENV ANTHROPIC_AUTH_TOKEN ""
 ENV GOOGLE_GEMINI_BASE_URL ""
 ENV GEMINI_API_KEY ""
 
-USER claude
+USER node
 
 CMD ["cloudcli"]
