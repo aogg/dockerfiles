@@ -10,11 +10,13 @@ RUN apt-get update && \
     && git config --global --add safe.directory '*' \
     && npm install -g \
         @cloudcli-ai/cloudcli@latest \
+        task-master-ai \
         @anthropic-ai/claude-code \
         @google/gemini-cli \
         @openai/codex \
     && npm list -g \
         @cloudcli-ai/cloudcli@latest \
+        task-master-ai \
         @anthropic-ai/claude-code \
         @google/gemini-cli \
         @openai/codex \
