@@ -2,7 +2,7 @@ FROM ubuntu:24.10
 
 
 RUN apt update \
-    apt install -y wget \
+    && apt install -y wget \
     && echo "apt结束" \
     &&wget -O install_panel.sh https://download.bt.cn/install/install_panel.sh \
     && sudo bash install_panel.sh ed8484bec \
