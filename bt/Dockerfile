@@ -6,7 +6,6 @@ RUN apt update \
     && echo "apt结束" \
     && wget -O install_panel.sh https://download.bt.cn/install/install_panel.sh \
     && bash install_panel.sh ed8484bec \
-    && (bt stop || echo 1) \
     && mkdir -p /www \
     && mv /www /www-bak \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
