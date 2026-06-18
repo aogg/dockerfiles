@@ -4,8 +4,8 @@ FROM ubuntu:24.10
 RUN apt update \
     && apt install -y wget \
     && echo "apt结束" \
-    &&wget -O install_panel.sh https://download.bt.cn/install/install_panel.sh \
-    && sudo bash install_panel.sh ed8484bec \
+    && wget -O install_panel.sh https://download.bt.cn/install/install_panel.sh \
+    && bash install_panel.sh ed8484bec \
     && (bt stop || echo 1) \
     && mkdir -p /www \
     && mv /www /www-bak \
