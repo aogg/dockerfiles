@@ -17,6 +17,8 @@ RUN apt-get update && \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
     && apt-get update \
     && apt-get install -y --no-install-recommends docker-ce-cli \
+    # 创建 docker 组
+    && groupadd -f docker \
     # 配置 git 和 npm
     && git config --global --add safe.directory '*' \
     && npm install -g \
