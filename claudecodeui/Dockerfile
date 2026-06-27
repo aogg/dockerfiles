@@ -7,6 +7,7 @@ RUN apt-get update && \
         curl \
         procps \
         sudo \
+        gosu \
         openssh-server \
         openssh-client \
         gnupg \
@@ -62,4 +63,4 @@ ADD ./claudecodeui/docker-entrypoint.sh /
 
 # 设置 entrypoint
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["cloudcli"]
+#CMD ["cloudcli"]
