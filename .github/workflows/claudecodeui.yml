@@ -40,7 +40,7 @@ jobs:
         tags: adockero/claude-code-ui:origin
         # tags: adockero/node-systemd:node-14
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        context: ./claudecodeui
+        context: ./
         file: "./claudecodeui/Dockerfile"
         # Always attempt to pull a newer version of the image
         pull: true
