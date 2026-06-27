@@ -76,6 +76,9 @@ sed -i "s/^#\?PermitRootLogin.*/PermitRootLogin yes/g" /etc/ssh/sshd_config 2>/d
 # 4. 启用密码登录（保持原有逻辑）
 sed -i "s/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g" /etc/ssh/sshd_config 2>/dev/null || true
 
+# 4. 启用密码登录（保持原有逻辑）
+sed -i "s/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g" /etc/ssh/sshd_config 2>/dev/null || true
+
 # 5. 启用授权密钥文件（保持原有逻辑）
 sed -i "s/^#\?AuthorizedKeysFile.*/AuthorizedKeysFile .ssh/authorized_keys/g" /etc/ssh/sshd_config 2>/dev/null || true
 
