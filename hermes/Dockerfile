@@ -12,7 +12,7 @@ RUN echo "开始" \
     && hermes config set dashboard.port 9119 \
     && hermes config set dashboard.basic_auth.username admin-hermes \
     # 密码admin
-    && hermes config set dashboard.basic_auth.password_hash "scrypt$16384$8$1$9iN2RGlOKJJ6TaU+7mHDhQ==$iwW/llJk6aStTPCeMuSwmLcY8UJqzXxwAgI6pKzBGng=" \
+    && hermes config set dashboard.basic_auth.password "123456" \
     # 网关开关
     && hermes config set gateway.allow_all_users true \
     && hermes config set approvals.mode off \
