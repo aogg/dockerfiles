@@ -1,7 +1,7 @@
 #!/usr/bin/env ash 
 
 
-if [ -d "/opt/data" ]; then
+if [ ! -d "/opt/data" ]; then
     mv /opt/data.bak /opt/data
 fi
 
