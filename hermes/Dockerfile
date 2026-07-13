@@ -1,6 +1,10 @@
 FROM nousresearch/hermes-agent
 
 
+RUN apt update \
+    && apt install -y execline \
+    && rm -rf  /var/lib/apt/lists/* \
+
 
 RUN echo "开始" \
     && npm install -g hermes-web-ui \
