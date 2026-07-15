@@ -7,7 +7,7 @@ RUN apt update \
 
 
 RUN echo "开始" \
-    && npm install -g hermes-web-ui \
+    # && npm install -g hermes-web-ui \
     && groupmod -g 1000 hermes \
     && usermod -g 1000 hermes \
     && id hermes \
