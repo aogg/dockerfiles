@@ -11,6 +11,10 @@ echo "HERMES_ORIG_CWD="
 echo $HERMES_ORIG_CWD
 env
 
-(sleep 4 && cd $HERMES_ORIG_CWD && runuser -m -u hermes -- hermes dashboard --host 0.0.0.0 --port 9119 --no-open --insecure) &
+# (sleep 4 && cd $HERMES_ORIG_CWD && runuser -m -u hermes -- hermes dashboard --host 0.0.0.0 --port 9119 --no-open --insecure) &
+
+(sleep 4 && cd $HERMES_ORIG_CWD && hermes dashboard --host 0.0.0.0 --port 9119 --no-open --insecure) &
+
+(sleep 6 && hermes dashboard --status) &
 
 exec runuser -m -u hermes -- hermes "$@"
