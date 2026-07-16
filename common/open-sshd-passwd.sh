@@ -83,7 +83,7 @@ sed -i "s/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g" /etc/ssh/sshd_c
 sed -i "s/^#\?AuthorizedKeysFile.*/AuthorizedKeysFile .ssh/authorized_keys/g" /etc/ssh/sshd_config 2>/dev/null || true
 
 # ==========新增开启端口转发配置==========
-if [ -z "$SSH_ALLOW_TCP_FORWARDING" ];then
+if [ "$SSH_ALLOW_TCP_FORWARDING" = "1" ]; then
     sed -i '/^AllowTcpForwarding/d' /etc/ssh/sshd_config || true
     echo "AllowTcpForwarding yes" >> /etc/ssh/sshd_config || true
     # 如果你只允许访问172.19.0.90:2222就启用下面一行注释版本
