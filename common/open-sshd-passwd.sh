@@ -104,6 +104,11 @@ echo "=== 启动 sshd 服务（端口：$SSHD_PORT） ==="
 # 查找 sshd 可执行文件（兼容不同系统路径）
 SSHD_BIN=$(which sshd || echo "/usr/sbin/sshd")
 # 启动并输出详细日志（-e），指定端口，传递额外参数
-"$SSHD_BIN" -e -p "$SSHD_PORT" "$@" &
+if [ "$1" = "-D" ]; then
+    echo "第一个参数是 -D"
+    exec "$SSHD_BIN" -e -p "$SSHD_PORT" "$@"
+else
+    "$SSHD_BIN" -e -p "$SSHD_PORT" "$@" &
+fi
 
 echo "=== sshd 服务已启动 ==="
