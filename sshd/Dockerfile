@@ -7,6 +7,8 @@ RUN apk add --no-cache openssh tzdata locales $MORE_APK;
 
 ENV SSHD_PORT=22
 ENV SSHD_PASSWORD='root'
+# 允许端口转发
+ENV SSH_ALLOW_TCP_FORWARDING='1'
 
 # 留意path要./，不能指定到下层文件夹
 ADD ./common/open-sshd-passwd.sh /

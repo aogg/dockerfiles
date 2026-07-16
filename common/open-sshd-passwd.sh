@@ -82,6 +82,15 @@ sed -i "s/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/g" /etc/ssh/sshd_c
 # 5. 启用授权密钥文件（保持原有逻辑）
 sed -i "s/^#\?AuthorizedKeysFile.*/AuthorizedKeysFile .ssh/authorized_keys/g" /etc/ssh/sshd_config 2>/dev/null || true
 
+# ==========新增开启端口转发配置==========
+if [ -z "$SSH_ALLOW_TCP_FORWARDING" ];then
+    sed -i '/^AllowTcpForwarding/d' /etc/ssh/sshd_config || true
+    echo "AllowTcpForwarding yes" >> /etc/ssh/sshd_config || true
+    # 如果你只允许访问172.19.0.90:2222就启用下面一行注释版本
+    # echo 'PermitOpen 172.19.0.90:2222' >> /etc/ssh/sshd_config
+fi
+
+
 # ===================== 设置 root 密码（传参时） =====================
 if [ -n "$SSHD_PASSWORD" ]; then
     echo "=== 设置 root 密码 ==="
