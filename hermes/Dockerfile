@@ -9,7 +9,7 @@ RUN apt update \
 RUN echo "开始" \
     # && npm install -g hermes-web-ui \
     && groupmod -g 1000 hermes \
-    && usermod -g 1000 hermes \
+    && usermod -u 1000 -g 1000 hermes \
     && id hermes \
     && hermes setup --non-interactive \
     && hermes config set dashboard.host 0.0.0.0 \

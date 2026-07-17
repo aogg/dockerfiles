@@ -3,6 +3,7 @@
 
 if [ ! -d "/opt/data" ]; then
     mv /opt/data.bak /opt/data
+    chown -R hermes:hermes /opt/data
 fi
 
 # hermes-web-ui start &
