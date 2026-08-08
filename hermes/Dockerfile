@@ -2,7 +2,7 @@ FROM nousresearch/hermes-agent
 
 
 RUN apt update \
-    && apt install -y execline \
+    && DEBIAN_FRONTEND=noninteractive apt install -y execline tzdata \
     && rm -rf  /var/lib/apt/lists/* \
 
 

@@ -6,6 +6,14 @@ if [ ! -d "/opt/data" ]; then
     chown -R hermes:hermes /opt/data
 fi
 
+# 设置时区 start
+# 通过 TZ 环境变量设置容器时区（entrypoint 以 root 运行，hermes 用户无权限改 /etc/localtime）
+if [ -n "$TZ" ]; then
+    ln -sf /usr/share/zoneinfo/$TZ /etc/localtime
+    echo $TZ > /etc/timezone
+fi
+# 设置时区 end
+
 # hermes-web-ui start &
 
 echo "HERMES_ORIG_CWD="
