@@ -1,0 +1,32 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+# hermes-war-room service — Orchestration War Room Web UI（Hermes 多代理编排可视化）
+#
+# 由 s6-overlay 管理的 longrun 服务，与 dashboard 和 main-hermes 并行运行。
+# 退出后 s6-supervise 会自动重启（finish 脚本返回非 125 退出码）。
+#
+# war-room 运行方式（生产 tarball）：
+#   HERMES_HOME=$HOME/.hermes NITRO_HOST=127.0.0.1 NITRO_PORT=3000 \
+#   node .output/server/index.mjs
+# 它 shell out 到 hermes CLI（spawn `hermes -p <slug> acp` 子进程），
+# 并直读 ~/.hermes/kanban.db 与 profiles 目录，数据持久化到自己的 data/war-room.db。
+
+# 设置 HOME 为 hermes 数据目录（与 dashboard/run 的做法一致）
+export HOME=/opt/data
+
+# war-room 直读 hermes 数据目录（kanban.db / profiles）
+export HERMES_HOME=/opt/data
+
+# 容器内必须监听所有接口（默认 127.0.0.1 容器外访问不到）
+export NITRO_HOST=0.0.0.0
+
+# 默认端口 3000（与 hudui 的 3001 区分）
+export NITRO_PORT="${NITRO_PORT:-3000}"
+
+# 保证 war-room spawn 的 hermes CLI 可执行（hermes -p <slug> acp）
+export PATH=/opt/hermes/bin:$PATH
+
+# 以 hermes 用户运行（与 hermes 主进程同用户才能读 kanban.db / profiles）
+# 工作目录 /opt/hermes-war-room，war-room 会在其下创建 data/war-room.db（属主 hermes 可写）
+cd /opt/hermes-war-room
+exec s6-setuidgid hermes node .output/server/index.mjs

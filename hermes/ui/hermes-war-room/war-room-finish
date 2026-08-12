@@ -1,0 +1,6 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+# war-room finish 脚本。
+# 非 125 退出码 → s6-supervise 会自动重启服务（与 dashboard/finish 的 enabled 分支一致）。
+# 参数：$1=run-exit-code, $2=signal-num, $3=service-dir-name, $4=run-pgid
+exit 0

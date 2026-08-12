@@ -50,11 +50,11 @@ RUN echo "longrun" > /etc/s6-overlay/s6-rc.d/hudui/type
 # - HERMES_HOME 指向 /opt/data（hermes 数据目录）
 # - --host 0.0.0.0 --unsafe-allow-remote 绑定到所有网卡（容器环境需要外部访问）
 # - 默认端口 3001
-COPY ui/hudui-run /etc/s6-overlay/s6-rc.d/hudui/run
+COPY hermes-hudui/hudui-run /etc/s6-overlay/s6-rc.d/hudui/run
 RUN chmod +x /etc/s6-overlay/s6-rc.d/hudui/run
 
 # hudui finish 脚本（与 dashboard/finish 类似，非 125 退出码允许 s6 重启）
-COPY ui/hudui-finish /etc/s6-overlay/s6-rc.d/hudui/finish
+COPY hermes-hudui/hudui-finish /etc/s6-overlay/s6-rc.d/hudui/finish
 RUN chmod +x /etc/s6-overlay/s6-rc.d/hudui/finish
 
 # 依赖 base（与 dashboard、main-hermes 同级，空文件）
@@ -71,13 +71,12 @@ EXPOSE 3001
 EXPOSE 9119
 
 
-# 入口点：恢复基础镜像自带的 ENTRYPOINT ["/init", "/docker-entrypoint.sh"]
-# 原因：ENTRYPOINT ["/init"] 会覆盖基础镜像默认入口，导致 /docker-entrypoint.sh 不执行
+# 入口点：不覆盖 ENTRYPOINT / CMD，完全继承基础镜像 adockero/hermes 的默认值
+# （基础镜像默认 ENTRYPOINT = ["/init", "/docker-entrypoint.sh"]）
+# 历史教训：显式覆盖 ENTRYPOINT 会导致 docker-entrypoint.sh 完全不执行
 #       （data 初始化 / TZ 设置 / dashboard 9119 启动 / exec hermes 全部丢失）
 # s6-overlay 先执行 /init，再以 /docker-entrypoint.sh 作为 main program 运行
 # docker-entrypoint.sh 内部完成环境初始化后 exec hermes，启动 hermes 主进程
-ENTRYPOINT ["/init", "/docker-entrypoint.sh"]
-
 # 不设 CMD：s6-overlay 的 main program = /docker-entrypoint.sh，Docker CMD 作为 $@ 传入。
 # 若 CMD 是 "hermes"，docker-entrypoint.sh 内 exec hermes 会变成 hermes hermes 报错。
 # 基础镜像默认 CMD=null，删除后 $@ 为空，docker-entrypoint.sh 内 exec hermes 正确执行。
