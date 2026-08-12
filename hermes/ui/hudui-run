@@ -1,0 +1,28 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+# hermes-hudui service — Web UI consciousness monitor for Hermes
+#
+# 由 s6-overlay 管理的 longrun 服务，与 dashboard 和 main-hermes 并行运行。
+# 退出后 s6-supervise 会自动重启（finish 脚本返回非 125 退出码）。
+
+# 设置 HOME 为 hermes 数据目录（与 dashboard/run 的做法一致）
+export HOME=/opt/data
+
+# hudui 读取 hermes 数据目录
+export HERMES_HOME="${HERMES_HOME:-/opt/data}"
+
+# 激活 hudui 自己的 venv
+cd /opt/hermes-hudui
+. /opt/hermes-hudui/venv/bin/activate
+
+# 轮询模式（NFS/WSL1/绑定挂载环境下可设置 HERMES_HUD_FORCE_POLLING=1）
+# 无需在此显式设置，hudui 会自动读取该环境变量
+
+# 以 hermes 用户运行 hudui
+# --host 0.0.0.0 --unsafe-allow-remote：绑定到所有网卡以允许容器外部访问
+#   （仅在可信网络中使用，容器环境需要外部访问端口）
+# --port 3001：默认端口
+exec s6-setuidgid hermes hermes-hudui \
+    --host 0.0.0.0 \
+    --port "${HERMES_HUDUI_PORT:-3001}" \
+    --unsafe-allow-remote
