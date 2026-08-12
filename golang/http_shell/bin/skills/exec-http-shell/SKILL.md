@@ -3,6 +3,9 @@ name: exec-http-shell
 description: 用时上传文件作为 shell 命令到服务端执行。Use when你有一个 http_shell 服务地址（如 http://localhost:8080 | http://http-shell.common-all:8080）和一个本地命令文件，需要把文件内容作为命令在服务端 shell 中执行。
 ---
 
+# 注意
+- 不允许在这边git项目生成临时文件
+
 # exec-http-shell（上传文件作为 shell 命令执行）
 
 把本地文件内容作为 shell 命令，POST 到 http_shell 服务端执行。核心动作就是一条 curl。

@@ -2,7 +2,7 @@ FROM nousresearch/hermes-agent
 
 
 RUN apt update \
-    && DEBIAN_FRONTEND=noninteractive apt install -y execline tzdata tree \
+    && DEBIAN_FRONTEND=noninteractive apt install -y execline tzdata tree sshpass \
     && rm -rf  /var/lib/apt/lists/* \
 
 
