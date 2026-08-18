@@ -25,6 +25,9 @@ RUN echo "开始" \
     && echo "完成"
 
 
+RUN git config --global core.autocrlf false \
+    && git config --global --add safe.directory '*'
+
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 
 ENTRYPOINT ["/init", "/docker-entrypoint.sh"]
