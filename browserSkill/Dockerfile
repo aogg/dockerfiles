@@ -19,4 +19,4 @@ ENV BSK_DAEMON_WS_URL="ws://0.0.0.0:52800"
 EXPOSE 52800
 
 # Smoke test: verify bsk is installed and works
-RUN bsk daemon start --foreground -vv
+CMD bsk daemon start --foreground -vv
