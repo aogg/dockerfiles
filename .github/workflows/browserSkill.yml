@@ -31,12 +31,12 @@ jobs:
 # ##########  构建  ###########################
 
 
-    - name: 构建镜像  adockero/browserSkill
+    - name: 构建镜像  adockero/browser-skill-server
       uses: docker/build-push-action@v3
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         # tags: adockero/docker:ubuntu-ssh,adockero/docker-ubuntu:ssh
-        tags: adockero/browserSkill
+        tags: adockero/browser-skill-server
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./browserSkill
         file: "./browserSkill/Dockerfile"
