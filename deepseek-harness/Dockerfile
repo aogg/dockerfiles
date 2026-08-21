@@ -37,7 +37,7 @@ RUN mkdir -p $DSH_HOME/profiles/web \
         '  cpu-features: true' \
         '  ssh2: true' \
         '  node-pty: true' \
-        '  koffi: true'
+        '  koffi: true' \
         > $DSH_HOME/profiles/web/pnpm-workspace.yaml
 
 
