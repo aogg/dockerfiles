@@ -1,0 +1,9 @@
+# DeepSeek Harness web profile 用户层配置（覆盖 dsh-web-app bundle 的 webserver 行）
+#
+# 容器内需对外提供服务，但 dsh CLI 故意拒绝 `--host 0.0.0.0`
+# （见 packages/bundle/web-app/src/startup.ts：防 RCE 暴露到网络），
+# 因此只能在 profile 配置层覆盖。patch 会整行替换目标行的 config，需重述所有键。
+- id: webserver
+  config:
+    host: '0.0.0.0'
+    port: !!js ctx.webStartup.port ?? 3080
