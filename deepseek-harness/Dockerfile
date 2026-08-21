@@ -1,7 +1,7 @@
 FROM node:24-slim
 
 # 基础工具：
-# - git          ：pnpm 解析 Git 依赖必需（dsh-agent-team-gui 为 Git 依赖）
+# - git          ：pnpm 解析 Git 依赖必需（保留，部分插件可能仍引用 Git 仓库）
 # - ca-certificates / curl ：健康检查与基础排障
 # - python3/make/g++ ：node-gyp 编译工具链（ssh2 等可选原生绑定、node-pty 场景）
 RUN apt-get update \
@@ -20,8 +20,8 @@ RUN npm install -g --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-
 #   minimumReleaseAge: 0 —— 避开 pnpm>=11 的新包发布年龄门禁（否则静默装到旧版插件）
 #   allowBuilds —— 放行原生构建脚本：
 #     cloudflared/cpu-features/ssh2 由 @linxin666/dsh-web-ui-all 全家桶带入
-#     dsh-agent-team-gui 为 Git 依赖，install 时需跑 prepare 构建；key 中的 commit
-#     hash 是 v0.4.1 tag 的 commit（tag 不变则稳定）
+#     @nanmicoder/dsh-agent-teams 为 npm 包，无需 Git 依赖构建
+
 ENV DSH_HOME=/root/.dsh \
     DSH_PORT=3080
 RUN mkdir -p $DSH_HOME/profiles/web \
@@ -36,18 +36,20 @@ RUN mkdir -p $DSH_HOME/profiles/web \
         '  cloudflared: true' \
         '  cpu-features: true' \
         '  ssh2: true' \
-        '  dsh-agent-team-gui@https://codeload.github.com/toolclub/dsh-agent-team-gui/tar.gz/270a2b0f9b4461599fe32f1088c8182121ff2a0e: true' \
-      > $DSH_HOME/profiles/web/pnpm-workspace.yaml
+        '  node-pty: true' \
+        '  koffi: true'
+        > $DSH_HOME/profiles/web/pnpm-workspace.yaml
+
 
 # 初始化 web profile 并安装三个插件：
 #   1) dsh-usage-stats                —— token 用量统计（npm）
 #      https://github.com/lanlandeli/dsh-usage-stats
 #   2) @linxin666/dsh-web-ui-all      —— dsh-web-ui 全家桶（npm 聚合包）
 #      https://github.com/zhu1090093659/dsh-web-ui
-#   3) dsh-agent-team-gui             —— 多模型 agent 小队（Git，未发布 npm，pin v0.4.1）
-#      https://github.com/toolclub/dsh-agent-team-gui
-RUN dsh plugin --profile web add dsh-usage-stats @linxin666/dsh-web-ui-all \
-    && dsh plugin --profile web add https://github.com/toolclub/dsh-agent-team-gui#v0.4.1
+#   3) @nanmicoder/dsh-agent-teams    —— 多模型 agent 小队（npm）
+#      https://github.com/NanmiCoder/dsh-agent-teams
+RUN dsh plugin --profile web add dsh-usage-stats @linxin666/dsh-web-ui-all @nanmicoder/dsh-agent-teams \
+    && dsh --profile web --dump-config | grep -E "agent-teams|@nanmicoder"
 
 # profile 用户层：webserver 监听 0.0.0.0
 # （dsh 的 CLI 故意拒绝 `--host 0.0.0.0`，只能通过 profile 配置层覆盖；
