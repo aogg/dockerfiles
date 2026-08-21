@@ -55,7 +55,7 @@ RUN dsh plugin --profile web add dsh-usage-stats @linxin666/dsh-web-ui-all \
 COPY cordis.patch.yml $DSH_HOME/profiles/web/cordis.patch.yml
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# RUN chmod +x /docker-entrypoint.sh
 
 RUN mv $DSH_HOME/profiles/web $DSH_HOME/profiles/web_bak
 
