@@ -9,6 +9,8 @@ dsh --version
 PORT="${DSH_PORT:-3080}"
 echo "监听端口 : ${PORT}"
 
+echo dsh --profile web --dump-config
+dsh --profile web --dump-config
 
 # 判断：目录存在 且 目录内无任何文件
 if [ -d "$DSH_HOME/profiles/web" ] && [ -z "$(ls -A "$DSH_HOME/profiles/web" 2>/dev/null)" ];then
