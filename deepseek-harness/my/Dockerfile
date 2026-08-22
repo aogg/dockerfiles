@@ -28,8 +28,11 @@ RUN mkdir -p $DSH_HOME/profiles/web \
 #      https://github.com/zhu1090093659/dsh-web-ui
 #   3) @nanmicoder/dsh-agent-teams    —— 多模型 agent 小队（npm）
 #      https://github.com/NanmiCoder/dsh-agent-teams
-RUN dsh plugin --profile web add dsh-usage-stats @linxin666/dsh-web-ui-all @nanmicoder/dsh-agent-teams \
-    && dsh --profile web --dump-config | grep -E "agent-teams|@nanmicoder"
+RUN cp -a $DSH_HOME/profiles/web_bak/* $DSH_HOME/profiles/web \
+    && dsh plugin --profile web add dsh-usage-stats @linxin666/dsh-web-ui-all @nanmicoder/dsh-agent-teams \
+    && dsh --profile web --dump-config | grep -E "agent-teams|@nanmicoder" \
+    && rm -Rf $DSH_HOME/profiles/web_bak \
+    && mv $DSH_HOME/profiles/web $DSH_HOME/profiles/web_bak
 
 
 
