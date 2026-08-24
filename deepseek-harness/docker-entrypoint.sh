@@ -18,10 +18,12 @@ if [ ! -d "$DSH_HOME/profiles/web" ] || [ -z "$(ls -A "$DSH_HOME/profiles/web" 2
 
   cp $DSH_HOME/profiles/web/cordis.patch.yml $DSH_HOME/profiles/web/cordis.yml.bak
   cpBool=1
-fi
 
+  
 echo dsh --profile web --dump-config
 dsh --profile web --dump-config
+
+fi
 
 if [ "$cpBool" -eq 1 ];then
   cp -f $DSH_HOME/profiles/web/cordis.yml.bak $DSH_HOME/profiles/web/cordis.yml
