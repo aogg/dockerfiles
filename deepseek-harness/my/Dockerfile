@@ -3,6 +3,7 @@
 FROM adockero/deepseek-harness
 
 
+RUN npm install -g @tencent-ai/codebuddy-code freebuff command-code
 
 RUN mkdir -p $DSH_HOME/profiles/web \
     && printf '%s\n' \
