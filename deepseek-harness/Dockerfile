@@ -5,7 +5,7 @@ FROM node:24-slim
 # - ca-certificates / curl ：健康检查与基础排障
 # - python3/make/g++ ：node-gyp 编译工具链（ssh2 等可选原生绑定、node-pty 场景）
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git ca-certificates curl python3 make g++ \
+    && apt-get install -y --no-install-recommends git ca-certificates curl python3 make g++ procps tree \
     && rm -rf /var/lib/apt/lists/*
 
 # pnpm：`dsh plugin` 将参数原样转发给 pnpm（profile 插件管理必需）
