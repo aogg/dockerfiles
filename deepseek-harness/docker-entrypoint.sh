@@ -13,7 +13,9 @@ echo "监听端口 : ${PORT}"
 # 判断：目录存在 且 目录内无任何文件
 cpBool=0
 if [ ! -d "$DSH_HOME/profiles/web" ] || [ -z "$(ls -A "$DSH_HOME/profiles/web" 2>/dev/null)" ];then
-  cp -a "$DSH_HOME/profiles/web_bak" "$DSH_HOME/profiles/web"
+  echo "不存在web文件夹，开始cp";
+
+  cp -a "$DSH_HOME/profiles/web_bak/*" "$DSH_HOME/profiles/web"
   ls -al $DSH_HOME/profiles/web
 
   cp $DSH_HOME/profiles/web/cordis.patch.yml $DSH_HOME/profiles/web/cordis.yml.bak
@@ -26,8 +28,12 @@ dsh --profile web --dump-config
 fi
 
 if [ "$cpBool" -eq 1 ];then
+  echo "不存在web文件夹，开始cp, yml";
+
   cp -f $DSH_HOME/profiles/web/cordis.yml.bak $DSH_HOME/profiles/web/cordis.yml
   cat $DSH_HOME/profiles/web/cordis.yml
+else
+  echo "已存在web文件夹"  
 fi
 
 # 监听地址为 0.0.0.0（由 profile 的 cordis.patch.yml 配置层覆盖，
