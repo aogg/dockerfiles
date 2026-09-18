@@ -13,7 +13,8 @@ RUN npm install -g pnpm
 
 # DeepSeek Harness CLI（原生模块 node-pty/koffi 等需 allow-scripts 显式放行构建）
 # @see https://github.com/deepseek-ai/deepseek-harness
-RUN npm install -g --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs @deepseek-ai/dsh
+RUN npm install -g --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs @deepseek-ai/dsh \
+    && dsh -V
 
 # 预置 web profile 的 pnpm 配置（dsh plugin 首次初始化时会跳过已存在的文件）：
 #   nodeLinker: hoisted / autoInstallPeers: false —— dsh 官方 profile 模板配置
