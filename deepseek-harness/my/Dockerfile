@@ -3,7 +3,7 @@
 FROM adockero/deepseek-harness
 
 
-RUN npm install -g @tencent-ai/codebuddy-code freebuff command-code
+RUN npm install -g @tencent-ai/codebuddy-code freebuff command-code @qoder-ai/qoder-agent-sdk
 
 RUN mkdir -p $DSH_HOME/profiles/web \
     && printf '%s\n' \

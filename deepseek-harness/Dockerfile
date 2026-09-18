@@ -13,6 +13,7 @@ RUN npm install -g pnpm
 
 # DeepSeek Harness CLI（原生模块 node-pty/koffi 等需 allow-scripts 显式放行构建）
 # @see https://github.com/deepseek-ai/deepseek-harness
+# 这里必须npm
 RUN npm install -g --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs @deepseek-ai/dsh \
     && dsh -V
 

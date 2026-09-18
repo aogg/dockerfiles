@@ -51,4 +51,4 @@ echo cat $DSH_HOME/profiles/web/cordis.patch.yml
 cat $DSH_HOME/profiles/web/cordis.patch.yml
 
 echo "启动"
-exec dsh --profile web --port "${PORT}" "$@"
+exec dsh --profile web --port "${PORT}" --no-open "$@"
