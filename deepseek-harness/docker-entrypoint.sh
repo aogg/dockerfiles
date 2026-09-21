@@ -15,7 +15,7 @@ cpBool=0
 if [ ! -d "$DSH_HOME/profiles/web" ] || [ -z "$(ls -A "$DSH_HOME/profiles/web" 2>/dev/null)" ];then
   echo "不存在web文件夹，开始cp";
 
-  cp -a "$DSH_HOME/profiles/web_bak/*" "$DSH_HOME/profiles/web"
+  cp -a "$DSH_HOME/profiles/web_bak/." "$DSH_HOME/profiles/web"
   ls -al $DSH_HOME/profiles/web
 
   cp $DSH_HOME/profiles/web/cordis.patch.yml $DSH_HOME/profiles/web/cordis.yml.bak
