@@ -1,9 +1,9 @@
 #!/usr/bin/env ash
 
-configFilePath="/root/.config/clash/config.yaml"
+configFilePath="/root/.config/mihomo/config.yaml"
 
 # 确保目录存在
-mkdir -p /root/.config/clash/
+mkdir -p /root/.config/mihomo/
 
 # 生成基础配置文件
 generate_base_config() {
@@ -200,9 +200,9 @@ while true; do
   
   # 启动新的 Clash 进程
   echo "启动 Clash 服务..."
-  /clash &
+  /mihomo &
   CLASH_PID=$!
-  echo "Clash 已启动, 新 PID: $CLASH_PID"
+  echo "mihomo 已启动, 新 PID: $CLASH_PID"
   echo "========================================="
   
   # 首次启动后，在后台选择代理
