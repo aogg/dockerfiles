@@ -77,7 +77,7 @@ fi
 
 # 首次启动后，在后台选择代理
 if [ -f "/proxies-select.sh" ]; then
-    (sleep 5 && /proxies-select.sh) &
+    (sleep 5 && /proxies-select.sh $configFilePath) &
 fi
 
 # 在后台启动 clash
@@ -104,7 +104,7 @@ while true; do
 
   # 首次启动后，在后台选择代理
   if [ -f "/proxies-select.sh" ]; then
-      (sleep 5 && /proxies-select.sh) &
+      (sleep 5 && /proxies-select.sh $configFilePath) &
   fi
 
   CLASH_PID=$!
