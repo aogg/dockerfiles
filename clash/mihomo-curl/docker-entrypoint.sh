@@ -29,16 +29,24 @@ update_config() {
   fi
 
   # 设置混合端口为7890
-  yq -i '.mixed-port = 7890' /root/.config/mihomo/config.yaml
+  yq -i '.mixed-port = 7890' $configFilePath
 
   # 2. 使用 yq 根据环境变量修改配置
   for env in $(printenv); do
     key=$(echo $env | cut -d= -f1)
-    val=$(echo $env | cut -d= -f2- | sed "s/^'\(.*\)'/\\1/g")
+    raw_val=$(echo $env | cut -d= -f2- | sed "s/^'\(.*\)'/\\1/g")
 
     if echo "$key" | grep -q "^CONFIG_YQ_"; then
-      echo "应用 yq 配置: $key => $val"
-      yq -i "$val" $configFilePath
+      echo "raw_val=$raw_val"
+      # 在第一个=切分成 yq表达式路径 和 值
+      yq_path="${raw_val%%=*}"
+      yq_value="${raw_val#*=}"
+      echo "  yq路径: $yq_path"
+      echo "  设置值: $yq_value"
+
+      echo "应用 yq 配置: $yq_path => $yq_value"
+      yq -i "$yq_path = \"$yq_value\"" "$configFilePath"
+      echo "✅ 应用完成 $yq_path = $yq_value"
       echo "应用 yq 配置完成: $key"
     fi
   done
@@ -52,9 +60,14 @@ update_config() {
       echo "'load' 代理组已存在，跳过创建。"
   else
       echo "创建 'load' 代理组..."
+
+      # proxies_from_select_node=$(yq -o y '.proxies[].name' $configFilePath" | tr -d '\n')
+
       echo "从 '🔰 选择节点' 提取的代理: $proxies_from_select_node"
       yq -i '.proxy-groups += [{"name": "load", "type": "load-balance", "strategy": "round-robin", "url": "http://www.gstatic.com/generate_204", "interval": 300, "health-check": {"enable": true, "interval": 60, "url": "http://www.gstatic.com/generate_204", "timeout": 10}}]' "$configFilePath"
-      yq -i '(.proxy-groups[] | select(.name == "load")).proxies = '"$proxies_from_select_node" "$configFilePath"
+
+    # 直接在 yq 内部取所有节点名，避免 shell 拼接表达式
+    yq -i '(.proxy-groups[] | select(.name == "load")).proxies = (.proxies | map(.name))' "$configFilePath"
 
       echo "将 'load' 添加到 GLOBAL 组..."
       global_index=$(yq '.proxy-groups | to_entries | .[] | select(.value.name == "GLOBAL") | .key' "$configFilePath")
