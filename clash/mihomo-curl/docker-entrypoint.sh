@@ -49,9 +49,11 @@ update_config() {
           # 值为null，删除该key
           echo "👉 值为null，执行删除: $yq_path"
           yq -i "del($yq_path)" "$configFilePath"
+      elif [ "$yq_value" = "true" ] || [ "$yq_value" = "false" ]; then
+        yq -i "$yq_path = $yq_value" "$configFilePath"
       else
           # 普通赋值，去掉你原来强制加\"$yq_value\"，避免bool/object被转字符串
-          yq -i "$yq_path = $yq_value" "$configFilePath"
+          yq -i "$yq_path = \"$yq_value\"" "$configFilePath"
       fi      
       
       echo "✅ 应用完成 $yq_path = $yq_value"
