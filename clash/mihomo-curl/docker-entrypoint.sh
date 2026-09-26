@@ -52,7 +52,9 @@ update_config() {
       else
           # 普通赋值，去掉你原来强制加\"$yq_value\"，避免bool/object被转字符串
           yq -i "$yq_path = $yq_value" "$configFilePath"
-      fi      echo "✅ 应用完成 $yq_path = $yq_value"
+      fi      
+      
+      echo "✅ 应用完成 $yq_path = $yq_value"
       echo "应用 yq 配置完成: $key"
     fi
   done
