@@ -1,5 +1,6 @@
 #!/usr/bin/env ash
 
+# 根据别人的yaml，启动
 configFilePath="/root/.config/clash/config.yaml"
 
 # 确保目录存在
@@ -27,6 +28,9 @@ update_config() {
     fi
   fi
 
+  # 设置混合端口为7890
+  yq -i '.mixed-port = 7890' /root/.config/clash/config.yaml
+
   # 2. 使用 yq 根据环境变量修改配置
   for env in $(printenv); do
     key=$(echo $env | cut -d= -f1)
@@ -39,6 +43,7 @@ update_config() {
     fi
   done
 
+
   # 3. 检查并创建 'load' 代理组
   echo "检查 'load' 代理组..."
   load_group_exists=$(yq '.proxy-groups[] | select(.name == "load") | length' "$configFilePath")
@@ -47,19 +52,13 @@ update_config() {
       echo "'load' 代理组已存在，跳过创建。"
   else
       echo "创建 'load' 代理组..."
-      proxies_from_select_node=$(yq -o json '.proxy-groups[] | select(.name == "🔰 选择节点") | .proxies' "$configFilePath" | tr -d '\n')
+      echo "从 '🔰 选择节点' 提取的代理: $proxies_from_select_node"
+      yq -i '.proxy-groups += [{"name": "load", "type": "load-balance", "strategy": "round-robin", "url": "http://www.gstatic.com/generate_204", "interval": 300, "health-check": {"enable": true, "interval": 60, "url": "http://www.gstatic.com/generate_204", "timeout": 10}}]' "$configFilePath"
+      yq -i '(.proxy-groups[] | select(.name == "load")).proxies = '"$proxies_from_select_node" "$configFilePath"
 
-      if [ -z "$proxies_from_select_node" ] || [ "$proxies_from_select_node" = "null" ]; then
-        echo "警告：未在 '🔰 选择节点' 组中找到任何代理，无法创建 'load' 组。"
-      else
-        echo "从 '🔰 选择节点' 提取的代理: $proxies_from_select_node"
-        yq -i '.proxy-groups += [{"name": "load", "type": "load-balance", "strategy": "round-robin", "url": "http://www.gstatic.com/generate_204", "interval": 300, "health-check": {"enable": true, "interval": 60, "url": "http://www.gstatic.com/generate_204", "timeout": 10}}]' "$configFilePath"
-        yq -i '(.proxy-groups[] | select(.name == "load")).proxies = '"$proxies_from_select_node" "$configFilePath"
-
-        echo "将 'load' 添加到 GLOBAL 组..."
-        global_index=$(yq '.proxy-groups | to_entries | .[] | select(.value.name == "GLOBAL") | .key' "$configFilePath")
-        [ -n "$global_index" ] && yq -i ".proxy-groups[${global_index}].proxies = [\"load\"] + .proxy-groups[${global_index}].proxies" "$configFilePath"
-      fi
+      echo "将 'load' 添加到 GLOBAL 组..."
+      global_index=$(yq '.proxy-groups | to_entries | .[] | select(.value.name == "GLOBAL") | .key' "$configFilePath")
+      [ -n "$global_index" ] && yq -i ".proxy-groups[${global_index}].proxies = [\"load\"] + .proxy-groups[${global_index}].proxies" "$configFilePath"
   fi
   
   echo "配置文件处理完成。"
