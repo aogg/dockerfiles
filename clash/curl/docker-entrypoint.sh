@@ -52,6 +52,9 @@ update_config() {
       echo "'load' 代理组已存在，跳过创建。"
   else
       echo "创建 'load' 代理组..."
+
+      proxies_from_select_node=$(yq -o y '.proxies[].name' $configFilePath" | tr -d '\n')
+
       echo "从 '🔰 选择节点' 提取的代理: $proxies_from_select_node"
       yq -i '.proxy-groups += [{"name": "load", "type": "load-balance", "strategy": "round-robin", "url": "http://www.gstatic.com/generate_204", "interval": 300, "health-check": {"enable": true, "interval": 60, "url": "http://www.gstatic.com/generate_204", "timeout": 10}}]' "$configFilePath"
       yq -i '(.proxy-groups[] | select(.name == "load")).proxies = '"$proxies_from_select_node" "$configFilePath"
