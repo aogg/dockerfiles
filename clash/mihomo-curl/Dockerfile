@@ -10,7 +10,7 @@ ENV PROXIE_NAME="load"
 
 EXPOSE 7890
 
-COPY curl/docker-entrypoint.sh /docker-entrypoint.sh
+COPY mihomo-curl/docker-entrypoint.sh /docker-entrypoint.sh
 COPY common/proxies-select.sh /proxies-select.sh
 
 # ENTRYPOINT [ "/curl-docker-entrypoint.sh" ]
