@@ -34,11 +34,29 @@ update_config() {
   # 2. 使用 yq 根据环境变量修改配置
   for env in $(printenv); do
     key=$(echo $env | cut -d= -f1)
-    val=$(echo $env | cut -d= -f2- | sed "s/^'\(.*\)'/\\1/g")
+    raw_val=$(echo $env | cut -d= -f2- | sed "s/^'\(.*\)'/\\1/g")
 
     if echo "$key" | grep -q "^CLASH_YQ_"; then
-      echo "应用 yq 配置: $key => $val"
-      yq -i "$val" $configFilePath
+      echo "raw_val=$raw_val"
+      # 在第一个=切分成 yq表达式路径 和 值
+      yq_path="${raw_val%%=*}"
+      yq_value="${raw_val#*=}"
+      echo "  yq路径: $yq_path"
+      echo "  设置值: $yq_value"
+
+      echo "应用 yq 配置: $yq_path => $yq_value"
+      if [ "$yq_value" = "null" ]; then
+          # 值为null，删除该key
+          echo "👉 值为null，执行删除: $yq_path"
+          yq -i "del($yq_path)" "$configFilePath"
+      elif [ "$yq_value" = "true" ] || [ "$yq_value" = "false" ]; then
+        yq -i "$yq_path = $yq_value" "$configFilePath"
+      else
+          # 普通赋值，去掉你原来强制加\"$yq_value\"，避免bool/object被转字符串
+          yq -i "$yq_path = \"$yq_value\"" "$configFilePath"
+      fi      
+      
+      echo "✅ 应用完成 $yq_path = $yq_value"
       echo "应用 yq 配置完成: $key"
     fi
   done
