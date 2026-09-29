@@ -1,5 +1,8 @@
 FROM node:24-slim
 
+ENV DSH_HOME=/root/.dsh \
+    DSH_PORT=3080
+    
 # 基础工具：
 # - git          ：pnpm 解析 Git 依赖必需（保留，部分插件可能仍引用 Git 仓库）
 # - ca-certificates / curl ：健康检查与基础排障
@@ -28,8 +31,6 @@ RUN npm install -g --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-
 #     cloudflared/cpu-features/ssh2 由 @linxin666/dsh-web-ui-all 全家桶带入
 #     @nanmicoder/dsh-agent-teams 为 npm 包，无需 Git 依赖构建
 
-ENV DSH_HOME=/root/.dsh \
-    DSH_PORT=3080
 
     
 # profile 用户层：webserver 监听 0.0.0.0
