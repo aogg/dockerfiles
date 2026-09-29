@@ -75,7 +75,6 @@ RUN printf '%s\n' '' \
         >> $DSH_HOME/profiles/web/cordis.patch.yml \
     && dsh plugin --profile web add dsh-usage-stats @nanmicoder/dsh-agent-teams @goodandready/dsh-lanmode \
     && dsh --profile web --dump-config | grep -E "agent-teams|@nanmicoder|dsh-lanmode" \
-    && rm -Rf ${DSH_HOME} \
     && mv $DSH_HOME ${DSH_HOME}_bak
 
 # mv必须最后
