@@ -15,7 +15,11 @@ RUN npm install -g pnpm
 # @see https://github.com/deepseek-ai/deepseek-harness
 # 这里必须npm
 RUN npm install -g --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs @deepseek-ai/dsh \
-    && dsh -V
+    && dsh -V \
+    && mv $DSH_HOME ${DSH_HOME}_bak
+
+# 这必须最后，放bak
+
 
 # 预置 web profile 的 pnpm 配置（dsh plugin 首次初始化时会跳过已存在的文件）：
 #   nodeLinker: hoisted / autoInstallPeers: false —— dsh 官方 profile 模板配置
@@ -31,12 +35,11 @@ ENV DSH_HOME=/root/.dsh \
 # profile 用户层：webserver 监听 0.0.0.0
 # （dsh 的 CLI 故意拒绝 `--host 0.0.0.0`，只能通过 profile 配置层覆盖；
 #   容器网络由 --expose/端口映射控制暴露面）
-COPY cordis.patch.yml $DSH_HOME/profiles/web/cordis.patch.yml
+COPY cordis.patch.yml ${DSH_HOME}_bak/profiles/web/cordis.patch.yml
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 # RUN chmod +x /docker-entrypoint.sh
 
-RUN mv $DSH_HOME ${DSH_HOME}_bak
 VOLUME [ "$DSH_HOME" ]
 
 EXPOSE 3080
