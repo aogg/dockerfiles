@@ -3,11 +3,9 @@
 FROM adockero/deepseek-harness
 
 
-RUN npm install -g @tencent-ai/codebuddy-code freebuff command-code @qoder-ai/qoder-agent-sdk
-
 # 基础镜像把初始化模板整体放在 ${DSH_HOME}_bak（entrypoint 首次启动拷回 $DSH_HOME），
 # 构建期 $DSH_HOME 不存在，需先从模板恢复，定制完成后再 mv 回 ${DSH_HOME}_bak
-RUN mkdir -p $DSH_HOME/profiles/web \
+RUN mkdir -p ${DSH_HOME}_bak/profiles/web \
     && printf '%s\n' \
         'packages:' \
         '  - .' \
@@ -21,7 +19,7 @@ RUN mkdir -p $DSH_HOME/profiles/web \
         '  ssh2: true' \
         '  node-pty: true' \
         '  koffi: true' \
-        > $DSH_HOME/profiles/web/pnpm-workspace.yaml
+        > ${DSH_HOME}_bak/profiles/web/pnpm-workspace.yaml
 
 
 # 初始化 web profile 并安装四个插件：
@@ -45,7 +43,7 @@ RUN mkdir -p $DSH_HOME/profiles/web \
 # 可用 docker run -e DSH_LAN_IP="192.168.1.5,10.0.0.3" 显式指定
 # init 脚本必须放进模板 ${DSH_HOME}_bak：若放在 $DSH_HOME，
 # VOLUME 首次挂载时目录非空，entrypoint 会误判"已初始化"而跳过模板拷贝
-COPY my/my-plugin-init.sh ${DSH_HOME}/docker-entrypoint-init-sh/
+COPY my/my-plugin-init.sh ${DSH_HOME}_bak/docker-entrypoint-init-sh/
 
 
 RUN printf '%s\n' '' \
@@ -72,8 +70,9 @@ RUN printf '%s\n' '' \
         '    trustedProxyCidrs: []' \
         '    tlsSites: []' \
         '    adaptiveCompression: true' \
-        >> $DSH_HOME/profiles/web/cordis.patch.yml \
+        >> ${DSH_HOME}_bak/profiles/web/cordis.patch.yml \
     && dsh plugin --profile web add dsh-usage-stats @nanmicoder/dsh-agent-teams @goodandready/dsh-lanmode \
+    && mv ${DSH_HOME}_bak $DSH_HOME  \
     && dsh --profile web --dump-config | grep -E "agent-teams|@nanmicoder|dsh-lanmode" \
     && mv $DSH_HOME ${DSH_HOME}_bak
 
