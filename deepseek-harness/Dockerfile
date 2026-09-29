@@ -36,12 +36,12 @@ COPY cordis.patch.yml $DSH_HOME/profiles/web/cordis.patch.yml
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 # RUN chmod +x /docker-entrypoint.sh
 
-RUN mv $DSH_HOME/profiles/web $DSH_HOME/profiles/web_bak
-VOLUME [ "$DSH_HOME/profiles/web" ]
+RUN mv $DSH_HOME ${DSH_HOME}_bak
+VOLUME [ "$DSH_HOME" ]
 
 EXPOSE 3080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD curl -fsS --noproxy '*' "http://127.0.0.1:${DSH_PORT}/" >/dev/null || exit 1
+# HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    # CMD curl -fsS --noproxy '*' "http://127.0.0.1:${DSH_PORT}/" >/dev/null || exit 1
 
 ENTRYPOINT ["/docker-entrypoint.sh"]

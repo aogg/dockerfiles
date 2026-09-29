@@ -12,10 +12,10 @@ echo "监听端口 : ${PORT}"
 
 # 判断：目录存在 且 目录内无任何文件
 cpBool=0
-if [ ! -d "$DSH_HOME/profiles/web" ] || [ -z "$(ls -A "$DSH_HOME/profiles/web" 2>/dev/null)" ];then
+if [ ! -d "$DSH_HOME/" ] || [ -z "$(ls -A "$DSH_HOME/" 2>/dev/null)" ];then
   echo "不存在web文件夹，开始cp";
 
-  cp -a "$DSH_HOME/profiles/web_bak/." "$DSH_HOME/profiles/web"
+  cp -a "${DSH_HOME}_bak/." "$DSH_HOME/"
   ls -al $DSH_HOME/profiles/web
 
   cp $DSH_HOME/profiles/web/cordis.patch.yml $DSH_HOME/profiles/web/cordis.yml.bak
@@ -52,9 +52,23 @@ if [ -n "$DSH_TRUSTED_HOST" ]; then
   set -- "${TRUSTED_ARGS[@]}" "$@"
 fi
 
+# 执行初始化脚本目录：$DSH_HOME/docker-entrypoint-init-sh/*.sh
+# 目录不存在时跳过；脚本按文件名顺序执行；任一脚本失败即终止启动（受 set -e 影响）
+if [ -d "$DSH_HOME/docker-entrypoint-init-sh" ]; then
+  shopt -s nullglob
+  for f in "$DSH_HOME"/docker-entrypoint-init-sh/*.sh; do
+    echo "执行初始化脚本: $f"
+    bash "$f"
+  done
+else
+  echo "未发现初始化脚本目录: $DSH_HOME/docker-entrypoint-init-sh，跳过"
+fi
+
+
 echo 
 echo cat $DSH_HOME/profiles/web/cordis.patch.yml
 cat $DSH_HOME/profiles/web/cordis.patch.yml
+
 
 echo "启动"
 exec dsh --profile web --port "${PORT}" --no-open "$@"
