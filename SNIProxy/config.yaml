@@ -1,0 +1,31 @@
+# SNIProxy 默认配置文件
+# 完整说明见：https://github.com/XIU2/SNIProxy#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E8%AF%B4%E6%98%8E
+
+# 监听端口（注意需要引号），常见示例如下：
+# ":443"            省略 IP 只写端口，代表监听本机所有 IPv4+IPv6 地址的 443 端口
+# "0.0.0.0:443"     代表监听本机所有 IPv4 地址的 443 端口
+# "127.0.0.1:443"   代表监听本机本地 IPv4 地址的 443 端口（只有本机可访问）
+# "[::]:443"        代表监听本机所有 IPv6 地址的 443 端口
+# "[::1]:443"       代表监听本机本地 IPv6 地址的 443 端口（只有本机可访问）
+listen_addr: ":443"
+
+# 可选：将传入的 HTTP 重定向为 HTTPS（固定的 443 端口和上面配置无关），如果没写将不监听及处理 HTTP 连接
+listen_addr_http: ":80"
+
+# 二选一：允许所有域名（开启后会忽略下面的 rules 列表，注意可能被他人扫描到而滥用）
+allow_all_hosts: true
+
+# 二选一：仅允许指定域名（和上面的 allow_all_hosts 二选一）
+# 指定域名后，则代表允许 域名自身 及其 所有子域名 访问服务
+# rules:
+#   - example.com    # example.com  √ 、a.example.com  √ 、a.a.example.com  √
+#   - b.example2.com # example2.com × 、b.example2.com √ 、c.b.example2.com √
+
+# 可选：启用 Socks5 前置代理（比如可以再套一层 WARP，出口 IP 就变成 Cloudflare 的了）
+# （启用前：访客 <=> SNIProxy <=> 目标网站
+# （启用后：访客 <=> SNIProxy <=> Socks5 <=> 目标网站
+# enable_socks5: true
+# socks_addr: 127.0.0.1:40000
+# 可选：Socks5 代理的账号和密码（如果有的话）
+# socks_username: admin
+# socks_password: abc123
