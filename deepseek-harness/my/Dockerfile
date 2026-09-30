@@ -74,7 +74,8 @@ RUN printf '%s\n' '' \
     && dsh plugin --profile web add dsh-usage-stats; \
     dsh plugin --profile web add @nanmicoder/dsh-agent-teams@0.1.22; \
     dsh plugin --profile web add @goodandready/dsh-lanmode; \
-    mv ${DSH_HOME}_bak $DSH_HOME  \
+    cp -a ${DSH_HOME}_bak/. $DSH_HOME  \
+    && rm -Rf ${DSH_HOME}_bak \
     && dsh --profile web --dump-config | grep -E "agent-teams|@nanmicoder|dsh-lanmode" \
     && mv $DSH_HOME ${DSH_HOME}_bak
 
