@@ -32,6 +32,8 @@ RUN mkdir -p ${DSH_HOME}_bak/profiles/web \
 #      解决局域网访问时 settings are unavailable in this browser。
 #      桥接端口 3088（HTTPS），原生 3080 仅限 localhost；CA 证书：
 #      https://<内网IP>:3088/dsh-lanmode/ca.crt
+#   5) dsh-market                      —— 插件市场
+#   6) dsh-better-sidebar@latest       —— 增强侧边栏
 
 
 
@@ -71,9 +73,11 @@ RUN printf '%s\n' '' \
         >> ${DSH_HOME}_bak/profiles/web/cordis.patch.yml \
     && dsh plugin --profile web add dsh-usage-stats; \
     dsh plugin --profile web add @goodandready/dsh-lanmode; \
+    dsh plugin --profile web add dsh-market; \
+    dsh plugin --profile web add dsh-better-sidebar@latest; \
     cp -a ${DSH_HOME}_bak/. $DSH_HOME  \
     && rm -Rf ${DSH_HOME}_bak \
-    && dsh --profile web --dump-config | grep -E "@nanmicoder|dsh-lanmode" \
+    && dsh --profile web --dump-config | grep -E "@nanmicoder|dsh-lanmode|dsh-market|dsh-better-sidebar" \
     && mv $DSH_HOME ${DSH_HOME}_bak
 
 # mv必须最后
