@@ -106,22 +106,35 @@ fetch_one() {
 }
 
 fetch_all() {
+  local names=() name f
   for var in "${URL_VARS[@]}"; do
     # HOST_URL_ADBLOCK -> adblock
-    local name="${var#HOST_URL_}"
+    name="${var#HOST_URL_}"
     name="$(echo "$name" | tr '[:upper:]' '[:lower:]')"
     local url="${!var}"
     [ -z "$url" ] && continue
+    # 同一 name 只保留一份 (env key 大小写不同但转小写后相同的情况)
+    case " ${names[*]:-} " in *" ${name} "*) continue ;; esac
+    names+=("$name")
     fetch_one "$name" "$url"
   done
 
   # 合并: 初始 hosts + 下载的所有文件 -> /data/hosts
+  # base 中剔除历史上由 hosts.d 管理的段落, 下载内容只按当前 env 合并一份, 避免重复
   # 先写临时文件再 mv, 避免 coredns reload 读到半截文件
   local merged="${HOSTS_FILE}.new"
   {
-    [ -f "$BASE_FILE" ] && cat "$BASE_FILE"
-    shopt -s nullglob
-    for f in "$HOSTS_DIR"/*; do
+    if [ -f "$BASE_FILE" ]; then
+      awk '
+        /^[[:space:]]*# >>> .*\/data\/hosts\.d\// { skip = 1; next }
+        /^[[:space:]]*# >>> /                     { skip = 0 }
+        !skip { print }
+      ' "$BASE_FILE"
+    fi
+    for name in "${names[@]:-}"; do
+      [ -n "$name" ] || continue
+      f="${HOSTS_DIR}/${name}"
+      [ -f "$f" ] || continue
       echo ""
       echo "# >>> ${f}"
       cat "$f"
