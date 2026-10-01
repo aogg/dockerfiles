@@ -7,6 +7,7 @@ set -u
 #   HOST_FETCH_INTERVAL     循环下载间隔(秒), 默认 3600
 #   HOST_FALLBACK_FORWARD   未匹配 hosts 时是否回退到 forward 上游, 默认 true
 #                           设为 false/0/no/off 时移除 forward, 未匹配直接返回 SERVFAIL
+#   HOST_FORWARD_UPSTREAM   自定义 forward 上游, 如 8.8.8.8, 支持空格分隔多个, 默认空=Corefile 内置值
 #
 # 最终把 初始 hosts + /data/hosts.d/ 下所有文件 合并成 /data/hosts
 # (coredns hosts 插件只能读单个文件, Corefile 里 hosts /data/hosts 指向合并文件)
@@ -16,6 +17,7 @@ HOSTS_DIR="/data/hosts.d"       # HOST_URL_* 的下载目录
 BASE_FILE="/data/hosts.base"    # 镜像内置初始 hosts 的备份, 作为合并基底
 INTERVAL="${HOST_FETCH_INTERVAL:-3600}"
 FALLBACK_FORWARD="${HOST_FALLBACK_FORWARD:-true}"
+UPSTREAM="${HOST_FORWARD_UPSTREAM:-}"
 
 # 判断布尔 env 是否为"假" (false/0/no/off, 大小写不敏感)
 is_false() {
@@ -32,21 +34,36 @@ echo " 合并文件 : ${HOSTS_FILE}"
 echo " 循环间隔 : ${INTERVAL}s"
 if is_false "$FALLBACK_FORWARD"; then
   echo " 回退转发 : 关闭 (hosts 未命中的查询直接返回 SERVFAIL)"
+elif [ -n "$UPSTREAM" ]; then
+  echo " 回退转发 : 开启, 上游: ${UPSTREAM}"
 else
-  echo " 回退转发 : 开启 (hosts 未命中转发上游)"
+  echo " 回退转发 : 开启, 上游: Corefile 默认 (223.5.5.5)"
 fi
 echo "=============================================="
 
-# 根据 HOST_FALLBACK_FORWARD 生成实际使用的 Corefile 并启动:
-# 关闭回退时移除 forward 行, hosts 插件 fallthrough 后无插件处理, coredns 返回 SERVFAIL
+# 根据环境变量生成实际使用的 Corefile 并启动:
+# HOST_FALLBACK_FORWARD=false 移除 forward 行, hosts 插件 fallthrough 后无插件处理, coredns 返回 SERVFAIL
+# HOST_FORWARD_UPSTREAM 设置时替换第一个 forward 行的上游 (支持空格分隔多个, 原样写入)
 start_coredns() {
   local src="/etc/coredns/Corefile"
   local conf="$src"
 
   if is_false "$FALLBACK_FORWARD" && grep -qE '^[[:space:]]*forward[[:space:]]' "$src"; then
-    conf="/tmp/Corefile.no-forward"
+    conf="/tmp/Corefile.runtime"
     sed -E '/^[[:space:]]*forward[[:space:]]/d' "$src" > "$conf"
     echo "[conf] HOST_FALLBACK_FORWARD=${FALLBACK_FORWARD}: 已移除 forward, hosts 未命中的查询将直接返回 SERVFAIL"
+  elif [ -n "$UPSTREAM" ] && grep -qE '^[[:space:]]*forward[[:space:]]' "$src"; then
+    conf="/tmp/Corefile.runtime"
+    awk -v fw="forward . ${UPSTREAM}" '
+      /^[[:space:]]*forward[[:space:]]/ && !done {
+        match($0, /^[[:space:]]*/)
+        print substr($0, 1, RLENGTH) fw
+        done = 1
+        next
+      }
+      { print }
+    ' "$src" > "$conf"
+    echo "[conf] HOST_FORWARD_UPSTREAM=${UPSTREAM}: forward 上游已替换"
   fi
 
   # 把 -conf 指向生成的文件, 未传 -conf 时补上

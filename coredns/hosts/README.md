@@ -44,6 +44,7 @@ docker run -d --name coredns \
 | `HOST_URL_<NAME>` | 远程 hosts 文件地址，`<NAME>` 为文件名（自动转小写），可设置多个 | - |
 | `HOST_FETCH_INTERVAL` | 循环下载间隔（秒） | 300 |
 | `HOST_FALLBACK_FORWARD` | 未匹配 hosts 时是否回退到上游 forward。设为 `false`/`0`/`no`/`off` 时移除 `forward`，未命中的查询直接返回 SERVFAIL | true |
+| `HOST_FORWARD_UPSTREAM` | 自定义 forward 上游地址，支持空格分隔多个（如 `8.8.8.8 1.1.1.1`）；与 `HOST_FALLBACK_FORWARD=false` 同时设置时后者优先 | -（使用 Corefile 内置 `223.5.5.5`） |
 
 #### 变量命名与文件对应关系
 
@@ -82,6 +83,16 @@ HOST_URL_SCAM=https://xxx/hosts                 ->  /data/hosts.d/scam
 
 设置 `HOST_FALLBACK_FORWARD=false` 时，启动脚本会自动移除 Corefile 中的 `forward` 行，
 hosts 未命中的查询不再转发上游，直接返回 SERVFAIL（适合纯拦截/纯内网解析场景）：
+
+通过 `HOST_FORWARD_UPSTREAM` 可在不挂载自定义 Corefile 的情况下修改转发上游，支持多个地址：
+
+```bash
+docker run -d --name coredns \
+  -p 53:53/udp -p 53:53/tcp \
+  -e HOST_URL_ADBLOCK=https://adaway.org/hosts.txt \
+  -e HOST_FORWARD_UPSTREAM="8.8.8.8 1.1.1.1" \
+  adockero/coredns:hosts
+```
 
 ### 数据持久化
 
