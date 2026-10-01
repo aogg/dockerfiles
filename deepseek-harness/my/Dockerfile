@@ -74,6 +74,7 @@ RUN printf '%s\n' '' \
     && dsh plugin --profile web add dsh-usage-stats; \
     dsh plugin --profile web add @goodandready/dsh-lanmode; \
     dsh plugin --profile web add dsh-market; \
+    dsh plugin --profile web add dsh-git-idea; \
     dsh plugin --profile web add dsh-better-sidebar@latest; \
     cp -a ${DSH_HOME}_bak/. $DSH_HOME  \
     && rm -Rf ${DSH_HOME}_bak \
