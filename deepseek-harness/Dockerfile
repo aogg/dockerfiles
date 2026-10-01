@@ -9,6 +9,9 @@ ENV DSH_HOME=/root/.dsh \
 # - python3/make/g++ ：node-gyp 编译工具链（ssh2 等可选原生绑定、node-pty 场景）
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates curl python3 make g++ procps tree openssh-client rsync \
+    && git config --global core.autocrlf false \
+    && git config --global core.safecrlf false \
+    && git config --global --add safe.directory '*' \
     && rm -rf /var/lib/apt/lists/*
 
 # pnpm：`dsh plugin` 将参数原样转发给 pnpm（profile 插件管理必需）
