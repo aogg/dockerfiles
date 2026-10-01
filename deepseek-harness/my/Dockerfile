@@ -27,8 +27,6 @@ RUN mkdir -p ${DSH_HOME}_bak/profiles/web \
 #      https://github.com/lanlandeli/dsh-usage-stats
 #   2) @linxin666/dsh-web-ui-all      —— dsh-web-ui 全家桶（npm 聚合包）
 #      https://github.com/zhu1090093659/dsh-web-ui
-#   3) @nanmicoder/dsh-agent-teams    —— 多模型 agent 小队（npm）
-#      https://github.com/NanmiCoder/dsh-agent-teams
 #   4) @goodandready/dsh-lanmode      —— 局域网 HTTPS 访问（社区 Alpha）
 #      烘焙 cordis.patch.yml：自签名CA + mDNS + PWA + unlockPrivileged，
 #      解决局域网访问时 settings are unavailable in this browser。
@@ -72,11 +70,10 @@ RUN printf '%s\n' '' \
         '    adaptiveCompression: true' \
         >> ${DSH_HOME}_bak/profiles/web/cordis.patch.yml \
     && dsh plugin --profile web add dsh-usage-stats; \
-    dsh plugin --profile web add @nanmicoder/dsh-agent-teams@0.1.22; \
     dsh plugin --profile web add @goodandready/dsh-lanmode; \
     cp -a ${DSH_HOME}_bak/. $DSH_HOME  \
     && rm -Rf ${DSH_HOME}_bak \
-    && dsh --profile web --dump-config | grep -E "agent-teams|@nanmicoder|dsh-lanmode" \
+    && dsh --profile web --dump-config | grep -E "@nanmicoder|dsh-lanmode" \
     && mv $DSH_HOME ${DSH_HOME}_bak
 
 # mv必须最后

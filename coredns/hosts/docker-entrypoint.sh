@@ -17,6 +17,14 @@ BASE_FILE="/data/hosts.base"    # 镜像内置初始 hosts 的备份, 作为合�
 INTERVAL="${HOST_FETCH_INTERVAL:-3600}"
 FALLBACK_FORWARD="${HOST_FALLBACK_FORWARD:-true}"
 
+# 判断布尔 env 是否为"假" (false/0/no/off, 大小写不敏感)
+is_false() {
+  case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
+    false|0|no|off) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 echo "=============================================="
 echo " CoreDNS hosts 下载器"
 echo " 下载目录 : ${HOSTS_DIR}"
@@ -28,14 +36,6 @@ else
   echo " 回退转发 : 开启 (hosts 未命中转发上游)"
 fi
 echo "=============================================="
-
-# 判断布尔 env 是否为"假" (false/0/no/off, 大小写不敏感)
-is_false() {
-  case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
-    false|0|no|off) return 0 ;;
-    *) return 1 ;;
-  esac
-}
 
 # 根据 HOST_FALLBACK_FORWARD 生成实际使用的 Corefile 并启动:
 # 关闭回退时移除 forward 行, hosts 插件 fallthrough 后无插件处理, coredns 返回 SERVFAIL
