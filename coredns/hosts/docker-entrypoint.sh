@@ -5,6 +5,8 @@ set -u
 #   HOST_URL_<NAME>=<url>   需要下载的 hosts 文件, 下载到 /data/hosts.d/<name>
 #                           例: HOST_URL_ADBLOCK=https://xxx/hosts  ->  /data/hosts.d/adblock
 #   HOST_FETCH_INTERVAL     循环下载间隔(秒), 默认 3600
+#   HOST_FALLBACK_FORWARD   未匹配 hosts 时是否回退到 forward 上游, 默认 true
+#                           设为 false/0/no/off 时移除 forward, 未匹配直接返回 SERVFAIL
 #
 # 最终把 初始 hosts + /data/hosts.d/ 下所有文件 合并成 /data/hosts
 # (coredns hosts 插件只能读单个文件, Corefile 里 hosts /data/hosts 指向合并文件)
@@ -13,13 +15,56 @@ HOSTS_FILE="/data/hosts"        # coredns 读取的合并文件
 HOSTS_DIR="/data/hosts.d"       # HOST_URL_* 的下载目录
 BASE_FILE="/data/hosts.base"    # 镜像内置初始 hosts 的备份, 作为合并基底
 INTERVAL="${HOST_FETCH_INTERVAL:-3600}"
+FALLBACK_FORWARD="${HOST_FALLBACK_FORWARD:-true}"
 
 echo "=============================================="
 echo " CoreDNS hosts 下载器"
 echo " 下载目录 : ${HOSTS_DIR}"
 echo " 合并文件 : ${HOSTS_FILE}"
 echo " 循环间隔 : ${INTERVAL}s"
+if is_false "$FALLBACK_FORWARD"; then
+  echo " 回退转发 : 关闭 (hosts 未命中的查询直接返回 SERVFAIL)"
+else
+  echo " 回退转发 : 开启 (hosts 未命中转发上游)"
+fi
 echo "=============================================="
+
+# 判断布尔 env 是否为"假" (false/0/no/off, 大小写不敏感)
+is_false() {
+  case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
+    false|0|no|off) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# 根据 HOST_FALLBACK_FORWARD 生成实际使用的 Corefile 并启动:
+# 关闭回退时移除 forward 行, hosts 插件 fallthrough 后无插件处理, coredns 返回 SERVFAIL
+start_coredns() {
+  local src="/etc/coredns/Corefile"
+  local conf="$src"
+
+  if is_false "$FALLBACK_FORWARD" && grep -qE '^[[:space:]]*forward[[:space:]]' "$src"; then
+    conf="/tmp/Corefile.no-forward"
+    sed -E '/^[[:space:]]*forward[[:space:]]/d' "$src" > "$conf"
+    echo "[conf] HOST_FALLBACK_FORWARD=${FALLBACK_FORWARD}: 已移除 forward, hosts 未命中的查询将直接返回 SERVFAIL"
+  fi
+
+  # 把 -conf 指向生成的文件, 未传 -conf 时补上
+  local args=() replaced=0
+  while [ $# -gt 0 ]; do
+    if [ "$1" = "-conf" ] && [ $# -ge 2 ]; then
+      args+=("$1" "$conf")
+      replaced=1
+      shift 2
+    else
+      args+=("$1")
+      shift
+    fi
+  done
+  [ "$replaced" -eq 0 ] && args=(-conf "$conf" "${args[@]}")
+
+  exec /coredns "${args[@]}"
+}
 
 # 收集所有 HOST_URL_* 变量名
 URL_VARS=()
@@ -29,7 +74,7 @@ done
 
 if [ "${#URL_VARS[@]}" -eq 0 ]; then
   echo "未发现 HOST_URL_* 环境变量，跳过下载，直接启动"
-  exec /coredns "$@"
+  start_coredns "$@"
 fi
 
 echo "发现 ${#URL_VARS[@]} 个 HOST_URL_* 变量:"
@@ -105,4 +150,4 @@ echo "下载循环已启动 (pid=$!)"
 
 # Corefile 配置了 reload 5s, hosts 文件更新后 coredns 自动生效
 echo "启动 coredns"
-exec /coredns "$@"
+start_coredns "$@"

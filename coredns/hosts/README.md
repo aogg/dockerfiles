@@ -43,6 +43,7 @@ docker run -d --name coredns \
 |--------|------|--------|
 | `HOST_URL_<NAME>` | 远程 hosts 文件地址，`<NAME>` 为文件名（自动转小写），可设置多个 | - |
 | `HOST_FETCH_INTERVAL` | 循环下载间隔（秒） | 300 |
+| `HOST_FALLBACK_FORWARD` | 未匹配 hosts 时是否回退到上游 forward。设为 `false`/`0`/`no`/`off` 时移除 `forward`，未命中的查询直接返回 SERVFAIL | true |
 
 #### 变量命名与文件对应关系
 
@@ -78,6 +79,9 @@ HOST_URL_SCAM=https://xxx/hosts                 ->  /data/hosts.d/scam
     log
 }
 ```
+
+设置 `HOST_FALLBACK_FORWARD=false` 时，启动脚本会自动移除 Corefile 中的 `forward` 行，
+hosts 未命中的查询不再转发上游，直接返回 SERVFAIL（适合纯拦截/纯内网解析场景）：
 
 ### 数据持久化
 
