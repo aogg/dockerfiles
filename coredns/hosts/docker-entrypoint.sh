@@ -12,6 +12,9 @@ set -u
 # 每轮下载循环还会执行 /data/scripts/*.sh 自定义脚本, 脚本自行生成 hosts 文件到
 # /data/hosts.scripts.d/, 这些文件一并合并
 #
+# /data/hosts 已存在时先启动 coredns 立即提供服务, 下载/脚本更新在后台进行;
+# 首次启动(无文件)先完成一轮下载合并再启动, 保证启动即有完整 hosts
+#
 # 最终把 初始 hosts + /data/hosts.d/ 下所有文件 + /data/hosts.scripts.d/ 合并成 /data/hosts
 # (coredns hosts 插件只能读单个文件, Corefile 里 hosts /data/hosts 指向合并文件)
 
@@ -206,8 +209,18 @@ fetch_loop() {
   done
 }
 
-fetch_loop &
-echo "下载循环已启动 (pid=$!)"
+if [ -s "$HOSTS_FILE" ]; then
+  # hosts 已存在: 先启动 coredns 立即提供服务, 下载循环在后台更新
+  echo "检测到已有 ${HOSTS_FILE}, 先启动 coredns, 更新在后台进行"
+  fetch_loop &
+  echo "下载循环已启动 (pid=$!)"
+else
+  # 首次启动: 先完成一轮下载与合并, 再启动 coredns (启动即有完整 hosts)
+  echo "首次启动: 先执行一轮下载与合并, 再启动 coredns"
+  fetch_all
+  fetch_loop &
+  echo "下载循环已启动 (pid=$!)"
+fi
 
 # Corefile 配置了 reload 5s, hosts 文件更新后 coredns 自动生效
 echo "启动 coredns"

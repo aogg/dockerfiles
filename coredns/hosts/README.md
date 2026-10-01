@@ -57,11 +57,12 @@ HOST_URL_SCAM=https://xxx/hosts                 ->  /data/hosts.d/scam
 ### 工作原理
 
 1. 启动时备份镜像内置 hosts 为 `/data/hosts.base`，作为合并基底
-2. 后台循环按 `HOST_FETCH_INTERVAL` 间隔下载所有 `HOST_URL_*` 到 `/data/hosts.d/`
-3. 下载完成后执行 `/data/scripts/*.sh` 自定义脚本（脚本自行生成 hosts 到 `/data/hosts.scripts.d/`）
-4. 合并 `hosts.base` + `hosts.d/` + `hosts.scripts.d/` 写入 `/data/hosts`（coredns hosts 插件只能读单个文件）
-5. coredns 通过 `reload 5s` 自动加载更新后的 hosts
-6. 单个下载/脚本失败时只记录日志，保留旧文件，循环继续
+2. `/data/hosts` 已存在时先启动 coredns 立即提供服务，更新循环在后台执行；首次启动（无文件）则先完成一轮下载与合并再启动
+3. 后台循环按 `HOST_FETCH_INTERVAL` 间隔下载所有 `HOST_URL_*` 到 `/data/hosts.d/`
+4. 下载完成后执行 `/data/scripts/*.sh` 自定义脚本（脚本自行生成 hosts 到 `/data/hosts.scripts.d/`）
+5. 合并 `hosts.base` + `hosts.d/` + `hosts.scripts.d/` 写入 `/data/hosts`（coredns hosts 插件只能读单个文件）
+6. coredns 通过 `reload 5s` 自动加载更新后的 hosts
+7. 单个下载/脚本失败时只记录日志，保留旧文件，循环继续
 
 ### 自定义脚本
 
