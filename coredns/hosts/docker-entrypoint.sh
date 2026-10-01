@@ -9,12 +9,17 @@ set -u
 #                           设为 false/0/no/off 时移除 forward, 未匹配直接返回 SERVFAIL
 #   HOST_FORWARD_UPSTREAM   自定义 forward 上游, 如 8.8.8.8, 支持空格分隔多个, 默认空=Corefile 内置值
 #
-# 最终把 初始 hosts + /data/hosts.d/ 下所有文件 合并成 /data/hosts
+# 每轮下载循环还会执行 /data/scripts/*.sh 自定义脚本, 脚本自行生成 hosts 文件到
+# /data/hosts.scripts.d/, 这些文件一并合并
+#
+# 最终把 初始 hosts + /data/hosts.d/ 下所有文件 + /data/hosts.scripts.d/ 合并成 /data/hosts
 # (coredns hosts 插件只能读单个文件, Corefile 里 hosts /data/hosts 指向合并文件)
 
 HOSTS_FILE="/data/hosts"        # coredns 读取的合并文件
 HOSTS_DIR="/data/hosts.d"       # HOST_URL_* 的下载目录
 BASE_FILE="/data/hosts.base"    # 镜像内置初始 hosts 的备份, 作为合并基底
+SCRIPTS_DIR="/data/scripts"     # 自定义脚本目录, 每轮循环执行 *.sh
+SCRIPTS_OUT_DIR="/data/hosts.scripts.d"  # 脚本生成的 hosts 输出目录, 随循环合并
 INTERVAL="${HOST_FETCH_INTERVAL:-3600}"
 FALLBACK_FORWARD="${HOST_FALLBACK_FORWARD:-true}"
 UPSTREAM="${HOST_FORWARD_UPSTREAM:-}"
@@ -31,6 +36,7 @@ echo "=============================================="
 echo " CoreDNS hosts 下载器"
 echo " 下载目录 : ${HOSTS_DIR}"
 echo " 合并文件 : ${HOSTS_FILE}"
+echo " 脚本目录 : ${SCRIPTS_DIR} (输出到 ${SCRIPTS_OUT_DIR})"
 echo " 循环间隔 : ${INTERVAL}s"
 if is_false "$FALLBACK_FORWARD"; then
   echo " 回退转发 : 关闭 (hosts 未命中的查询直接返回 SERVFAIL)"
@@ -104,7 +110,7 @@ if [ ! -f "$BASE_FILE" ] && [ -f "$HOSTS_FILE" ]; then
   cp -f "$HOSTS_FILE" "$BASE_FILE"
 fi
 
-mkdir -p "$HOSTS_DIR"
+mkdir -p "$HOSTS_DIR" "$SCRIPTS_DIR" "$SCRIPTS_OUT_DIR"
 
 # 下载单个文件, 失败只报错不中断, 保留旧文件
 fetch_one() {
@@ -122,6 +128,21 @@ fetch_one() {
   fi
 }
 
+# 执行 /data/scripts/*.sh 自定义脚本, 脚本自行生成 hosts 文件到 /data/hosts.scripts.d/
+# 失败只报错不中断, 输出文件保留旧值
+run_scripts() {
+  local f
+  for f in "$SCRIPTS_DIR"/*.sh; do
+    [ -f "$f" ] || continue
+    echo "[script] 执行 ${f}"
+    if [ -x "$f" ]; then
+      "$f" || echo "[err]    脚本执行失败, 跳过: ${f}" >&2
+    else
+      bash "$f" || echo "[err]    脚本执行失败, 跳过: ${f}" >&2
+    fi
+  done
+}
+
 fetch_all() {
   local names=() name f
   for var in "${URL_VARS[@]}"; do
@@ -136,7 +157,10 @@ fetch_all() {
     fetch_one "$name" "$url"
   done
 
-  # 合并: 初始 hosts + 下载的所有文件 -> /data/hosts
+  # 执行自定义脚本 (脚本自行更新 /data/hosts.scripts.d/ 下的 hosts 文件)
+  run_scripts
+
+  # 合并: 初始 hosts + 下载的所有文件 + 脚本生成的文件 -> /data/hosts
   # base 中剔除历史上由 hosts.d 管理的段落, 下载内容只按当前 env 合并一份, 避免重复
   # 先写临时文件再 mv, 避免 coredns reload 读到半截文件
   local merged="${HOSTS_FILE}.new"
@@ -151,6 +175,13 @@ fetch_all() {
     for name in "${names[@]:-}"; do
       [ -n "$name" ] || continue
       f="${HOSTS_DIR}/${name}"
+      [ -f "$f" ] || continue
+      echo ""
+      echo "# >>> ${f}"
+      cat "$f"
+    done
+    # 脚本生成的 hosts 文件
+    for f in "$SCRIPTS_OUT_DIR"/*; do
       [ -f "$f" ] || continue
       echo ""
       echo "# >>> ${f}"
