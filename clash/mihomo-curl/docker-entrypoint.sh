@@ -8,8 +8,13 @@
 #   [d]   -> 2位日期, 如 29
 #   [int] -> 自增整数, 从 0 开始
 #            每成功下载一个 URL 就启动一个 mihomo 实例,
-#            混合端口从 7890 起随实例自增 (7890, 7891, ...),
-#            API(external-controller) 端口从 9090 起自增;
+#            混合端口从 7891 起随实例自增 (7891, 7892, ...),
+#            API(external-controller) 端口从 9091 起自增;
+#            另有一个固定端口 (7890/9090) 的聚合实例, 将所有实例
+#            作为上游做负载均衡, 对外提供统一的固定入口;
+#            每个实例启动前先用 mihomo -t 测试配置(会触发 geo db
+#            下载, 网络失败自动重试最多 3 次), 测试与启动在实例间
+#            并发执行; 测试 3 次均失败时跳过启动, 旧实例继续运行;
 #            curl 下载重试 3 次, 3 次全部失败则停止自增。
 # 示例:
 #   URL=https://clashnode.github.io/uploads/[Y]/[m]/[int]-[Y][m][d].yaml
@@ -27,13 +32,21 @@
 #   https://(*.|)github(usercontent)?.com 开头, 会自动加上该前缀, 例:
 #   https://raw.githubusercontent.com/xxx.yaml
 #     -> https://hk.gh-proxy.org/https://raw.githubusercontent.com/xxx.yaml
-#   配置缺少 geox-url 时自动写入默认值(jsdelivr CDN, 可直连)。
+#   配置缺少 geox-url 时自动写入默认值 (前缀见 GEOX_URL_PREFIX)。
+#
+# GEOX_URL_PREFIX 环境变量(可选):
+#   geo 数据 (geox-url: mmdb/geoip/geosite) 默认 URL 的公共前缀,
+#   默认 https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release
+#   用于配置缺少 geox-url 时自动写入的默认值; 末尾的 / 会被自动去掉。
+#   例: GEOX_URL_PREFIX=https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat@release
 
 configDir="/root/.config/mihomo"
 configFilePath="$configDir/config.yaml"
 PORT="${PORT:-7890}"
 CTRL_PORT_BASE="${CTRL_PORT_BASE:-9090}"
 GITHUB_PROXY="${GITHUB_PROXY:-https://hk.gh-proxy.org/}"
+GEOX_URL_PREFIX="${GEOX_URL_PREFIX:-https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release}"
+GEOX_URL_PREFIX="${GEOX_URL_PREFIX%/}"
 
 # 确保目录存在
 mkdir -p "$configDir"
@@ -188,13 +201,13 @@ process_config() {
     yq -i 'del(.port, .socks-port, .redir-port, .tproxy-port)' "$cfgFile"
   fi
 
-  # 缺少 geox-url(或值非 map, 如空 [])时写入默认值 (jsdelivr CDN, 无需代理)
+  # 缺少 geox-url(或值非 map, 如空 [])时写入默认值 (前缀由 GEOX_URL_PREFIX 指定)
   if [ "$(yq '.geox-url | tag' "$cfgFile")" != "!!map" ]; then
-    echo "未配置 geox-url, 写入默认值"
+    echo "未配置 geox-url, 写入默认值 (前缀: ${GEOX_URL_PREFIX})"
     yq -i '.geox-url = {
-      "mmdb": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.metadb",
-      "geoip": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat",
-      "geosite": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+      "mmdb": "'"${GEOX_URL_PREFIX}"'/geoip.metadb",
+      "geoip": "'"${GEOX_URL_PREFIX}"'/geoip.dat",
+      "geosite": "'"${GEOX_URL_PREFIX}"'/geosite.dat"
     }' "$cfgFile"
   fi
 
@@ -270,6 +283,24 @@ stop_instance() {
   fi
 }
 
+# 后台运行 mihomo, 每行日志前加 [进程端口: xxxx] 标签
+# $1=端口(标签用) $2=pid文件(写入 mihomo 本体 PID), 其余参数原样传给 mihomo
+# 日志经 fifo 转发加工, pid 文件仍是 mihomo 本体 PID, kill/存活检查不受影响;
+# mihomo 退出后 fifo 写端关闭, 日志加工进程收到 EOF 自行退出
+run_mihomo() {
+  rmTag="$1"
+  rmPidFile="$2"
+  shift 2
+  rmFifo="${rmPidFile%.pid}.logfifo"
+  rm -f "$rmFifo"
+  mkfifo "$rmFifo"
+  while IFS= read -r rmLine; do
+    echo "[进程端口: ${rmTag}] ${rmLine}"
+  done <"$rmFifo" &
+  /mihomo "$@" >"$rmFifo" 2>&1 &
+  echo $! >"$rmPidFile"
+}
+
 # 启动(或重启)实例 $1
 start_instance() {
   instIdx="$1"
@@ -277,10 +308,51 @@ start_instance() {
   mkdir -p "$instDir"
   stop_instance "$instIdx"
   sleep 1
-  echo /mihomo -d "$instDir" -f "$instDir/config.yaml" &
-  /mihomo -d "$instDir" -f "$instDir/config.yaml" &
-  echo $! > "$(pid_file "$instIdx")"
-  echo "实例 ${instIdx} 已启动, PID: $(cat "$(pid_file "$instIdx")"), 端口: $((PORT + instIdx))"
+  instPort=$((PORT + 1 + instIdx))
+  run_mihomo "$instPort" "$(pid_file "$instIdx")" -d "$instDir" -f "$instDir/config.yaml"
+  echo "实例 ${instIdx} 已启动, PID: $(cat "$(pid_file "$instIdx")"), 端口: ${instPort}"
+}
+
+# 用 mihomo -t 测试配置; -t 会触发 geo db (geosite/geoip) 下载,
+# 网络等原因失败时自动重试, 最多 3 次
+# $1=-d 目录  $2=配置文件; 全部失败返回 1
+test_mihomo_config() {
+  tstDir="$1"
+  tstFile="$2"
+  tstTry=1
+  while [ "$tstTry" -le 3 ]; do
+    tstLog=$(mktemp /tmp/mihomo-test.XXXXXX)
+    if /mihomo -t -d "$tstDir" -f "$tstFile" >"$tstLog" 2>&1; then
+      rm -f "$tstLog"
+      echo "✅ 配置测试通过: ${tstFile} (第 ${tstTry} 次)"
+      return 0
+    fi
+    echo "警告: 配置测试失败(第 ${tstTry}/3 次): ${tstFile}"
+    tail -n 5 "$tstLog" 2>/dev/null
+    rm -f "$tstLog"
+    tstTry=$((tstTry + 1))
+    sleep 2
+  done
+  echo "错误: 配置测试 3 次均失败: ${tstFile}"
+  return 1
+}
+
+# 测试并启动单个实例 (供并发调用):
+# 测试通过才重启实例; 测试失败则不动旧实例 (有旧进程就继续运行)
+launch_instance() {
+  lIdx="$1"
+  lDir=$(instance_dir "$lIdx")
+  if test_mihomo_config "$lDir" "$lDir/config.yaml"; then
+    start_instance "$lIdx"
+    select_proxies_for "$lDir/config.yaml"
+    return 0
+  fi
+  if [ -f "$(pid_file "$lIdx")" ] && kill -0 "$(cat "$(pid_file "$lIdx")")" 2>/dev/null; then
+    echo "实例 ${lIdx}: 配置测试失败, 保留旧实例继续运行"
+  else
+    echo "实例 ${lIdx}: 配置测试失败, 跳过启动"
+  fi
+  return 1
 }
 
 # 后台选择代理
@@ -289,6 +361,73 @@ select_proxies_for() {
   if [ -f "/proxies-select.sh" ]; then
     (sleep 5 && /proxies-select.sh "$cfgSel") &
   fi
+}
+
+# --- 聚合实例 (仅多实例模式) ---
+# 固定端口 (默认 7890/9090) 的独立 mihomo, 将所有运行中的实例
+# 作为 http 上游节点, 通过 load-balance 组对外提供统一入口
+
+agg_pid_file() { echo "/tmp/mihomo-agg.pid"; }
+
+stop_aggregator() {
+  aggPf=$(agg_pid_file)
+  if [ -f "$aggPf" ]; then
+    kill "$(cat "$aggPf")" 2>/dev/null
+    rm -f "$aggPf"
+  fi
+}
+
+# 根据当前运行中的实例生成聚合配置并(重新)启动
+start_aggregator() {
+  # 收存活实例 idx (pid 文件存在且进程仍在运行)
+  aggIdxs=""
+  for aggPf in /tmp/mihomo-inst*.pid; do
+    [ -f "$aggPf" ] || continue
+    aggIdx=$(basename "$aggPf" | sed 's/^mihomo-inst//; s/\.pid$//')
+    kill -0 "$(cat "$aggPf")" 2>/dev/null || continue
+    aggIdxs="$aggIdxs $aggIdx"
+  done
+  if [ -z "$aggIdxs" ]; then
+    echo "无运行中的实例, 停止聚合实例"
+    stop_aggregator
+    return 0
+  fi
+
+  aggDir="$configDir/aggregator"
+  mkdir -p "$aggDir"
+  aggCfg="$aggDir/config.yaml"
+  cat > "$aggCfg" <<EOF
+# 聚合实例: 固定端口 ${PORT}/${CTRL_PORT_BASE}, 上游为各 mihomo 实例
+mixed-port: ${PORT}
+external-controller: 0.0.0.0:${CTRL_PORT_BASE}
+mode: rule
+log-level: info
+proxies: []
+proxy-groups:
+  - name: load
+    type: load-balance
+    strategy: round-robin
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    health-check:
+      enable: true
+      url: http://www.gstatic.com/generate_204
+      interval: 60
+    proxies: []
+rules:
+  - MATCH,load
+EOF
+
+  for aggIdx in $aggIdxs; do
+    aggPort=$((PORT + 1 + aggIdx))
+    yq -i ".proxies += [{\"name\": \"inst${aggIdx}\", \"type\": \"http\", \"server\": \"127.0.0.1\", \"port\": ${aggPort}}]" "$aggCfg"
+    yq -i '.proxy-groups[0].proxies += ["inst'"${aggIdx}"'"]' "$aggCfg"
+  done
+
+  stop_aggregator
+  sleep 1
+  echo "启动聚合实例: 代理端口 ${PORT}, API ${CTRL_PORT_BASE}, 上游实例:${aggIdxs}"
+  run_mihomo "$PORT" "$(agg_pid_file)" -d "$aggDir" -f "$aggCfg"
 }
 
 # 多实例模式: 按 [int] 自增展开 URL 并逐一启动;
@@ -313,26 +452,52 @@ start_all_instances() {
     fi
     echo "实例 ${i}: 使用 ${DATE_Y}-${DATE_m}-${DATE_d} 的配置"
     mv "$tmpCfg" "$instDir/config.yaml"
-    process_config "$instDir/config.yaml" "$((PORT + i))" "0.0.0.0:$((CTRL_PORT_BASE + i))"
-    start_instance "$i"
-    select_proxies_for "$instDir/config.yaml"
+    # 实例端口从 1 开始自增 (7891, 7892, ...), 7890/9090 留给聚合实例
+    process_config "$instDir/config.yaml" "$((PORT + 1 + i))" "0.0.0.0:$((CTRL_PORT_BASE + 1 + i))"
     # 记录汇总信息(读取最终配置中的实际 API 端口)
     instCtrl=$(yq '.external-controller' "$instDir/config.yaml")
     [ "$instCtrl" = "null" ] && instCtrl="-"
-    summary="${summary}实例 ${i} | 代理端口 $((PORT + i)) | API ${instCtrl} | ${realUrl} | 生成后yaml文件路径 ${instDir}/config.yaml
+    summary="${summary}实例 ${i} | 代理端口 $((PORT + 1 + i)) | API ${instCtrl} | ${realUrl} | 生成后yaml文件路径 ${instDir}/config.yaml
 "
+    # 测试+启动放后台并发执行 (-t 的 geo db 下载较慢, 并发省时间)
+    launch_instance "$i" &
     i=$((i + 1))
   done
 
-  # 自增结束后汇总: 哪些 URL 有效, 对应启动的端口
+  # 等待所有并发的测试+启动完成
+  wait
+
+  # 启动(或重启)固定端口的聚合实例, 上游为所有运行中的实例
+  start_aggregator
+
+  # 自增结束后汇总: 哪些 URL 有效, 对应启动的端口;
+  # 标注实际未运行的实例 (配置测试 3 次失败等)
   if [ -n "$summary" ]; then
+    runCount=0
+    finalSummary=""
+    while IFS= read -r smLine; do
+      [ -n "$smLine" ] || continue
+      smIdx=$(echo "$smLine" | sed -n 's/^实例 \([0-9][0-9]*\) |.*/\1/p')
+      if [ -n "$smIdx" ] && [ -f "$(pid_file "$smIdx")" ] \
+         && kill -0 "$(cat "$(pid_file "$smIdx")")" 2>/dev/null; then
+        finalSummary="${finalSummary}${smLine}
+"
+        runCount=$((runCount + 1))
+      else
+        finalSummary="${finalSummary}${smLine} [未运行: 配置测试或启动失败]
+"
+      fi
+    done <<EOF
+$summary
+EOF
     echo "========================================="
     if [ -n "$LOCKED_EP" ]; then
-      echo "汇总: 锁定日期 $(date -d "@$LOCKED_EP" +%Y-%m-%d), 共 ${i} 个有效实例:"
+      echo "汇总: 锁定日期 $(date -d "@$LOCKED_EP" +%Y-%m-%d), 下载成功 ${i} 个, 实际运行 ${runCount} 个:"
     else
-      echo "汇总: 共 ${i} 个有效实例:"
+      echo "汇总: 下载成功 ${i} 个, 实际运行 ${runCount} 个:"
     fi
-    echo "$summary"
+    echo "$finalSummary"
+    [ -f "$(agg_pid_file)" ] && echo "聚合实例 | 代理端口 ${PORT} | API 0.0.0.0:${CTRL_PORT_BASE} | 上游: 全部实例负载均衡 | 配置 ${configDir}/aggregator/config.yaml"
   fi
 }
 
@@ -386,10 +551,16 @@ else
     exit 1
   fi
 
+  # 启动前测试配置 (-t 失败自动重试最多 3 次)
+  if ! test_mihomo_config "$configDir" "$configFilePath"; then
+    echo "首次启动: 配置测试失败, 容器将退出。"
+    exit 1
+  fi
+
   # 启动 mihomo
   echo "启动 mihomo 服务..."
-  /mihomo &
-  CLASH_PID=$!
+  run_mihomo "$PORT" /tmp/mihomo-single.pid
+  CLASH_PID=$(cat /tmp/mihomo-single.pid)
   select_proxies_for "$configFilePath"
 fi
 
@@ -409,14 +580,19 @@ while true; do
   else
     # 更新配置; 一个都没下载成功则不更新配置、不重启 mihomo
     if update_single; then
-      # 重启 Clash
-      echo "重启 mihomo 服务以应用新配置..."
-      kill $CLASH_PID
-      sleep 1
-      /mihomo &
-      CLASH_PID=$!
-      select_proxies_for "$configFilePath"
-      echo "mihomo 已重启, 新 PID: $CLASH_PID"
+      # 重启前测试新配置, 测试失败则保留旧进程继续运行
+      if test_mihomo_config "$configDir" "$configFilePath"; then
+        # 重启 Clash
+        echo "重启 mihomo 服务以应用新配置..."
+        kill $CLASH_PID
+        sleep 1
+        run_mihomo "$PORT" /tmp/mihomo-single.pid
+        CLASH_PID=$(cat /tmp/mihomo-single.pid)
+        select_proxies_for "$configFilePath"
+        echo "mihomo 已重启, 新 PID: $CLASH_PID"
+      else
+        echo "新配置测试失败, 保留旧 mihomo 继续运行 (PID: $CLASH_PID)"
+      fi
     else
       echo "下载配置全部失败，跳过更新，mihomo 继续运行 (PID: $CLASH_PID)"
     fi
