@@ -34,6 +34,8 @@ RUN mkdir -p ${DSH_HOME}_bak/profiles/web \
 #      https://<内网IP>:3088/dsh-lanmode/ca.crt
 #   5) dsh-market                      —— 插件市场
 #   6) dsh-better-sidebar@latest       —— 增强侧边栏
+#   7) dsh-power-button                —— 侧边栏电源按钮/重启/关机插件
+#      来源 github:keyiadiannao/dsh-power-button#master
 
 
 
@@ -76,9 +78,10 @@ RUN printf '%s\n' '' \
     dsh plugin --profile web add dsh-market; \
     dsh plugin --profile web add dsh-git-idea; \
     dsh plugin --profile web add dsh-better-sidebar@latest; \
+    dsh plugin --profile web add "github:keyiadiannao/dsh-power-button#master"; \
     cp -a ${DSH_HOME}_bak/. $DSH_HOME  \
     && rm -Rf ${DSH_HOME}_bak \
-    && dsh --profile web --dump-config | grep -E "@nanmicoder|dsh-lanmode|dsh-market|dsh-better-sidebar" \
+    && dsh --profile web --dump-config | grep -E "@nanmicoder|dsh-lanmode|dsh-market|dsh-better-sidebar|dsh-power-button" \
     && mv $DSH_HOME ${DSH_HOME}_bak
 
 # mv必须最后
