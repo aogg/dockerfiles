@@ -36,6 +36,8 @@ RUN mkdir -p ${DSH_HOME}_bak/profiles/web \
 #   6) dsh-better-sidebar@latest       —— 增强侧边栏
 #   7) dsh-power-button                —— 侧边栏电源按钮/重启/关机插件
 #      来源 github:keyiadiannao/dsh-power-button#master
+#   8) dsh-prompt-history              —— 类 shell 输入历史(↑/↓ 召回)+终端式复制粘贴
+#      来源 npm 已发布包 dsh-prompt-history
 
 
 
@@ -79,9 +81,10 @@ RUN printf '%s\n' '' \
     dsh plugin --profile web add dsh-git-idea; \
     dsh plugin --profile web add dsh-better-sidebar@latest; \
     dsh plugin --profile web add "github:keyiadiannao/dsh-power-button#master"; \
+    dsh plugin --profile web add dsh-prompt-history; \
     cp -a ${DSH_HOME}_bak/. $DSH_HOME  \
     && rm -Rf ${DSH_HOME}_bak \
-    && dsh --profile web --dump-config | grep -E "@nanmicoder|dsh-lanmode|dsh-market|dsh-better-sidebar|dsh-power-button" \
+    && dsh --profile web --dump-config | grep -E "@nanmicoder|dsh-lanmode|dsh-market|dsh-better-sidebar|dsh-power-button|dsh-prompt-history" \
     && mv $DSH_HOME ${DSH_HOME}_bak
 
 # mv必须最后
