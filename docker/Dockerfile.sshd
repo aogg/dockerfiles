@@ -3,7 +3,8 @@ FROM docker:${VERSION}
 
 
 # @see https://github.com/danielguerra69/docker-sshd/blob/master/Dockerfile
-RUN apk --update add openssh git &&\
+# alpine 基础镜像默认没有 tzdata，需安装后 timezone-set.sh 才能设置时区
+RUN apk --update add openssh git tzdata &&\
     rm -rf /tmp/* /var/cache/apk/*
 
 ENV SSHD_PORT=22
@@ -12,6 +13,8 @@ ENV SSHD_PASSWORD=''
 # configure container
 # 留意path要./，不能指定到下层文件夹
 ADD ./common/open-sshd-passwd.sh /
+# 时区设置脚本，容器启动时通过 TIMEZONE/TZ 环境变量设置时区
+ADD ./common/timezone-set.sh /
 ADD ./docker/docker-entrypoint.sshd.sh /
 
 ENTRYPOINT ["/docker-entrypoint.sshd.sh"]

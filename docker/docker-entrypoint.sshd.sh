@@ -1,6 +1,18 @@
 #!/usr/bin/env ash 
 
 
+# 时区支持：优先使用 TIMEZONE（仓库约定），未设置时回退用 TZ（docker 通用惯例）
+: "${TIMEZONE:=$TZ}"
+
+if [ -n "$TIMEZONE" ];then
+    export TIMEZONE TZ="$TIMEZONE";
+fi
+
+if [ -f /timezone-set.sh ];then
+    /timezone-set.sh;
+fi
+
+
 if [ -f /open-sshd-jsh.sh ];then
     /open-sshd-jsh.sh;
     rm /open-sshd-jsh.sh;

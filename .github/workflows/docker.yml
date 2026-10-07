@@ -5,6 +5,7 @@ on:
     paths: 
       - "docker/**"
       - "common/open-sshd-passwd.sh"
+      - "common/timezone-set.sh"
       - ".github/workflows/docker.yml"
       - "!**.md"
  # schedule: 
@@ -92,9 +93,10 @@ jobs:
 
 # ############## ubuntu - end  ########################
 
+# ############## alpine - start  ########################
 
 
-    - name: docker-dind-sshd-latest
+    - name: adockero/docker:dind-sshd
       uses: docker/build-push-action@v1.1.0
       with:
         # Username used to log in to a Docker registry. If not set then no login will occur
@@ -119,7 +121,7 @@ jobs:
 
 
               
-    - name: docker-sshd-latest
+    - name: adockero/docker:sshd
       uses: docker/build-push-action@v1.1.0
       with:
         # Username used to log in to a Docker registry. If not set then no login will occur
@@ -140,6 +142,7 @@ jobs:
         # Adds labels with git repository information to the built image
         add_git_labels: true  
    
+# ############## alpine - end  ########################
    
 # ############## dind-sshd-ubuntu ########################
               
