@@ -38,11 +38,15 @@ RUN mkdir -p ${DSH_HOME}_bak/profiles/web \
 #      来源 github:keyiadiannao/dsh-power-button#master
 #   8) dsh-prompt-history              —— 类 shell 输入历史(↑/↓ 召回)+终端式复制粘贴
 #      来源 npm 已发布包 dsh-prompt-history
+#   9) dsh-remote-auth                —— 远程授权页（/mobile-auth 链接/二维码铸造会话）
+#      运行期门禁由 my-plugin-init.sh 依据 env 初始化：
+#      DSH_REMOTE_AUTH_AUTHORITIES / DSH_REMOTE_AUTH_PIN / 网段自动探测
 
 
 
 # 局域网网段初始化脚本（entrypoint 每次启动执行 docker-entrypoint-init-sh/*.sh）：
 # 启动时把当前 IP 所在 /24 网段自动追加进 cordis.patch.yml 的 dsh-lanmode allow，
+# 除 lanmode 网段外，同时重建 dsh-remote-auth 的门禁配置（域名白名单/PIN/子网，依 env）
 # 幂等可重复执行；容器 bridge 网络下探测到的是容器内网 IP，
 # 可用 docker run -e DSH_LAN_IP="192.168.1.5,10.0.0.3" 显式指定
 # init 脚本必须放进模板 ${DSH_HOME}_bak：若放在 $DSH_HOME，
@@ -82,9 +86,10 @@ RUN printf '%s\n' '' \
     dsh plugin --profile web add dsh-better-sidebar@latest; \
     dsh plugin --profile web add "github:keyiadiannao/dsh-power-button#master"; \
     dsh plugin --profile web add dsh-prompt-history; \
+    dsh plugin --profile web add dsh-remote-auth -w; \
     cp -a ${DSH_HOME}_bak/. $DSH_HOME  \
     && rm -Rf ${DSH_HOME}_bak \
-    && dsh --profile web --dump-config | grep -E "@nanmicoder|dsh-lanmode|dsh-market|dsh-better-sidebar|dsh-power-button|dsh-prompt-history" \
+    && dsh --profile web --dump-config | grep -E "@nanmicoder|dsh-lanmode|dsh-market|dsh-better-sidebar|dsh-power-button|dsh-prompt-history|dsh-remote-auth" \
     && mv $DSH_HOME ${DSH_HOME}_bak
 
 # mv必须最后
