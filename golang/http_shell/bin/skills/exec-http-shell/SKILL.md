@@ -34,6 +34,9 @@ curl --location --request POST "$HOST" \
 - `exec-http-shell.sh`（本 skill 对应，sh 版）
 - `exec-http-shell.bat`（Windows 批处理版，功能等价）
 
+# 执行案例
+- 错误案例（真实踩坑记录：空响应、服务重启、输出读取失败等）：[./执行案例-错误案例.md]
+
 ## 陷阱
 - 命令文件路径含空格时必须用引号整体包裹，否则 curl 会把路径拆成多个 form 字段。
 - 服务端执行的是文件**内容**（命令文本），不是 bash 语法解析；复杂命令建议写成完整脚本文件再上传。
