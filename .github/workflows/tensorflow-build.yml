@@ -1,6 +1,7 @@
 name: tensorflow-build-构建和提交docker
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main

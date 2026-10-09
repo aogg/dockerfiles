@@ -1,6 +1,7 @@
 name: smartdns-构建和提交docker
 
 on:
+  workflow_dispatch:
   push:
     paths: 
       - "smartdns/**"

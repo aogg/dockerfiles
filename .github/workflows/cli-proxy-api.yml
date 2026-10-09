@@ -1,6 +1,7 @@
 name: cli-proxy-api-构建和提交docker
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths: 
