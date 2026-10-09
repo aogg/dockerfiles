@@ -8,8 +8,9 @@ on:
       - "whistle/proxy/**"
       - ".github/workflows/whistle.yml"
       - "!**.md"
-  schedule: 
-    - cron: '0 2 2 * *' # Weekly on Sundays at 02:00 
+  workflow_dispatch:    
+  # schedule: 
+  #   - cron: '0 2 2 * *' # Weekly on Sundays at 02:00 
 
 jobs:
   
