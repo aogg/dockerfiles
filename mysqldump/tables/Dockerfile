@@ -8,10 +8,15 @@ ARG BASE_FROM=mysql:5.7-debian
 FROM ${BASE_FROM}
 
 RUN mv /etc/apt/sources.list.d/mysql.list /tmp/mysql.list \
-    && if [ "$(cat /etc/os-release | grep VERSION_ID | cut -d'=' -f2 | tr -d '"')" -le 10 ]; then \
-        echo "deb http://archive.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list; \
-        echo "deb http://archive.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list; \
-        echo "deb http://archive.debian.org/debian buster-updates main contrib non-free" >> /etc/apt/sources.list; \
+    && VERSION_ID=$(grep VERSION_ID /etc/os-release | cut -d'=' -f2 | tr -d '"') \
+    && CODENAME=$(grep VERSION_CODENAME /etc/os-release | cut -d'=' -f2 | tr -d '"') \
+    && if [ "$VERSION_ID" -le 11 ]; then \
+        echo "deb http://archive.debian.org/debian ${CODENAME} main contrib non-free" > /etc/apt/sources.list; \
+        echo "deb http://archive.debian.org/debian-security ${CODENAME}/updates main contrib non-free" >> /etc/apt/sources.list; \
+        # buster才有buster-updates；bullseye没有bullseye-updates归档源，只给<=10增加
+        if [ "$VERSION_ID" -le 10 ]; then \
+            echo "deb http://archive.debian.org/debian ${CODENAME}-updates main contrib non-free" >> /etc/apt/sources.list; \
+        fi; \
     fi \
     && (apt update || (echo 'update报错但依然运行' && true)) \
     && apt install -y curl procps \
