@@ -6,7 +6,9 @@ FROM debian:bullseye-slim
 
 ARG APK_ARG=
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# bullseye 已过 LTS 被归档，deb.debian.org 的 pool 中 .deb 已清理（构建时 404），改用 archive.debian.org 提供完整历史包
+RUN sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list && \
+    apt-get update && apt-get install -y --no-install-recommends \
     default-mysql-client ca-certificates bash openssh-client sshpass procps ${APK_ARG} && \
     rm -rf /var/lib/apt/lists/*
 
