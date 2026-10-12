@@ -31,6 +31,7 @@
 | `ALL_DATABASES` | 设置后操作所有数据库，跳过 `information_schema`、`performance_schema`、`mysql` 和 `_` 开头的库 | - |
 | `IGNORE_DATABASE` | 额外忽略的一个数据库名 | - |
 | `ASYNC_WAIT` | 设置后异步并发执行，结束时等待全部进程完成 | - |
+| `ENV_DB_ALIAS_*` | 导入库别名：`ENV_DB_ALIAS_源库名=目标库名`，把 dump 导入到目标库。仅导入（`/import.sh`）生效，未设置的库行为不变 | - |
 
 兼容 `MYSQL_ENV_DB_USER` 等旧式变量名作为缺省值。
 
@@ -73,3 +74,23 @@ adockero/mysqldump:5.7
 ```
 
 镜像名后的参数原样传给 mysql。
+
+### 导入库别名
+
+`ENV_DB_ALIAS_源库名=目标库名` 把 `/mysqldump/源库名.sql` 导入到目标库，单库（`DB_NAME`）和 `ALL_DATABASES` 模式都生效；单库模式下 dump 文件名仍用原库名，未设置别名的库行为不变。
+
+设置别名时，导入前先执行 `CREATE DATABASE IF NOT EXISTS \`目标库\``，并把 dump 流里 `USE`、`CREATE DATABASE` 语句中的源库名替换成目标库名——`--databases` 导出的文件自带这两类语句，只改 mysql 命令行上的库名会被 `USE` 语句切回源库。表数据不替换。
+
+```bash
+# 全库：OLDDB.sql 导入到 NEWDB，其余库不变
+docker run --rm -v $PWD:/mysqldump -e DB_HOST=local_host -e DB_USER=db_user -e DB_PASS=db_pass \
+-e ALL_DATABASES=true -e ASYNC_WAIT=true -e ENV_DB_ALIAS_OLDDB=NEWDB \
+--entrypoint /import.sh \
+adockero/mysqldump:5.7
+
+# 单库：/mysqldump/OLDDB.sql 导入到 NEWDB
+docker run --rm -v $PWD:/mysqldump -e DB_HOST=local_host -e DB_USER=db_user -e DB_PASS=db_pass \
+-e DB_NAME=OLDDB -e ENV_DB_ALIAS_OLDDB=NEWDB \
+--entrypoint /import.sh \
+adockero/mysqldump:5.7
+```

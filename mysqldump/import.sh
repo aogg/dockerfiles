@@ -8,6 +8,65 @@ ALL_DATABASES=${ALL_DATABASES}
 ASYNC_WAIT=${ASYNC_WAIT}
 
 
+# 库别名：ENV_DB_ALIAS_源库名=目标库名，把 /mysqldump/源库名.sql 导入到目标库
+# 库名可能含 - 等字符，不是合法的 bash 变量名，所以用 printenv 按名字取环境变量
+# 未设置别名时返回源库名
+get_db_target() {
+        local db="$1"
+        local target
+        target=$(printenv "ENV_DB_ALIAS_${db}")
+        if [[ ${target} == "" ]]; then
+                printf '%s' "${db}"
+        else
+                printf '%s' "${target}"
+        fi
+}
+
+# 转义 sed 模式里的特殊字符，库名可能含 . 等字符
+sed_pattern_escape() {
+        printf '%s' "$1" | sed -e 's/[][\/.^$*]/\\&/g'
+}
+
+# 转义 sed 替换串里的特殊字符
+sed_replacement_escape() {
+        printf '%s' "$1" | sed -e 's/[\/&]/\\&/g'
+}
+
+# 把 dump 流里 USE、CREATE DATABASE 语句中的源库名替换成目标库名
+# dump.sh 在 ALL_DATABASES 模式用 --databases 导出，文件里带 USE `源库`; 和 CREATE DATABASE `源库`;，
+# 只改 mysql 命令行上的库名会被文件里的 USE 语句切回源库，所以要在流里替换；
+# 只替换这两类语句里的库名，不做全文替换，避免误伤表数据
+filter_dump_db_name() {
+        local src_esc
+        local tgt_esc
+        src_esc=$(sed_pattern_escape "$1")
+        tgt_esc=$(sed_replacement_escape "$2")
+        sed -e "/^[[:space:]]*USE[[:space:]]/s/\`${src_esc}\`/\`${tgt_esc}\`/g" \
+                -e "/^[[:space:]]*CREATE[[:space:]]\{1,\}DATABASE[[:space:]]/s/\`${src_esc}\`/\`${tgt_esc}\`/g"
+}
+
+# 导入一个库：参数1=源库名（dump 文件 /mysqldump/源库名.sql），参数2=目标库名，其余参数原样传给 mysql
+import_database() {
+        local src_db="$1"
+        local target_db="$2"
+        shift 2
+
+        if [[ ${src_db} != ${target_db} ]]; then
+                # 目标库设置了别名且可能不存在，先建库，否则没有 CREATE DATABASE 语句的 dump 会报 Unknown database
+                mysql --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" \
+                        -e "CREATE DATABASE IF NOT EXISTS \`${target_db}\`"
+        fi
+
+        if [[ ${src_db} == ${target_db} ]]; then
+                # 无别名：保持原有行为，不过滤 dump 内容
+                mysql --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" "${target_db}" < /mysqldump/"${src_db}".sql
+        else
+                # 有别名：过滤流里的 USE / CREATE DATABASE 语句后导入到目标库
+                filter_dump_db_name "${src_db}" "${target_db}" < /mysqldump/"${src_db}".sql | mysql --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" "${target_db}"
+        fi
+}
+
+
 if [[ ${DB_USER} == "" ]]; then
         echo "Missing DB_USER env variable"
         exit 1
@@ -25,7 +84,12 @@ if [[ ${ALL_DATABASES} == "" ]]; then
                 echo "Missing DB_NAME env variable"
                 exit 1
         fi
-        mysql --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" "${DB_NAME}" < /mysqldump/"${DB_NAME}".sql
+        # 单库模式：dump 文件名仍用原库名，目标库用别名
+        target_db=$(get_db_target "${DB_NAME}")
+        if [[ ${target_db} != ${DB_NAME} ]]; then
+                echo "Importing database: ${DB_NAME} -> ${target_db} (alias)"
+        fi
+        import_database "${DB_NAME}" "${target_db}" "$@"
 else
         cd /mysqldump
         databases=`for f in *.sql; do
@@ -33,12 +97,17 @@ else
         done`
 for db in $databases; do
           if [[ "$db" != "information_schema.sql" ]] && [[ "$db" != "performance_schema.sql" ]] && [[ "$db" != "mysql.sql" ]] && [[ "$db" != _* ]]; then
-                echo "Importing database: $db"
+                target_db=$(get_db_target "$db")
+                if [[ ${target_db} == ${db} ]]; then
+                        echo "Importing database: $db"
+                else
+                        echo "Importing database: $db -> ${target_db} (alias)"
+                fi
 
                 if [[ ${ASYNC_WAIT} == "" ]]; then
-                mysql --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" "$db" < /mysqldump/$db.sql
+                import_database "$db" "${target_db}" "$@"
                 else
-                mysql --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" "$@" "$db" < /mysqldump/$db.sql &
+                import_database "$db" "${target_db}" "$@" &
                 fi
 
           fi

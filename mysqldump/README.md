@@ -29,6 +29,9 @@ ENV DB_NAME ""
 ENV DB_PASS ""
 ENV DB_USER ""
 
+# 导入库别名：ENV_DB_ALIAS_源库名=目标库名，把 /mysqldump/源库名.sql 导入到目标库（仅导入生效）
+# 别名数量不固定，不在 Dockerfile 里用 ENV 声明，运行时用 docker run -e ENV_DB_ALIAS_源库名=目标库名 传入
+
 ```
 
 
@@ -63,6 +66,12 @@ adockero/mysqldump
 
 # 导入 /mysqldump 下所有 .sql 文件
 docker run --rm -v $PWD:/mysqldump -e DB_HOST=local_host -e DB_USER=db_user -e DB_PASS=db_pass -e ALL_DATABASES=true \
+--entrypoint /import.sh \
+adockero/mysqldump
+
+# 导入所有 .sql，OLDDB.sql 导入到别名库 NEWDB，其余库不变
+docker run --rm -v $PWD:/mysqldump -e DB_HOST=local_host -e DB_USER=db_user -e DB_PASS=db_pass \
+-e ALL_DATABASES=true -e ENV_DB_ALIAS_OLDDB=NEWDB \
 --entrypoint /import.sh \
 adockero/mysqldump
 ```
@@ -114,8 +123,9 @@ adockero/mysqldump:tables-5.7
 | `ALL_DATABASES` | 设置后操作所有库，跳过系统库和 `_` 开头的库 | - |
 | `IGNORE_DATABASE` | 额外忽略的一个库名 | - |
 | `ASYNC_WAIT` | 设置后异步并发执行，结束时等待全部进程完成 | - |
+| `ENV_DB_ALIAS_*` | 导入库别名：`ENV_DB_ALIAS_源库名=目标库名`，把 dump 导入到目标库。仅导入（`/import.sh`）生效，未设置的库行为不变 | - |
 
-镜像名后的参数原样传给 mysqldump（导出）或 mysql（导入）。
+镜像名后的参数原样传给 mysqldump（导出）或 mysql（导入）。别名导入时先建目标库（`CREATE DATABASE IF NOT EXISTS`），并把 dump 流里 `USE`、`CREATE DATABASE` 语句中的源库名替换成目标库名，表数据不替换。
 
 详见 [docs/mysqldump-8.md](./docs/mysqldump-8.md)、[docs/mysqldump-5.7.md](./docs/mysqldump-5.7.md)、[docs/mysqldump-latest.md](./docs/mysqldump-latest.md)。
 
