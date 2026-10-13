@@ -662,7 +662,8 @@ update_single() {
 # BEFORE_CONFIG_YQ_MODE 非空、最终 mode 不同、且最终配置有 external-controller
 # 时: 复制出 mode=BEFORE 值的启动副本 ($configDir/config.yaml.before), 用
 # -d "$configDir" -f 启动副本 拉起 (geo 缓存与测试阶段共享), 再由
-# delayed_switch_mode 后台把运行时 mode 切回最终值;
+# delayed_switch_mode 后台把运行时 mode 切回最终值 (API 地址按最终配置
+# external-controller 的端口解析, 解析不到端口时回退 CTRL_PORT_BASE);
 # 最终配置缺 external-controller 时无 REST API 可切, 打警告并降级为直接用
 # 最终配置启动 (初始化 geo/rule-provider 拉取不走直连);
 # 其余情况 (未设置 BEFORE 值 / 最终 mode 与 BEFORE 值相同) 按原样启动
@@ -693,8 +694,17 @@ start_single_mihomo() {
   # 核心逻辑: 拉起 mihomo; 需要切换时由后台任务处理
   if [ "$ssBootCfg" != "$configFilePath" ]; then
     run_mihomo "$PORT" /tmp/mihomo-single.pid -d "$configDir" -f "$ssBootCfg"
-    # 后台延迟切换运行时 mode (单实例 API 固定在 CTRL_PORT_BASE)
-    delayed_switch_mode "127.0.0.1:${CTRL_PORT_BASE}" "$configFilePath" "$ssBootCfg" &
+    # 准备数据: 切换用 API 端口按最终配置 external-controller 解析 (取最后一个
+    # 冒号后的端口; external-controller 可能来自订阅原文, 如 127.0.0.1:9099 /
+    # 0.0.0.0:9095, 端口不一定是 CTRL_PORT_BASE), 解析结果为空时回退
+    # CTRL_PORT_BASE 并打一行说明日志 (走到这里时 ssCtrlRaw 已校验非空不为 null)
+    ssCtrlPort="${ssCtrlRaw##*:}"
+    if [ -z "$ssCtrlPort" ]; then
+      ssCtrlPort="${CTRL_PORT_BASE}"
+      echo "未从 external-controller=${ssCtrlRaw} 解析出端口, 单实例切换 API 回退用 127.0.0.1:${CTRL_PORT_BASE}"
+    fi
+    # 后台延迟切换运行时 mode (API 地址 = 127.0.0.1:<external-controller 端口>)
+    delayed_switch_mode "127.0.0.1:${ssCtrlPort}" "$configFilePath" "$ssBootCfg" &
   else
     run_mihomo "$PORT" /tmp/mihomo-single.pid
   fi
