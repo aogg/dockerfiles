@@ -40,14 +40,25 @@
 #   用于配置缺少 geox-url 时自动写入的默认值; 末尾的 / 会被自动去掉。
 #   例: GEOX_URL_PREFIX=https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat@release
 #
-# BEFORE_CONFIG_YQ_MODE 环境变量(可选):
-#   在 CONFIG_YQ_* 处理之前, 先把配置的 mode 设为该值, 例: BEFORE_CONFIG_YQ_MODE=direct。
-#   用途: mihomo -t 配置测试会按配置的 mode 经隧道下载 geo 数据, 预先设为 direct
-#   使测试阶段 geo 下载走直连, 避免按 global/代理节点下载导致测试失败;
-#   顺序: CONFIG_YQ_* 在其之后应用, 会覆盖该值 (如 CONFIG_YQ_MODE=.mode=global),
-#   最终服务启动运行时的 mode 以 CONFIG_YQ_* 设置为准。
-#   该逻辑位于 process_config() 内, 首次启动与每日定时更新(单实例/多实例)均生效;
-#   未设置该变量时行为与原来完全一致(跳过, 不多打印)。
+# BEFORE_CONFIG_YQ_MODE 环境变量(可选), 例: BEFORE_CONFIG_YQ_MODE=direct。
+#   三阶段生效, 目的: 让 geo / rule-provider 等初始化下载走直连,
+#   避免按 global 等最终 mode 经隧道(代理节点不可用)下载超时失败:
+#   ① 最终配置: 磁盘上的最终配置仍以 CONFIG_YQ_* 为准 (如 .mode=global), 不变;
+#   ② mihomo -t 测试阶段: 不直接测原文件, 复制最终配置为同目录 <配置>.before
+#      副本, 把副本的 mode 改为本值后用副本测试 (-d 不变, geo 缓存共享),
+#      geo 下载走直连; 原配置文件全程不动, 测试结束(成功/失败)后删除副本;
+#   ③ mihomo 启动阶段: 先用 mode=本值 的启动副本拉起进程 (geo/rule-provider
+#      初始化拉取走直连), 待 REST API 就绪并等待 BEFORE_CONFIG_YQ_MODE_DELAY
+#      秒后, 经 PATCH /configs 把运行时 mode 切回最终配置的 mode, 并删除启动
+#      副本; 单实例最终配置缺少 external-controller 时无法切换, 降级为直接用
+#      最终配置启动(初始化不走直连), 需要时可用 CONFIG_YQ_ 设一个。
+#   最终 mode 与本值相同(如都为 direct)时 ②/③ 直接用原文件, 不做切换;
+#   首次启动与每日定时更新(单实例/多实例)均生效; 未设置该变量时行为与
+#   原来完全一致(不复制文件、不多打印、无后台切换任务)。
+#
+# BEFORE_CONFIG_YQ_MODE_DELAY 环境变量(可选):
+#   ③ 中 REST API 就绪后、切换运行时 mode 前的等待秒数, 默认 30,
+#   给初始化阶段的 geo / rule-provider 拉取留时间。
 
 configDir="/root/.config/mihomo"
 configFilePath="$configDir/config.yaml"
@@ -56,6 +67,8 @@ CTRL_PORT_BASE="${CTRL_PORT_BASE:-9090}"
 GITHUB_PROXY="${GITHUB_PROXY:-https://hk.gh-proxy.org/}"
 GEOX_URL_PREFIX="${GEOX_URL_PREFIX:-https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release}"
 GEOX_URL_PREFIX="${GEOX_URL_PREFIX%/}"
+# API 就绪后到切换运行时 mode 前的等待秒数 (见 BEFORE_CONFIG_YQ_MODE ③)
+BEFORE_CONFIG_YQ_MODE_DELAY="${BEFORE_CONFIG_YQ_MODE_DELAY:-30}"
 
 # 确保目录存在
 mkdir -p "$configDir"
@@ -223,14 +236,9 @@ process_config() {
   # 为 github 开头的 URL 添加代理前缀 (geox-url / rule-providers / proxy-providers)
   add_gh_proxy "$cfgFile"
 
-  # BEFORE_CONFIG_YQ_MODE 非空时, 在 CONFIG_YQ_* 处理之前先把 mode 设为该值:
-  # mihomo -t 测试会按配置的 mode 经隧道下载 geo 数据, 预设 direct 使测试走直连;
-  # 后面的 CONFIG_YQ_* (如 CONFIG_YQ_MODE=.mode=global) 在其后应用会覆盖此值,
-  # 最终运行时的 mode 仍以 CONFIG_YQ_* 为准; 未设置时跳过, 行为不变
-  if [ -n "$BEFORE_CONFIG_YQ_MODE" ]; then
-    echo "设置 mode 为 ${BEFORE_CONFIG_YQ_MODE} (CONFIG_YQ_* 处理前, 供 mihomo -t 测试走直连)"
-    yq -i '.mode = "'"${BEFORE_CONFIG_YQ_MODE}"'"' "$cfgFile"
-  fi
+  # 注意: 磁盘上的最终配置以 CONFIG_YQ_* 为准 (mode 也一样);
+  # BEFORE_CONFIG_YQ_MODE 只作用于测试/启动副本, 不在这里改配置
+  # (见 test_mihomo_config / start_instance / start_single_mihomo)
 
   # 使用 yq 根据环境变量修改配置
   for env in $(printenv); do
@@ -319,7 +327,64 @@ run_mihomo() {
   echo $! >"$rmPidFile"
 }
 
+# 延迟切换运行时 mode (BEFORE_CONFIG_YQ_MODE ③, 由调用方放后台运行):
+# 等 REST API 就绪 -> 等待 BEFORE_CONFIG_YQ_MODE_DELAY 秒 (给初始化阶段的
+# geo / rule-provider 拉取留时间) -> PATCH /configs 把运行时 mode 从
+# BEFORE 值切回最终配置的 mode -> 删除启动副本
+# $1=ctrl地址(如 127.0.0.1:9091)  $2=最终配置文件  $3=启动副本(切换后删除)
+delayed_switch_mode() {
+  dsmCtrl="$1"
+  dsmFinalCfg="$2"
+  dsmBootCfg="$3"
+
+  # 等待 API 就绪: /version 可访问即就绪, 最多约 30 次, 每次 1 秒
+  dsmTry=1
+  while [ "$dsmTry" -le 30 ]; do
+    if curl -s --connect-timeout 2 --max-time 5 "http://${dsmCtrl}/version" >/dev/null 2>&1; then
+      break
+    fi
+    dsmTry=$((dsmTry + 1))
+    sleep 1
+  done
+  if [ "$dsmTry" -gt 30 ]; then
+    echo "警告: REST API http://${dsmCtrl} 一直未就绪, 放弃切换 mode (运行时保持 ${BEFORE_CONFIG_YQ_MODE})"
+    rm -f "$dsmBootCfg"
+    return 1
+  fi
+
+  # API 已就绪, 再等一段时间让初始化阶段的 geo / rule-provider 拉取完成
+  echo "REST API ${dsmCtrl} 已就绪, 等待 ${BEFORE_CONFIG_YQ_MODE_DELAY} 秒后切换 mode..."
+  sleep "$BEFORE_CONFIG_YQ_MODE_DELAY"
+
+  # 读取最终配置的 mode (null/空 视为 rule)
+  dsmFinalMode=$(yq '.mode' "$dsmFinalCfg")
+  if [ -z "$dsmFinalMode" ] || [ "$dsmFinalMode" = "null" ]; then
+    dsmFinalMode="rule"
+  fi
+
+  # 与 BEFORE 值相同时无需切换, 只清理启动副本
+  if [ "$dsmFinalMode" = "$BEFORE_CONFIG_YQ_MODE" ]; then
+    echo "最终 mode 与 BEFORE_CONFIG_YQ_MODE 相同(${dsmFinalMode}), 无需切换"
+    rm -f "$dsmBootCfg"
+    return 0
+  fi
+
+  # 核心逻辑: PATCH /configs 热更新运行时 mode (mihomo REST API)
+  echo "切换运行时 mode: ${BEFORE_CONFIG_YQ_MODE} -> ${dsmFinalMode} (PATCH http://${dsmCtrl}/configs)"
+  dsmCode=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 2 --max-time 10 \
+    -X PATCH "http://${dsmCtrl}/configs" \
+    -H 'Content-Type: application/json' \
+    -d "{\"mode\": \"${dsmFinalMode}\"}")
+  echo "切换 mode 请求完成: HTTP ${dsmCode:-无响应}"
+
+  # 逻辑后: 删除启动副本 (残留也无害, 下次启动 cp 会覆盖)
+  rm -f "$dsmBootCfg"
+}
+
 # 启动(或重启)实例 $1
+# BEFORE_CONFIG_YQ_MODE 非空且最终 mode 不同时: 先复制出 mode=BEFORE 值的
+# 启动副本拉起 (初始化 geo/rule-provider 拉取走直连), 再由 delayed_switch_mode
+# 后台切回最终 mode 并删除副本; 相同(或未设置)则直接用原文件启动
 start_instance() {
   instIdx="$1"
   instDir=$(instance_dir "$instIdx")
@@ -327,32 +392,80 @@ start_instance() {
   stop_instance "$instIdx"
   sleep 1
   instPort=$((PORT + 1 + instIdx))
-  run_mihomo "$instPort" "$(pid_file "$instIdx")" -d "$instDir" -f "$instDir/config.yaml"
+  instCfg="$instDir/config.yaml"
+  instBootCfg="$instCfg"
+
+  # 准备数据: BEFORE 值非空时生成 mode=BEFORE 值的启动副本 (原配置不动)
+  if [ -n "$BEFORE_CONFIG_YQ_MODE" ]; then
+    instFinalMode=$(yq '.mode' "$instCfg")
+    if [ -z "$instFinalMode" ] || [ "$instFinalMode" = "null" ]; then
+      instFinalMode="rule"
+    fi
+    if [ "$instFinalMode" != "$BEFORE_CONFIG_YQ_MODE" ]; then
+      instBootCfg="${instCfg}.before"
+      cp "$instCfg" "$instBootCfg"
+      yq -i '.mode = "'"${BEFORE_CONFIG_YQ_MODE}"'"' "$instBootCfg"
+      echo "实例 ${instIdx}: 先以 mode=${BEFORE_CONFIG_YQ_MODE} 的启动副本拉起, API 就绪后切回 mode=${instFinalMode}"
+    fi
+  fi
+
+  # 核心逻辑: 用启动副本拉起 mihomo
+  run_mihomo "$instPort" "$(pid_file "$instIdx")" -d "$instDir" -f "$instBootCfg"
   echo "实例 ${instIdx} 已启动, PID: $(cat "$(pid_file "$instIdx")"), 端口: ${instPort}"
+
+  # 逻辑后: 后台延迟切换运行时 mode
+  # (launch_instance 本身已在后台子 shell 里跑, 这里再 & 不影响主 shell 的 wait;
+  #   实例 API 端口 = CTRL_PORT_BASE + 1 + instIdx, 与 process_config 设置一致)
+  if [ "$instBootCfg" != "$instCfg" ]; then
+    delayed_switch_mode "127.0.0.1:$((CTRL_PORT_BASE + 1 + instIdx))" "$instCfg" "$instBootCfg" &
+  fi
 }
 
 # 用 mihomo -t 测试配置; -t 会触发 geo db (geosite/geoip) 下载,
 # 网络等原因失败时自动重试, 最多 3 次
 # $1=-d 目录  $2=配置文件; 全部失败返回 1
+# BEFORE_CONFIG_YQ_MODE 非空时: 复制配置为同目录 <配置>.before 副本, 把副本的
+# mode 改为该值后用副本测试 (-d 不变, geo 缓存共享), geo 下载走直连;
+# 原配置文件全程不动, 测试结束(成功/失败/重试完)后删除副本
 test_mihomo_config() {
   tstDir="$1"
   tstFile="$2"
   tstTry=1
+  tstRunFile="$tstFile"
+
+  # 准备数据: BEFORE 值非空时生成 mode=BEFORE 值的测试副本 (原配置不动)
+  if [ -n "$BEFORE_CONFIG_YQ_MODE" ]; then
+    tstRunFile="${tstFile}.before"
+    cp "$tstFile" "$tstRunFile"
+    yq -i '.mode = "'"${BEFORE_CONFIG_YQ_MODE}"'"' "$tstRunFile"
+    echo "测试使用 mode=${BEFORE_CONFIG_YQ_MODE} 的副本: ${tstRunFile}"
+  fi
+
+  # 核心逻辑: -t 测试, 失败自动重试最多 3 次
+  tstRet=1
   while [ "$tstTry" -le 3 ]; do
     tstLog=$(mktemp /tmp/mihomo-test.XXXXXX)
-    if /mihomo -t -d "$tstDir" -f "$tstFile" >"$tstLog" 2>&1; then
+    if /mihomo -t -d "$tstDir" -f "$tstRunFile" >"$tstLog" 2>&1; then
       rm -f "$tstLog"
       echo "✅ 配置测试通过: ${tstFile} (第 ${tstTry} 次)"
-      return 0
+      tstRet=0
+      break
     fi
-    echo "警告: 配置测试失败(第 ${tstTry}/3 次): ${tstFile}"
+    echo "警告: 配置测试失败(第 ${tstTry}/3 次): ${tstRunFile}"
     tail -n 5 "$tstLog" 2>/dev/null
     rm -f "$tstLog"
     tstTry=$((tstTry + 1))
     sleep 2
   done
-  echo "错误: 配置测试 3 次均失败: ${tstFile}"
-  return 1
+  if [ "$tstRet" -ne 0 ]; then
+    echo "错误: 配置测试 3 次均失败: ${tstFile}"
+  fi
+
+  # 逻辑后: 删除测试副本 (成功/失败都要删, 原文件全程不动)
+  if [ "$tstRunFile" != "$tstFile" ]; then
+    rm -f "$tstRunFile"
+  fi
+  return "$tstRet"
 }
 
 # 测试并启动单个实例 (供并发调用):
@@ -545,6 +658,48 @@ update_single() {
   return 0
 }
 
+# 启动单实例 mihomo (首次启动与每日定时重启两处共用):
+# BEFORE_CONFIG_YQ_MODE 非空、最终 mode 不同、且最终配置有 external-controller
+# 时: 复制出 mode=BEFORE 值的启动副本 ($configDir/config.yaml.before), 用
+# -d "$configDir" -f 启动副本 拉起 (geo 缓存与测试阶段共享), 再由
+# delayed_switch_mode 后台把运行时 mode 切回最终值;
+# 最终配置缺 external-controller 时无 REST API 可切, 打警告并降级为直接用
+# 最终配置启动 (初始化 geo/rule-provider 拉取不走直连);
+# 其余情况 (未设置 BEFORE 值 / 最终 mode 与 BEFORE 值相同) 按原样启动
+# (不带 -d/-f, 行为与原版一致)
+start_single_mihomo() {
+  ssBootCfg="$configFilePath"
+
+  if [ -n "$BEFORE_CONFIG_YQ_MODE" ]; then
+    # 校验参数: 最终 mode 与 external-controller
+    ssFinalMode=$(yq '.mode' "$configFilePath")
+    if [ -z "$ssFinalMode" ] || [ "$ssFinalMode" = "null" ]; then
+      ssFinalMode="rule"
+    fi
+    ssCtrlRaw=$(yq '.external-controller' "$configFilePath")
+    if [ -z "$ssCtrlRaw" ] || [ "$ssCtrlRaw" = "null" ]; then
+      # 无 REST API 就无法 PATCH /configs 切换, 降级: 直接用最终配置启动
+      echo "警告: 最终配置无 external-controller, 无法运行时切换 mode, 直接以 mode=${ssFinalMode} 启动"
+      echo "       (初始化 geo/rule-provider 拉取不走直连; 如需直连初始化, 用 CONFIG_YQ_ 给配置设一个 external-controller)"
+    elif [ "$ssFinalMode" != "$BEFORE_CONFIG_YQ_MODE" ]; then
+      # 准备数据: mode=BEFORE 值的启动副本 (原配置不动)
+      ssBootCfg="${configFilePath}.before"
+      cp "$configFilePath" "$ssBootCfg"
+      yq -i '.mode = "'"${BEFORE_CONFIG_YQ_MODE}"'"' "$ssBootCfg"
+      echo "单实例: 先以 mode=${BEFORE_CONFIG_YQ_MODE} 的启动副本拉起, API 就绪后切回 mode=${ssFinalMode}"
+    fi
+  fi
+
+  # 核心逻辑: 拉起 mihomo; 需要切换时由后台任务处理
+  if [ "$ssBootCfg" != "$configFilePath" ]; then
+    run_mihomo "$PORT" /tmp/mihomo-single.pid -d "$configDir" -f "$ssBootCfg"
+    # 后台延迟切换运行时 mode (单实例 API 固定在 CTRL_PORT_BASE)
+    delayed_switch_mode "127.0.0.1:${CTRL_PORT_BASE}" "$configFilePath" "$ssBootCfg" &
+  else
+    run_mihomo "$PORT" /tmp/mihomo-single.pid
+  fi
+}
+
 # --- 主程序 ---
 
 # URL 含 [int] 占位符 => 多实例模式
@@ -575,9 +730,9 @@ else
     exit 1
   fi
 
-  # 启动 mihomo
+  # 启动 mihomo (BEFORE_CONFIG_YQ_MODE 非空时先以启动副本初始化再切回)
   echo "启动 mihomo 服务..."
-  run_mihomo "$PORT" /tmp/mihomo-single.pid
+  start_single_mihomo
   CLASH_PID=$(cat /tmp/mihomo-single.pid)
   select_proxies_for "$configFilePath"
 fi
@@ -604,7 +759,7 @@ while true; do
         echo "重启 mihomo 服务以应用新配置..."
         kill $CLASH_PID
         sleep 1
-        run_mihomo "$PORT" /tmp/mihomo-single.pid
+        start_single_mihomo
         CLASH_PID=$(cat /tmp/mihomo-single.pid)
         select_proxies_for "$configFilePath"
         echo "mihomo 已重启, 新 PID: $CLASH_PID"
