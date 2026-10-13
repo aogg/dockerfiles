@@ -39,6 +39,15 @@
 #   默认 https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release
 #   用于配置缺少 geox-url 时自动写入的默认值; 末尾的 / 会被自动去掉。
 #   例: GEOX_URL_PREFIX=https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat@release
+#
+# BEFORE_CONFIG_YQ_MODE 环境变量(可选):
+#   在 CONFIG_YQ_* 处理之前, 先把配置的 mode 设为该值, 例: BEFORE_CONFIG_YQ_MODE=direct。
+#   用途: mihomo -t 配置测试会按配置的 mode 经隧道下载 geo 数据, 预先设为 direct
+#   使测试阶段 geo 下载走直连, 避免按 global/代理节点下载导致测试失败;
+#   顺序: CONFIG_YQ_* 在其之后应用, 会覆盖该值 (如 CONFIG_YQ_MODE=.mode=global),
+#   最终服务启动运行时的 mode 以 CONFIG_YQ_* 设置为准。
+#   该逻辑位于 process_config() 内, 首次启动与每日定时更新(单实例/多实例)均生效;
+#   未设置该变量时行为与原来完全一致(跳过, 不多打印)。
 
 configDir="/root/.config/mihomo"
 configFilePath="$configDir/config.yaml"
@@ -213,6 +222,15 @@ process_config() {
 
   # 为 github 开头的 URL 添加代理前缀 (geox-url / rule-providers / proxy-providers)
   add_gh_proxy "$cfgFile"
+
+  # BEFORE_CONFIG_YQ_MODE 非空时, 在 CONFIG_YQ_* 处理之前先把 mode 设为该值:
+  # mihomo -t 测试会按配置的 mode 经隧道下载 geo 数据, 预设 direct 使测试走直连;
+  # 后面的 CONFIG_YQ_* (如 CONFIG_YQ_MODE=.mode=global) 在其后应用会覆盖此值,
+  # 最终运行时的 mode 仍以 CONFIG_YQ_* 为准; 未设置时跳过, 行为不变
+  if [ -n "$BEFORE_CONFIG_YQ_MODE" ]; then
+    echo "设置 mode 为 ${BEFORE_CONFIG_YQ_MODE} (CONFIG_YQ_* 处理前, 供 mihomo -t 测试走直连)"
+    yq -i '.mode = "'"${BEFORE_CONFIG_YQ_MODE}"'"' "$cfgFile"
+  fi
 
   # 使用 yq 根据环境变量修改配置
   for env in $(printenv); do

@@ -81,7 +81,14 @@ curl http://127.0.0.1:9090/proxies
 | `GITHUB_PROXY` | `https://hk.gh-proxy.org/` | github 相关 URL 的代理前缀, 置空禁用 |
 | `GEOX_URL_PREFIX` | `https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release` | 配置缺少 geox-url 时写入的默认 geo 数据 URL 前缀 |
 | `PROXIE_NAME` | `load` | 启动后自动选择的代理组名 (proxies-select.sh 用) |
+| `BEFORE_CONFIG_YQ_MODE` | (空) | 在 `CONFIG_YQ_*` 处理之前先把配置 `mode` 设为该值, 供 `mihomo -t` 测试走直连; 会被后续 `CONFIG_YQ_*` 覆盖 |
 | `CONFIG_YQ_*` | (无) | 任意 `CONFIG_YQ_` 前缀的环境变量, 值为 `yq路径=值`, 用 yq 改写配置; 值为 `null` 时删除该字段 |
+
+`BEFORE_CONFIG_YQ_MODE` 说明: `mihomo -t` 测试配置时会按配置的 `mode` 经隧道下载
+geo 数据, 设置该项 (如 `BEFORE_CONFIG_YQ_MODE=direct`) 使测试阶段 geo 下载走直连,
+避免按 global/代理节点下载导致测试失败; `CONFIG_YQ_*` 在其之后应用, 会覆盖该值,
+最终服务运行时的 `mode` 以 `CONFIG_YQ_*` 设置为准。该逻辑在 `process_config()` 内,
+首次启动与每日定时更新 (单实例/多实例) 均会生效。
 
 ### URL 占位符
 
