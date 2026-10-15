@@ -138,7 +138,7 @@ jobs:
         add_git_labels: true  
 
               
-    - name: sshd-git-bash-latest
+    - name: adockero/sshd:git-bash
       uses: docker/build-push-action@v1.1.0
       with:
         # Username used to log in to a Docker registry. If not set then no login will occur
