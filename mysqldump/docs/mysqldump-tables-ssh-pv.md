@@ -29,6 +29,7 @@ tables-ssh 家族的 pv 限速版。通过 SSH 只在远端执行 mysql 查询�
 5. 数据对比：
    - 数值主键且行数达到 `PAGE_SYNC_MIN_ROWS`、分页同步开启时：按主键分页（每页 `PAGE_SIZE` 行），逐页 CRC32 校验，只导差异页，结束后删除目标表超出源表最大主键的数据并同步 AUTO_INCREMENT
    - 其他表：整表 `CHECKSUM TABLE` 对比，有差异才 `mysqldump --replace | pv -L $DUMP_PV | mysql`
+   - 配置了 `SYNC_WHERE` 分组 where 过滤的表：行数统计/导出/校验都带条件，跳过整表 CHECKSUM 改按条件同步（见下方环境变量说明）
 6. 单表操作失败自动重试 3 次
 7. 全部结束后等待进程收尾（只统计运行态进程），清理临时目录
 
@@ -37,6 +38,25 @@ tables-ssh 家族的 pv 限速版。通过 SSH 只在远端执行 mysql 查询�
 `DB_HOST_BY_SSH`（默认同 `DB_HOST`）是远端连数据库用的地址，远端可能需要内网 IP；`DB_TABLE_HOST`（默认同 `DB_HOST`）是容器内 mysqldump 导出用的地址，两者可分开设置。
 
 ## 环境变量
+
+### env 文件加载
+
+配置优先级：已导出的环境变量（`docker run -e` 等）> env 文件 > 脚本内默认值。
+
+| 变量名 | 说明 | 默认值 |
+|--------|------|--------|
+| `ENV_FILE` | 显式指定 env 文件路径 | - |
+
+未设置 `ENV_FILE` 时自动加载脚本同目录的 `.env`；容器内脚本是 `/dump-import.md5.pv.sh`，即自动加载 `/.env`，需要把文件挂载进去。
+
+env 文件格式：每行 `KEY=VALUE`，支持 `#` 注释、空行、`export ` 前缀、成对的单/双引号；非法变量名跳过并提示。只填充未设置或为空的变量，不覆盖 `-e` 传入的真实环境变量。
+
+```bash
+# 挂载为自动加载的 /.env
+docker run --rm -v $PWD/tables-ssh-pv.env:/.env -e SSH_IP=... adockero/mysqldump:tables-ssh-pv
+# 或显式指定 ENV_FILE
+docker run --rm -v $PWD:/conf -e ENV_FILE=/conf/tables-ssh-pv.env adockero/mysqldump:tables-ssh-pv
+```
 
 ### 数据库连接
 
@@ -89,6 +109,26 @@ tables-ssh 家族的 pv 限速版。通过 SSH 只在远端执行 mysql 查询�
 | `PAGE_SIZE` | 每页数据量（行数） | 5000 |
 | `PAGE_SYNC_TABLES` | 指定启用分页同步的表，逗号分隔，支持 `库名.表名`；为空则所有符合条件的表 | - |
 | `PAGE_SYNC_MIN_ROWS` | 分页同步的最小行数阈值，低于此值走整表对比 | 5000 |
+
+### 分组 where 过滤
+
+按组给表配 where 条件，组号 `NN` 支持任意多组，两个变量成对配置才生效：
+
+| 变量名 | 说明 | 默认值 |
+|--------|------|--------|
+| `SYNC_WHERE_TABLES_NN` | 第 NN 组表清单，逗号分隔，条目支持 `表名`、`库名.表名`、`库名.*`、`*` | - |
+| `SYNC_WHERE_STR_NN` | 第 NN 组 where 条件，如 `is_deleted=0 AND created_at>'2024-01-01'` | - |
+
+```bash
+-e SYNC_WHERE_TABLES_01="orders,order_items,db2.logs" -e SYNC_WHERE_STR_01="is_deleted=0 AND created_at>'2024-01-01'" \
+-e SYNC_WHERE_TABLES_02="db3.*" -e SYNC_WHERE_STR_02="level_id<4"
+```
+
+- 命中优先级：`db.table` > `db.*` > `table` > `*`；多个组同时命中取更精确的，同精度取组号小的
+- 生效范围：远端行数统计、`mysqldump --where` 导出导入、分页同步的分页查询与 CRC32 校验
+- 配置了 where 的表跳过整表 `CHECKSUM TABLE` 快速路径，改用 `--replace` 按条件同步
+- 分页同步末尾的「删除目标端超范围数据」和「AUTO_INCREMENT 回写」跳过，避免误删被条件排除但目标库已存在的行
+- 条件内字符串值用单引号，不要用双引号（SSH 远端 SQL 转义困难）
 
 ### 过滤与其他
 
