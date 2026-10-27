@@ -1,0 +1,5 @@
+FROM node:alpine
+
+ARG NPM_ARGS=""
+
+RUN npm install -g $NPM_ARGS
