@@ -73,7 +73,8 @@ COPY my/my-plugin-init.sh ${DSH_HOME}_bak/docker-entrypoint-init-sh/
 
 
 # opencode CLI 全局安装
-RUN npm install -g opencode-ai
+RUN npm install -g opencode-ai \
+    && npm install -g @tencent-ai/codebuddy-code
 
 
 # dsh-git-idea 需先构建：该仓库无 prepare 钩子，pnpm 的 github 依赖安装时不会自动
@@ -115,6 +116,7 @@ RUN printf '%s\n' '' \
     dsh plugin --profile web add github:aogg/DSH-better-sidebar#main; \
     dsh plugin --profile web add github:aogg/dsh-ssh-workspace#main; \
     dsh plugin --profile web add github:aogg/dsh-resume-on-restart#master; \
+    dsh plugin --profile web add github:liubaicai/dsh-codebuddy-link#main; \
     dsh plugin --profile web add /opt/plugins/dsh-git-idea; \
     dsh plugin --profile web add dsh-prompt-history@1.2.15; \
     dsh plugin --profile web add dsh-remote-auth@0.1.2 -w; \
