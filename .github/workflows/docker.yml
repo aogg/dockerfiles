@@ -134,7 +134,7 @@ jobs:
         tags: adockero/docker:dind-sshd
         # 留意 path 要 ./，不能指定到下层文件夹
         context: ./
-        dockerfile: docker/Dockerfile.sshd
+        file: docker/Dockerfile.sshd
         platforms: ${{ env.PLATFORMS }}
         # Always attempt to pull a newer version of the image
         pull: true
@@ -157,7 +157,7 @@ jobs:
         tags: adockero/docker:sshd
         # 留意 path 要 ./，不能指定到下层文件夹
         context: ./
-        dockerfile: docker/Dockerfile.sshd
+        file: docker/Dockerfile.sshd
         platforms: ${{ env.PLATFORMS }}
         # Always attempt to pull a newer version of the image
         pull: true
@@ -183,7 +183,7 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: adockero/docker:dind-sshd-ubuntu
         context: ./
-        dockerfile: docker/Dockerfile.dind.sshd
+        file: docker/Dockerfile.dind.sshd
         platforms: ${{ env.PLATFORMS }}
         # Always attempt to pull a newer version of the image
         pull: true
