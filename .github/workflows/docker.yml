@@ -9,8 +9,13 @@ on:
       - "common/timezone-set.sh"
       - ".github/workflows/docker.yml"
       - "!**.md"
- # schedule: 
- #   - cron: '0 2 2 * *' # Weekly on Sundays at 02:00 
+# schedule: 
+#   - cron: '0 2 2 * *' # Weekly on Sundays at 02:00 
+
+env:
+  # 多架构构建目标：linux/arm64/v8 等 arm 宿主机 pull 时会自动选择原生 arm64 镜像，
+  # 不再出现 "requested image's platform (linux/amd64) does not match the detected host platform"
+  PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
   
@@ -24,10 +29,21 @@ jobs:
       uses: actions/checkout@v2.3.2
 
 
+# ##########  多架构构建支持（buildx + QEMU）  ###########################
+# 说明：
+#   1. build-push-action v1/v3 走的是 docker build，不支持多平台，必须升级到 v5+ 并前置 setup-buildx
+#   2. arm64 构建在 amd64 runner 上通过 QEMU 模拟执行，比原生慢，配合 gha 缓存可显著加速
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+      with:
+        platforms: arm64
+
+    - name: Set up Buildx
+      uses: docker/setup-buildx-action@v3
+
 
 # ##########  v3版本  ###########################
-    -  
-      name: 登录 Docker Hub
+    - name: 登录 Docker Hub
       uses: docker/login-action@v2
       with:
         username: adockero
@@ -35,15 +51,15 @@ jobs:
 
 
 # ############## dind-http-shell ########################
-              
 
     - name: docker:dind-http-shell
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v6
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: adockero/docker:dind-http-shell
         context: ./docker/http_shell/
         file: ./docker/http_shell/Dockerfile
+        platforms: ${{ env.PLATFORMS }}
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
@@ -51,18 +67,25 @@ jobs:
         # build-args: |
         #   APT_ARGS=docker.io
         # Adds labels with git repository information to the built image
-        labels: true       
+        labels: |
+          org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          org.opencontainers.image.revision=${{ github.sha }}
+        cache-from: type=gha,scope=dind-http-shell
+        cache-to: type=gha,mode=max,scope=dind-http-shell
 
         
-# ############## ubuntu - end  ########################
+# ############## ubuntu - start  ########################
+# 注意：dind-sshd-ubuntu 的 FROM 是 adockero/docker:ubuntu-ssh，
+#       所以 ubuntu / ubuntu-ssh 必须先以多架构 manifest 推送完成
 
     - name: docker-ubuntu
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v6
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: adockero/docker:ubuntu,adockero/docker-ubuntu:latest
         context: .
         file: docker/Dockerfile.ubuntu
+        platforms: ${{ env.PLATFORMS }}
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
@@ -70,16 +93,21 @@ jobs:
         build-args: |
           APT_ARGS=docker.io
         # Adds labels with git repository information to the built image
-        labels: true         
+        labels: |
+          org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          org.opencontainers.image.revision=${{ github.sha }}
+        cache-from: type=gha,scope=docker-ubuntu
+        cache-to: type=gha,mode=max,scope=docker-ubuntu
       
 
     - name: docker-ubuntu-ssh
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v6
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: adockero/docker:ubuntu-ssh,adockero/docker-ubuntu:ssh
         context: .
         file: docker/Dockerfile.ubuntu
+        platforms: ${{ env.PLATFORMS }}
         # Always attempt to pull a newer version of the image
         pull: true
         push: true
@@ -87,90 +115,85 @@ jobs:
         build-args: |
           APT_ARGS=docker.io ssh
         # Adds labels with git repository information to the built image
-        labels: true         
+        labels: |
+          org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          org.opencontainers.image.revision=${{ github.sha }}
+        cache-from: type=gha,scope=docker-ubuntu-ssh
+        cache-to: type=gha,mode=max,scope=docker-ubuntu-ssh
       
                             
-
-
 # ############## ubuntu - end  ########################
 
 # ############## alpine - start  ########################
-
+# 基础镜像 docker:dind / docker:latest 官方已提供 arm64，可直接多架构构建
 
     - name: adockero/docker:dind-sshd
-      uses: docker/build-push-action@v1.1.0
+      uses: docker/build-push-action@v6
       with:
-        # Username used to log in to a Docker registry. If not set then no login will occur
-        username: adockero
-        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
-        password: ${{ secrets.PASSWORD }}
-        # Docker repository to tag the image with
-        repository: adockero/docker
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: dind-sshd
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        path: ./
+        tags: adockero/docker:dind-sshd
+        # 留意 path 要 ./，不能指定到下层文件夹
+        context: ./
         dockerfile: docker/Dockerfile.sshd
+        platforms: ${{ env.PLATFORMS }}
         # Always attempt to pull a newer version of the image
-        always_pull: true
+        pull: true
+        push: true
         # 构建参数
-        build_args: VERSION=dind
+        build-args: |
+          VERSION=dind
         # Adds labels with git repository information to the built image
-        add_git_labels: true  
+        labels: |
+          org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          org.opencontainers.image.revision=${{ github.sha }}
+        cache-from: type=gha,scope=dind-sshd
+        cache-to: type=gha,mode=max,scope=dind-sshd
 
 
-
-
-              
     - name: adockero/docker:sshd
-      uses: docker/build-push-action@v1.1.0
+      uses: docker/build-push-action@v6
       with:
-        # Username used to log in to a Docker registry. If not set then no login will occur
-        username: adockero
-        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
-        password: ${{ secrets.PASSWORD }}
-        # Docker repository to tag the image with
-        repository: adockero/docker
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: sshd
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        path: ./
+        tags: adockero/docker:sshd
+        # 留意 path 要 ./，不能指定到下层文件夹
+        context: ./
         dockerfile: docker/Dockerfile.sshd
+        platforms: ${{ env.PLATFORMS }}
         # Always attempt to pull a newer version of the image
-        always_pull: true
+        pull: true
+        push: true
         # 构建参数
-        build_args: VERSION=latest
+        build-args: |
+          VERSION=latest
         # Adds labels with git repository information to the built image
-        add_git_labels: true  
-   
+        labels: |
+          org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          org.opencontainers.image.revision=${{ github.sha }}
+        cache-from: type=gha,scope=sshd
+        cache-to: type=gha,mode=max,scope=sshd
+  
 # ############## alpine - end  ########################
    
 # ############## dind-sshd-ubuntu ########################
-              
+# 此处依赖上面已推送的 adockero/docker:ubuntu-ssh，故必须放在 ubuntu-ssh 之后
+
     - name: docker-dind-sshd-ubuntu-latest
-      uses: docker/build-push-action@v1.1.0
+      uses: docker/build-push-action@v6
       with:
-        # Username used to log in to a Docker registry. If not set then no login will occur
-        username: adockero
-        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
-        password: ${{ secrets.PASSWORD }}
-        # Docker repository to tag the image with
-        repository: adockero/docker
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: dind-sshd-ubuntu
-        # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        path: ./
+        tags: adockero/docker:dind-sshd-ubuntu
+        context: ./
         dockerfile: docker/Dockerfile.dind.sshd
+        platforms: ${{ env.PLATFORMS }}
         # Always attempt to pull a newer version of the image
-        always_pull: true
+        pull: true
+        push: true
         # 构建参数
-        # build_args: FROM_BASE=adockero/docker:dind-sshd
+        # build-args: |
+        #   FROM_BASE=adockero/docker:dind-sshd
         # Adds labels with git repository information to the built image
-        add_git_labels: true  
-
-
-
-   
-
-
-      
+        labels: |
+          org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          org.opencontainers.image.revision=${{ github.sha }}
+        cache-from: type=gha,scope=dind-sshd-ubuntu
+        cache-to: type=gha,mode=max,scope=dind-sshd-ubuntu
