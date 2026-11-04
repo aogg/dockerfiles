@@ -5,6 +5,19 @@ FROM ${FROM_BASE}
 ENV SSHD_PORT=22
 ENV SSHD_PASSWORD=''
 
+# 基础镜像有 alpine 和 ubuntu 两种，按可用的包管理器自动选择安装方式
+# alpine 下的 telnet 客户端由 busybox-extras 包提供
+RUN set -eux; \
+    if command -v apk >/dev/null 2>&1; then \
+      apk --update add curl busybox-extras && \
+      rm -rf /tmp/* /var/cache/apk/*; \
+    elif command -v apt-get >/dev/null 2>&1; then \
+      apt-get update && \
+      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl telnet && \
+      rm -rf /var/lib/apt/lists/*; \
+    else \
+      echo "不支持的基础镜像: 找不到 apk 或 apt-get" >&2; exit 1; \
+    fi
 
 ADD ./common/open-sshd-passwd.sh /
 
