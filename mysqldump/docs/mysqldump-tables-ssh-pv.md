@@ -86,7 +86,7 @@ docker run --rm -v $PWD:/conf -e ENV_FILE=/conf/tables-ssh-pv.env adockero/mysql
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
 | `SSH_USER` | SSH 用户名 | - |
-| `SSH_PASSWORD` | SSH 密码 | - |
+| `SSH_PASSWORD` | SSH 密码，空则尝试密钥登录 | - |
 | `SSH_IP` | SSH 服务器 IP | - |
 | `SSH_ARGS` | SSH 额外参数，如 `-p 2222` | - |
 | `STRICT_HOST_KEY_CHECKING` | 是否严格主机密钥检查 | no |

@@ -219,12 +219,76 @@ IFS=',' read -ra IGNORE_PAIRS <<< "$IGNORE_DATABASE_TABLES"
 
 STRICT_HOST_KEY_CHECKING=${STRICT_HOST_KEY_CHECKING:no}
 
+# ========== SSH 认证方式 ==========
+# 两种方式二选一:
+#   1. 密码登录: SSH_PASSWORD 非空 -> sshpass -p 传密码
+#   2. 私钥登录: SSH_PASSWORD 为空 -> ssh -i 私钥
+#      SSH_KEY_FILE        私钥路径; 为空时自动探测 ~/.ssh/id_ed25519、id_rsa、id_ecdsa、id_dsa
+#      SSH_KEY_PASSPHRASE  私钥带passphrase时填写(sshpass -P passphrase 协助输入)
+#   密码和私钥都没配置时, 交给 ssh 自己决定(ssh-agent 或默认私钥)
+SSH_PASSWORD=${SSH_PASSWORD:-}
+SSH_KEY_FILE=${SSH_KEY_FILE:-}
+SSH_KEY_PASSPHRASE=${SSH_KEY_PASSPHRASE:-}
+
+# 生成可安全放进 eval 命令串的单引号字符串
+str_sh_quote() {
+        local v=$1
+        v=${v//\'/\'\\\'\'}
+        printf "'%s'" "$v"
+}
+
+SSH_AUTH_CMD=()   # 数组形式: 直接执行时用
+SSH_AUTH_STR=""   # 字符串形式: 拼 eval 命令时用
+SSH_KEY_CMD=()
+SSH_KEY_STR=""
+
+if [[ -n "$SSH_PASSWORD" ]]; then
+        SSH_AUTH_CMD=(sshpass -p "$SSH_PASSWORD")
+        SSH_AUTH_STR="sshpass -p $(str_sh_quote "$SSH_PASSWORD")"
+        echo 'SSH认证方式: 密码(SSH_PASSWORD)'
+else
+        if [[ -z "$SSH_KEY_FILE" ]]; then
+                for _ssh_key in "$HOME/.ssh/id_ed25519" "$HOME/.ssh/id_rsa" "$HOME/.ssh/id_ecdsa" "$HOME/.ssh/id_dsa"; do
+                        if [[ -f "$_ssh_key" ]]; then
+                                SSH_KEY_FILE=$_ssh_key
+                                break
+                        fi
+                done
+                unset _ssh_key
+        fi
+        if [[ -n "$SSH_KEY_FILE" ]]; then
+                if [[ ! -f "$SSH_KEY_FILE" ]]; then
+                        echo "SSH私钥文件不存在: $SSH_KEY_FILE"
+                        exit 1
+                fi
+                SSH_KEY_CMD=(-i "$SSH_KEY_FILE")
+                SSH_KEY_STR="-i $(str_sh_quote "$SSH_KEY_FILE")"
+                if [[ -n "$SSH_KEY_PASSPHRASE" ]]; then
+                        SSH_AUTH_CMD=(sshpass -P passphrase -p "$SSH_KEY_PASSPHRASE")
+                        SSH_AUTH_STR="sshpass -P passphrase -p $(str_sh_quote "$SSH_KEY_PASSPHRASE")"
+                        echo "SSH认证方式: 私钥($SSH_KEY_FILE) + passphrase"
+                else
+                        echo "SSH认证方式: 私钥($SSH_KEY_FILE)"
+                fi
+        else
+                echo 'SSH认证方式: 未配置密码/私钥, 使用 ssh-agent 或 ~/.ssh 默认私钥'
+        fi
+fi
+
+# 日志脱敏
+mask_ssh_secret() {
+        local s=$1
+        [[ -n "$SSH_PASSWORD" ]] && s=${s//"$SSH_PASSWORD"/******}
+        [[ -n "$SSH_KEY_PASSPHRASE" ]] && s=${s//"$SSH_KEY_PASSPHRASE"/******}
+        printf '%s' "$s"
+}
+
 SSH_CONTROL_PATH="/tmp/ssh_mux_%h_%p_%r"
 SSH_CONTROL_OPTS="-o ControlMaster=auto -o ControlPath=$SSH_CONTROL_PATH -o ControlPersist=60"
 
-sshRun=$(echo sshpass -p \'"$SSH_PASSWORD"\' ssh $SSH_CONTROL_OPTS -o "LogLevel=ERROR" -o "StrictHostKeyChecking=$STRICT_HOST_KEY_CHECKING" $SSH_ARGS $SSH_USER@$SSH_IP)
+sshRun=$(echo $SSH_AUTH_STR ssh $SSH_KEY_STR $SSH_CONTROL_OPTS -o "LogLevel=ERROR" -o "StrictHostKeyChecking=$STRICT_HOST_KEY_CHECKING" $SSH_ARGS $SSH_USER@$SSH_IP)
 echo '下面是执行的ssh'
-echo $sshRun
+echo "$(mask_ssh_secret "$sshRun")"
 
 eval "$sshRun pwd"
 
@@ -279,7 +343,7 @@ echo $cpuScript
 async_write_file(){
         {
 # 避免keyword匹配到
-        echo $cpuScript | (exec -a "监听CPU空闲率" sshpass -p "$SSH_PASSWORD" ssh $SSH_ARGS -v -o "LogLevel=ERROR" -o "StrictHostKeyChecking=$STRICT_HOST_KEY_CHECKING" $SSH_USER@$SSH_IP 'bash -s') | while IFS= read -r line; do
+        echo $cpuScript | (exec -a "监听CPU空闲率" "${SSH_AUTH_CMD[@]}" ssh "${SSH_KEY_CMD[@]}" $SSH_ARGS -v -o "LogLevel=ERROR" -o "StrictHostKeyChecking=$STRICT_HOST_KEY_CHECKING" $SSH_USER@$SSH_IP 'bash -s') | while IFS= read -r line; do
                 # echo $line > /tmp/get_remote_cpu_idle
                 # echo "cpu空闲率=${line}"
                 echo $line;
@@ -770,7 +834,7 @@ NON_R_THRESHOLD=60  # 连续60次非R状态才判定结束
 # 检测 mysqldump 进程是否存在的函数（跳过睡眠状态和异常状态）
 check_mysqldump_process() {
         # 获取匹配的进程 ID
-        local pids=$(pgrep -f "(ssh -o|mysql|sshpass -p)" 2>/dev/null)
+        local pids=$(pgrep -f "(ssh |mysql|sshpass)" 2>/dev/null)
 
         # 如果没有进程，返回1（不存在）
         [[ -z "$pids" ]] && return 1
