@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 set -e  # 遇到错误立即退出
 
+
 # ===================== 基础配置与版本检测 =====================
 # 定义默认 SSH 端口（未传参时用 22）
 SSHD_PORT=${SSHD_PORT:-22}
@@ -16,6 +17,10 @@ if ! echo "$SSH_VERSION" | grep -q '^[0-9]\+$'; then
 fi
 
 echo "=== 检测到 OpenSSH 主版本：$SSH_VERSION ==="
+
+
+if [ ! -f /etc/ssh/docker-run-open-sshd-passwd-sh.tmp ];then
+
 
 # ===================== 生成 SSH 主机密钥（版本兼容） =====================
 # 生成 RSA 密钥（全版本兼容，强制 4096 位更安全）
@@ -91,12 +96,56 @@ if [ "$SSH_ALLOW_TCP_FORWARDING" = "1" ]; then
 fi
 
 
+# ===================== 注入 PROFILE_ENV_* 环境变量到 /etc/profile =====================
+# 说明：容器内所有以 PROFILE_ENV_ 开头的环境变量，去掉前缀后写入 /etc/profile，
+#       供 sshd 派生的登录 shell 使用
+#       例如 PROFILE_ENV_JAVA_HOME=/usr/local/java → export JAVA_HOME='/usr/local/java'
+PROFILE_ENV_PREFIX="PROFILE_ENV_"
+PROFILE_MARK_BEGIN="# >>> sshd PROFILE_ENV_* begin >>>"
+PROFILE_MARK_END="# <<< sshd PROFILE_ENV_* end <<<"
+
+# 清理上一次写入的配置块（保证脚本重复执行不会重复追加）
+if [ -f /etc/profile ] && grep -qF "$PROFILE_MARK_BEGIN" /etc/profile; then
+    echo "=== 清理 /etc/profile 中旧的 PROFILE_ENV_* 配置 ==="
+    awk -v begin="$PROFILE_MARK_BEGIN" -v end="$PROFILE_MARK_END" '
+        $0 == begin { skip = 1 }
+        skip != 1 { print }
+        $0 == end { skip = 0 }
+    ' /etc/profile > /etc/profile.tmp && mv /etc/profile.tmp /etc/profile
+fi
+
+if env | grep -q "^${PROFILE_ENV_PREFIX}"; then
+    echo "=== 注入 PROFILE_ENV_* 环境变量到 /etc/profile ==="
+    {
+        echo "$PROFILE_MARK_BEGIN"
+        env | grep "^${PROFILE_ENV_PREFIX}" | sort | while IFS='=' read -r _key _value; do
+            _name=${_key#"$PROFILE_ENV_PREFIX"}
+            # 跳过空名或非法变量名
+            if ! printf '%s\n' "$_name" | grep -q -e '^[A-Za-z_][A-Za-z0-9_]*$'; then
+                echo "警告：跳过非法变量名 ${_key}（忽略）" >&2
+                continue
+            fi
+            # 单引号包裹并转义内部单引号，避免 $ / 反引号在 shell 中被二次展开
+            _escaped=$(printf '%s' "$_value" | sed "s/'/'\\\\''/g")
+            printf "export %s='%s'\n" "$_name" "$_escaped"
+            echo "  - ${_name}" >&2
+        done
+        echo "$PROFILE_MARK_END"
+    } >> /etc/profile
+else
+    echo "=== 未检测到 PROFILE_ENV_* 环境变量，跳过 /etc/profile 注入 ==="
+fi
+
 # ===================== 设置 root 密码（传参时） =====================
 if [ -n "$SSHD_PASSWORD" ]; then
     echo "=== 设置 root 密码 ==="
     echo "root:${SSHD_PASSWORD}" | chpasswd
 else
     echo "=== 未传入 SSHD_PASSWORD，跳过密码设置 ==="
+fi
+
+
+    touch /etc/ssh/docker-run-open-sshd-passwd-sh.tmp
 fi
 
 # ===================== 启动 sshd 服务 =====================

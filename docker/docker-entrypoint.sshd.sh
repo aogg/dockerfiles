@@ -12,6 +12,10 @@ if [ -f /timezone-set.sh ];then
     /timezone-set.sh;
 fi
 
+if [ ! -d "/etc/ssh/" ] || [ -z "$(ls -A "/etc/ssh/" 2>/dev/null)" ];then
+
+  cp -a "/etc/ssh_bak/." "/etc/ssh/"
+fi
 
 if [ -f /open-sshd-jsh.sh ];then
     /open-sshd-jsh.sh;
