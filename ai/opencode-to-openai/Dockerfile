@@ -59,6 +59,60 @@ RUN node -e "const fs=require('fs'); \
         fs.writeFileSync(file, src.replace(target, replacement)); \
         console.log('[patch] ' + file + ' 已打补丁: read/glob 保持启用, 其余工具禁用');"
 
+# 运行时补丁(流式 SSE 兼容): 修复 opencode>=1.19 事件流无 delta 字段导致流式输出零内容的问题
+# 背景: 实测镜像内 opencode 1.19.5 的 SSE message.part.updated 事件实际结构为
+#       {type:'message.part.updated', properties:{sessionID, part:{type:'text', text:'<该 part 当前全量文本>', ...}, time}}
+#       即没有 properties.delta 字段; 上游 collectFromEvents 按 const { part, delta } = event.properties 取增量,
+#       delta 永远 undefined -> 流式响应零内容, 只剩 finish 块
+#       另: assistant 很快 finish 时, message.updated(finish=stop) 会先于 4s firstDeltaTimer 到达,
+#       事件收集带着空 content 提前 resolve, 上游已有的 noData/idleTimeout 兜底轮询都覆盖不到这条路径
+#       非流式路径(prompt+轮询)不受影响, 无需改动
+# 做法: 补丁A(事件结构兼容) 放宽 sessionID 匹配并自行差量化出 delta, 保留原有 if(delta){...} 结构不动;
+#       补丁B(空响应兜底) 流式没发过任何内容时, 兜底轮询一次取完整回复再下发, 无内容则不发任何 delta
+# 保护: 两处目标代码各自校验存在性, 找不到时 process.exit(1) 让构建失败; 上游修复后可移除本步骤
+RUN node -e "const fs=require('fs'); \
+        const file='src/proxy.js'; \
+        const src=fs.readFileSync(file,'utf8'); \
+        const targetA='                        if (event.type === \'message.part.updated\' && event.properties.part.sessionID === sessionId) {' + '\n' \
+            + '                            const { part, delta } = event.properties;'; \
+        const replacementA='                        /* 镜像内补丁A: opencode>=1.19 的 SSE message.part.updated 事件没有 properties.delta 字段, */' + '\n' \
+            + '                        /* part.text 是该 part 当前全量文本, 需按已累积内容差量化出增量; */' + '\n' \
+            + '                        /* 并兼容部分版本 part 上无 sessionID 时回落到 properties.sessionID 匹配 */' + '\n' \
+            + '                        if (event.type === \'message.part.updated\' && (event.properties.part.sessionID || event.properties.sessionID) === sessionId) {' + '\n' \
+            + '                            const { part } = event.properties;' + '\n' \
+            + '                            /* 镜像内补丁A: 老版本事件自带 properties.delta 则优先用(防御性兼容); 缺失时按已累积内容差量化 */' + '\n' \
+            + '                            let delta = event.properties.delta;' + '\n' \
+            + '                            if (!delta && (part.type === \'text\' || part.type === \'reasoning\') && typeof part.text === \'string\') {' + '\n' \
+            + '                                const acc = part.type === \'reasoning\' ? reasoning : content;' + '\n' \
+            + '                                delta = typeof part.text === \'string\' ? (part.text.startsWith(acc) ? part.text.slice(acc.length) : part.text) : undefined;' + '\n' \
+            + '                            }'; \
+        const targetB='                        if (collected && !streamedContent && !streamedReasoning && (collected.reasoning || collected.content)) {' + '\n' \
+            + '                            if (collected.reasoning) sendDelta(collected.reasoning, true);' + '\n' \
+            + '                            if (collected.content) sendDelta(collected.content, false);' + '\n' \
+            + '                        }'; \
+        const replacementB='                        /* 镜像内补丁B: opencode>=1.19 SSE delta 缺失时的兜底轮询: assistant 很快 finish 时 */' + '\n' \
+            + '                        /* message.updated(finish=stop) 先于 4s firstDeltaTimer 到达, 事件收集带着空内容提前 resolve, */' + '\n' \
+            + '                        /* 上游 noData/idleTimeout 兜底轮询都覆盖不到; 此处只要流式没发过任何内容, */' + '\n' \
+            + '                        /* 就轮询一次取完整回复再下发(stripFunctionCalls 用法与上方流式分支一致, 过滤不 trim); */' + '\n' \
+            + '                        /* 轮询也无内容则不发任何 delta, 响应仍只有 stop 块 */' + '\n' \
+            + '                        if (collected && !streamedContent && !streamedReasoning) {' + '\n' \
+            + '                            const { content: polledContent, reasoning: polledReasoning } = await pollForAssistantResponse(sessionId, REQUEST_TIMEOUT_MS);' + '\n' \
+            + '                            const safePolledReasoning = stripFunctionCalls(polledReasoning, false);' + '\n' \
+            + '                            const safePolledContent = stripFunctionCalls(polledContent, false);' + '\n' \
+            + '                            if (safePolledReasoning) sendDelta(safePolledReasoning, true);' + '\n' \
+            + '                            if (safePolledContent) sendDelta(safePolledContent, false);' + '\n' \
+            + '                        }'; \
+        if (!src.includes(targetA)) { \
+            console.error('[patch] 未在 ' + file + ' 找到补丁A目标代码(message.part.updated 增量处理), 上游可能已改动, 请人工核对补丁'); \
+            process.exit(1); \
+        } \
+        if (!src.includes(targetB)) { \
+            console.error('[patch] 未在 ' + file + ' 找到补丁B目标代码(空流式内容兜底), 上游可能已改动, 请人工核对补丁'); \
+            process.exit(1); \
+        } \
+        fs.writeFileSync(file, src.replace(targetA, replacementA).replace(targetB, replacementB)); \
+        console.log('[patch] ' + file + ' 已打补丁A+B: SSE 无 delta 时差量化 + 空内容兜底轮询, 修复流式输出');"
+
 # 生成运行配置: 以上游 config.json.example 为底, 覆盖为容器场景默认值
 # 注意: JSON 不支持注释, 各字段说明写在这里和 README.md, 用 node 改 JSON 可不受上游示例格式变化影响
 # 程序读取优先级: 环境变量 > config.json > 程序内置默认, 所以这里只是出厂默认, 运行时可用 -e 覆盖
