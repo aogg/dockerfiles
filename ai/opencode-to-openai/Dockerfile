@@ -35,6 +35,30 @@ RUN npm install -g opencode-ai
 # 备选方式(若 npm 包安装有问题, 可换官方安装脚本):
 # RUN curl -fsSL https://opencode.ai/install | bash
 
+# 运行时补丁: 修复上游 DISABLE_TOOLS=true 时禁用 opencode 全部工具导致请求挂起的问题
+# 背景: 实测 opencode 1.19.5 + zen 免费模型(如 opencode/deepseek-v4.1-flash-free)下,
+#       tools 里只要禁用 read 或 glob 任意一个, prompt 请求就永久挂起无响应; 禁用其余工具(bash/edit/write/task/webfetch 等)均正常
+# 做法: 字符串替换改上游 src/proxy.js 的 getToolOverrides, read/glob 这两个只读工具保持启用, 其余 12 个工具仍禁用
+#       安全兜底: read/glob 只读、无写入/执行能力, 且上游还有 stripFunctionCalls 过滤 + TOOL_GUARD_MESSAGE 系统提示作第二道防线
+# 保护: 目标代码找不到时 process.exit(1) 让构建失败, 防止上游改名后补丁静默失效; 上游修复该问题后可移除本步骤
+RUN node -e "const fs=require('fs'); \
+        const file='src/proxy.js'; \
+        const src=fs.readFileSync(file,'utf8'); \
+        const target='ids.forEach((id) => {' + '\n' \
+            + '                overrides[id] = false;' + '\n' \
+            + '            });'; \
+        const replacement='ids.forEach((id) => {' + '\n' \
+            + '                /* 镜像内补丁: opencode>=1.19 + zen 免费模型下, tools 里禁用 read/glob 任一会导致 prompt 请求永久挂起 */' + '\n' \
+            + '                /* 这两个只读工具保持启用, 其余工具仍禁用; 上游 stripFunctionCalls 过滤 + TOOL_GUARD_MESSAGE 系统提示作为第二道防线 */' + '\n' \
+            + '                overrides[id] = [\"read\",\"glob\"].includes(String(id).toLowerCase()) ? true : false;' + '\n' \
+            + '            });'; \
+        if (!src.includes(target)) { \
+            console.error('[patch] 未在 ' + file + ' 找到目标代码, 上游可能已改动 getToolOverrides, 请人工核对补丁'); \
+            process.exit(1); \
+        } \
+        fs.writeFileSync(file, src.replace(target, replacement)); \
+        console.log('[patch] ' + file + ' 已打补丁: read/glob 保持启用, 其余工具禁用');"
+
 # 生成运行配置: 以上游 config.json.example 为底, 覆盖为容器场景默认值
 # 注意: JSON 不支持注释, 各字段说明写在这里和 README.md, 用 node 改 JSON 可不受上游示例格式变化影响
 # 程序读取优先级: 环境变量 > config.json > 程序内置默认, 所以这里只是出厂默认, 运行时可用 -e 覆盖

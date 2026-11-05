@@ -98,6 +98,15 @@ docker run -d \
   adockero/opencode-to-openai
 ```
 
+### 已知问题与镜像内补丁
+
+镜像构建时(Dockerfile 内用 `node -e` 对源码做字符串替换)对上游 `src/proxy.js` 打了一个运行补丁:
+
+- **补丁原因**:上游在 `DISABLE_TOOLS=true`(镜像内置默认)时,会把 opencode 全部 14 个工具禁用;实测 opencode 1.19.5 + zen 免费模型(如 `opencode/deepseek-v4.1-flash-free`)下,tools 里只要禁用 `read` 或 `glob` 任意一个,prompt 请求就会永久挂起无响应,表现为网关不返回对话内容。
+- **补丁做法**:把"全部工具置 false"改为 `read`、`glob` 两个工具保持启用,其余 12 个工具(bash/edit/write/task/webfetch/question/grep/skill 等)仍全部禁用。
+- **安全说明**:`read`/`glob` 是只读工具(读文件、列目录),无写入/执行能力,安全影响可接受;上游还有 `stripFunctionCalls` 输出过滤 + `TOOL_GUARD_MESSAGE` 系统提示作为第二道防线。
+- **失效保护**:补丁脚本会校验目标代码是否存在,上游更新后若目标代码找不到,构建会直接失败(而不是补丁静默失效);上游修复该问题后,可移除 Dockerfile 中对应的补丁 `RUN` 步骤。
+
 ## 相关链接
 
 - [opencode-to-openai GitHub](https://github.com/dxxzst/opencode-to-openai)
