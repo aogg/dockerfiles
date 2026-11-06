@@ -98,17 +98,12 @@ docker run -d \
   adockero/opencode-to-openai
 ```
 
-### 已知问题与镜像内补丁
+### 已知问题与兼容修复
 
-镜像构建时(Dockerfile 内用 `node -e` 对源码做字符串替换)对上游 `src/proxy.js` 打了两个运行补丁:
+以下两个 opencode 1.19.5 兼容问题,已直接修复在源码仓库 [aogg/opencode-to-openai](https://github.com/aogg/opencode-to-openai)(`dxxzst/opencode-to-openai` 的 fork)的 `src/proxy.js` 中——不再是镜像内补丁,镜像直接从该仓库构建,Dockerfile 内无任何运行时打补丁步骤:
 
-- **补丁一(工具挂起修复)原因**:上游在 `DISABLE_TOOLS=true`(镜像内置默认)时,会把 opencode 全部 14 个工具禁用;实测 opencode 1.19.5 + zen 免费模型(如 `opencode/deepseek-v4.1-flash-free`)下,tools 里只要禁用 `read` 或 `glob` 任意一个,prompt 请求就会永久挂起无响应,表现为网关不返回对话内容。
-- **补丁一做法**:把"全部工具置 false"改为 `read`、`glob` 两个工具保持启用,其余 12 个工具(bash/edit/write/task/webfetch/question/grep/skill 等)仍全部禁用。
-- **补丁一安全说明**:`read`/`glob` 是只读工具(读文件、列目录),无写入/执行能力,安全影响可接受;上游还有 `stripFunctionCalls` 输出过滤 + `TOOL_GUARD_MESSAGE` 系统提示作为第二道防线。
-- **补丁一失效保护**:补丁脚本会校验目标代码是否存在,上游更新后若目标代码找不到,构建会直接失败(而不是补丁静默失效);上游修复该问题后,可移除 Dockerfile 中对应的补丁 `RUN` 步骤。
-- **补丁二(流式 SSE 兼容)原因**:实测镜像内 opencode 1.19.5 的 SSE `message.part.updated` 事件没有 `properties.delta` 字段,`part.text` 是该 part 当前**全量文本**;上游 `collectFromEvents` 按 `const { part, delta } = event.properties` 取增量,delta 永远是 undefined,导致流式响应零内容、只剩 finish 块;且 assistant 很快结束时 `message.updated(finish=stop)` 会先于上游 4s 首包定时器到达,事件收集带着空内容提前 resolve,上游已有的 noData/idleTimeout 兜底轮询都覆盖不到这条路径(非流式路径不受影响)。
-- **补丁二做法**:patch A(事件结构兼容)把 sessionID 匹配条件放宽为 `part.sessionID || properties.sessionID`,并自行差量化出 delta——事件自带 `properties.delta` 时优先用(兼容老版本),缺失时按已累积内容对 `part.text` 取差量(`startsWith` 判断后 `slice`);patch B(空响应兜底)在流式一个字都没发过时,兜底调用一次 `pollForAssistantResponse` 取完整回复再下发(经 `stripFunctionCalls` 同款过滤),轮询也无内容则不发任何 delta。
-- **补丁二失效保护**:同补丁一,两处目标代码各自校验,找不到时构建直接失败;上游修复后可移除 Dockerfile 中对应的补丁 `RUN` 步骤。
+- **修复一(工具挂起)**:opencode>=1.19 + zen 免费模型(如 `opencode/deepseek-v4.1-flash-free`)下,`DISABLE_TOOLS=true`(镜像内置默认)会把 opencode 全部工具禁用,而 tools 里只要禁用 `read` 或 `glob` 任意一个,prompt 请求就会永久挂起无响应,表现为网关不返回对话内容。修复做法:`read`、`glob` 两个只读工具保持启用,其余工具(bash/edit/write/task/webfetch/question/grep/skill 等)仍全部禁用;`read`/`glob` 只读、无写入/执行能力,且源码里还有 `stripFunctionCalls` 输出过滤 + `TOOL_GUARD_MESSAGE` 系统提示作为第二道防线。
+- **修复二(流式 SSE 兼容)**:opencode>=1.19 的 SSE `message.part.updated` 事件没有 `properties.delta` 字段,`part.text` 是该 part 当前**全量文本**,修复前按 `const { part, delta } = event.properties` 取增量永远是 undefined,导致流式响应零内容、只剩 finish 块;且 assistant 很快结束时 `message.updated(finish=stop)` 会先于 4s 首包定时器到达,事件收集带着空内容提前 resolve,原有 noData/idleTimeout 兜底轮询都覆盖不到这条路径(非流式路径不受影响)。修复做法:事件自带 `properties.delta` 时优先用(兼容老版本),缺失时按已累积内容对 `part.text` 差量化出增量(`startsWith` 判断后 `slice`);流式一个字都没发过时,兜底轮询一次 `pollForAssistantResponse` 取完整回复再下发(经 `stripFunctionCalls` 同款过滤),轮询也无内容则不发任何 delta。
 
 ## 相关链接
 
