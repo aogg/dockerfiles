@@ -35,28 +35,16 @@ RUN npm install -g opencode-ai
 # 备选方式(若 npm 包安装有问题, 可换官方安装脚本):
 # RUN curl -fsSL https://opencode.ai/install | bash
 
-# 生成运行配置: 以上游 config.json.example 为底, 覆盖为容器场景默认值
-# 注意: JSON 不支持注释, 各字段说明写在这里和 README.md, 用 node 改 JSON 可不受上游示例格式变化影响
-# 程序读取优先级: 环境变量 > config.json > 程序内置默认, 所以这里只是出厂默认, 运行时可用 -e 覆盖
-RUN cp config.json.example config.json \
-    && node -e "const fs=require('fs'); \
-        const c=JSON.parse(fs.readFileSync('config.json','utf8')); \
-        c.PORT=8083; \
-        /* 网关监听端口 */ \
-        c.BIND_HOST='0.0.0.0'; \
-        /* 容器内必须监听 0.0.0.0, 上游默认 127.0.0.1 会导致宿主机端口映射不通 */ \
-        c.API_KEY=''; \
-        /* 网关鉴权 key, 留空=不鉴权; 生产环境建议 docker run -e API_KEY=xxx 覆盖 */ \
-        c.DISABLE_TOOLS=true; \
-        /* 禁用 opencode 工具调用, 避免模型在容器内执行命令/改文件 */ \
-        c.OPENCODE_PATH=''; \
-        /* 留空: 回落到程序默认值 opencode 按 PATH 查找(npm 全局装在 /usr/local/bin/opencode), \
-           程序还会自动探测 ~/.opencode/bin、npm/pnpm 全局目录; \
-           若自动探测失败, 改成绝对路径, 如 /usr/local/bin/opencode */ \
-        fs.writeFileSync('config.json', JSON.stringify(c, null, 4));"
+# 入口脚本: 首次启动按 docker run -e 环境变量生成 /app/config.json(支持 PORT/API_KEY/BIND_HOST/DISABLE_TOOLS/OPENCODE_PATH/OPENCODE_SERVER_URL)
+# 该文件不在上游源码里, 由 workflow 在构建前从本仓库复制进构建上下文(project 目录)
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
-# 网关监听端口(与上面 config.json 的 PORT 保持一致)
+# 网关监听端口(与 docker-entrypoint.sh 生成的 config.json 默认 PORT 一致)
 EXPOSE 8083
+
+# 入口: entrypoint 先按 -e 生成/沿用 config.json, 再拉起下面的 CMD
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 # 启动入口: package.json 的 main 为 index.js, start 脚本即 node index.js
 CMD ["node", "index.js"]

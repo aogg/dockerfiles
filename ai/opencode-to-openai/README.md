@@ -73,30 +73,30 @@ curl -X POST http://127.0.0.1:8083/v1/chat/completions \
 
 ### 配置说明
 
-镜像内置 `config.json` 出厂默认值如下,程序读取优先级为 **环境变量 > config.json > 程序内置默认**,运行时用 `-e` 即可覆盖:
+配置不再构建期固化:容器**首次启动**(容器内无 `/app/config.json`)时,由入口脚本 `docker-entrypoint.sh` 按 `docker run -e` 环境变量生成 `/app/config.json`;之后每次启动直接沿用已有的 config.json。支持的变量与默认值如下:
 
-| 环境变量 | 内置默认值 | 说明 |
+| 环境变量 | 默认值 | 说明 |
 |---------|-----------|------|
 | `PORT` | `8083` | 网关监听端口 |
 | `API_KEY` | 空(不鉴权) | 网关鉴权 key,生产环境建议必填 |
-| `BIND_HOST` | `0.0.0.0` | 容器内必须监听 0.0.0.0,端口映射才能通(上游默认 127.0.0.1 已在镜像内改掉) |
-| `OPENCODE_DISABLE_TOOLS` | `true` | 禁用 opencode 工具调用,避免模型在容器内执行命令/改文件 |
+| `BIND_HOST` | `0.0.0.0` | 容器内必须监听 0.0.0.0,端口映射才能通(上游默认 127.0.0.1,入口脚本已改为 0.0.0.0) |
+| `DISABLE_TOOLS` | `true` | 禁用 opencode 工具调用,避免模型在容器内执行命令/改文件 |
 | `OPENCODE_PATH` | 空(自动探测) | opencode 可执行文件路径;留空时按 PATH 查找(npm 全局安装在 `/usr/local/bin/opencode`),程序还会自动探测 `~/.opencode/bin`、npm/pnpm 全局目录 |
 | `OPENCODE_SERVER_URL` | `http://127.0.0.1:4097` | 网关内部自动拉起的 opencode 后端服务地址,一般不用改 |
 
-修改示例(换端口 + 开启鉴权):
+示例(开启鉴权):
 
-```bash
-docker run -d \
-  --restart=always \
-  --network common-all \
-  --name opencode-to-openai \
-  --privileged \
-  -p 9090:9090 \
-  -e PORT=9090 \
-  -e API_KEY=my-secret-key \
+```sh
+docker run -d --restart=always --network common-all --name opencode-to-openai --privileged -p 8083:8083 \
+  -e PORT=8083 -e API_KEY=your-key -e DISABLE_TOOLS=true \
   adockero/opencode-to-openai
 ```
+
+配置生效规则:
+
+- `-e` 只在**首次启动**生成 config.json 时读取;`/app/config.json` 已存在时直接使用、**不被 `-e` 覆盖**(如 `-v` 挂载持久化的配置,优先于 `-e`)
+- 想用新的 `-e` 重新生成:删掉挂载的 config.json 文件(或去掉 `-v` 挂载)后重建容器即可
+- 程序运行时读取优先级为 **config.json > 带 `OPENCODE_` 前缀的程序内置环境变量(如 `OPENCODE_DISABLE_TOOLS`) > 程序内置默认**,所以上面 `-e` 生成的 config.json 是最终生效配置
 
 ### 已知问题与兼容修复
 

@@ -38,6 +38,8 @@ jobs:
         git clone https://github.com/aogg/opencode-to-openai ai/opencode-to-openai/project
         # clone 带下来的 .git 对构建无用, 删掉减小构建上下文(与 build.sh 行为一致)
         rm -rf ai/opencode-to-openai/project/.git
+        # 入口脚本不属于上游源码, 复制进构建上下文供 Dockerfile COPY
+        cp ai/opencode-to-openai/docker-entrypoint.sh ai/opencode-to-openai/project/docker-entrypoint.sh
         # 2. 构建镜像: -f 指定 ai/opencode-to-openai/Dockerfile, 构建上下文是 project 目录,
         #    Dockerfile 内 COPY 的都是 clone 好的源码
         docker build -f ai/opencode-to-openai/Dockerfile -t adockero/opencode-to-openai:latest ai/opencode-to-openai/project
