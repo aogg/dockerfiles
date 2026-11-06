@@ -3,6 +3,8 @@ FROM node:24-slim
 ENV DSH_HOME=/root/.dsh \
     DSH_PORT=3080
 
+ARG ARGS_DSH_VERSION latest
+
 # 基础工具：
 # - git          ：pnpm 解析 Git 依赖必需（保留，部分插件可能仍引用 Git 仓库）
 # - ca-certificates / curl ：健康检查与基础排障
@@ -20,7 +22,7 @@ RUN npm install -g pnpm
 # DeepSeek Harness CLI（原生模块 node-pty/koffi 等需 allow-scripts 显式放行构建）
 # @see https://github.com/deepseek-ai/deepseek-harness
 # 这里必须npm
-RUN npm install -g --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs @deepseek-ai/dsh \
+RUN npm install -g --allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs @deepseek-ai/dsh@$ARGS_DSH_VERSION \
     && dsh -V \
     && mkdir -p ${DSH_HOME} \
     && mv $DSH_HOME ${DSH_HOME}_bak

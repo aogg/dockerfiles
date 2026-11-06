@@ -1,6 +1,7 @@
 
 
-FROM adockero/deepseek-harness:my
+ARG ARGS_FROM my
+FROM adockero/deepseek-harness:${ARGS_FROM}
 
 
 RUN npm install -g @tencent-ai/codebuddy-code freebuff command-code @qoder-ai/qoder-agent-sdk

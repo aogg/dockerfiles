@@ -1,6 +1,8 @@
 
 
-FROM adockero/deepseek-harness
+ARG ARGS_FROM latest
+
+FROM adockero/deepseek-harness:${ARGS_FROM}
 
 
 # 基础镜像把初始化模板整体放在 ${DSH_HOME}_bak（entrypoint 首次启动拷回 $DSH_HOME），

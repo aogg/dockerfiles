@@ -32,12 +32,12 @@ jobs:
 # ##########  构建  ###########################
 
 
-    - name: 构建镜像  adockero/deepseek-harness
+    - name: 构建镜像  adockero/deepseek-harness:0.2.0-rc.2
       uses: docker/build-push-action@v3
       with:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         # tags: adockero/docker:ubuntu-ssh,adockero/docker-ubuntu:ssh
-        tags: adockero/deepseek-harness
+        tags: adockero/deepseek-harness:0.2.0-rc.2
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
         context: ./deepseek-harness
         file: "./deepseek-harness/Dockerfile"
@@ -45,7 +45,7 @@ jobs:
         pull: true
         push: true
         # 构建参数
-        # build-args: NODE_VERSION=14
+        build-args: ARGS_DSH_VERSION=0.2.0-rc.2
         #   APK_ARG=rsync
         # Adds labels with git repository information to the built image
         labels: true    
@@ -63,7 +63,7 @@ jobs:
         pull: true
         push: true
         # 构建参数
-        # build-args: NODE_VERSION=14
+        build-args: ARGS_FROM=0.2.0-rc.2
         #   APK_ARG=rsync
         # Adds labels with git repository information to the built image
         labels: true
@@ -86,6 +86,26 @@ jobs:
         # Adds labels with git repository information to the built image
         labels: true  
 
+
+# ##########  latest  ###########################
+
+    - name: 构建镜像  adockero/deepseek-harness
+      uses: docker/build-push-action@v3
+      with:
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        # tags: adockero/docker:ubuntu-ssh,adockero/docker-ubuntu:ssh
+        tags: adockero/deepseek-harness
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        context: ./deepseek-harness
+        file: "./deepseek-harness/Dockerfile"
+        # Always attempt to pull a newer version of the image
+        pull: true
+        push: true
+        # 构建参数
+        # build-args: ARG=14
+        #   APK_ARG=rsync
+        # Adds labels with git repository information to the built image
+        labels: true 
 
     # - name: 构建镜像  adockero/node-service:node-11-alpine
     #   uses: docker/build-push-action@v3
