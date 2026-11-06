@@ -5,7 +5,6 @@ on:
   push:
     branches: [main]
     paths: 
-      - "ai/**"
       - ".github/workflows/dockerfile--opencode-to-openai.yml"
       - "!**.md"
 
@@ -29,20 +28,8 @@ jobs:
         username: adockero
         password: ${{ secrets.PASSWORD }}
 
-    - name: opencode-to-openai Build and push
-      # 不走 dockerfile/build.sh: 它 clone 后会 cd project, 那时 Dockerfile 只能用第 3 个位置参数
-      # 传 "../ai/opencode-to-openai/Dockerfile" 回溯仓库根, 可读性差且依赖 build.sh 内部 cd 行为;
-      # 这里直接显式写清 clone 目录 / Dockerfile / 构建上下文三者关系, 更直观可靠
+    - name: cli-proxy-api-plus  Build and push
       run: |
-        # 1. clone 源码到 ai/opencode-to-openai/project(它就是 docker 构建上下文, 源码已含 opencode 1.19.5 兼容修复)
-        git clone https://github.com/aogg/opencode-to-openai ai/opencode-to-openai/project
-        # clone 带下来的 .git 对构建无用, 删掉减小构建上下文(与 build.sh 行为一致)
-        rm -rf ai/opencode-to-openai/project/.git
-        # 入口脚本不属于上游源码, 复制进构建上下文供 Dockerfile COPY
-        cp ai/opencode-to-openai/docker-entrypoint.sh ai/opencode-to-openai/project/docker-entrypoint.sh
-        # 2. 构建镜像: -f 指定 ai/opencode-to-openai/Dockerfile, 构建上下文是 project 目录,
-        #    Dockerfile 内 COPY 的都是 clone 好的源码
-        docker build -f ai/opencode-to-openai/Dockerfile -t adockero/opencode-to-openai:latest ai/opencode-to-openai/project
-        # 3. 推送镜像到 Docker Hub
-        docker push adockero/opencode-to-openai:latest
+        chmod +x dockerfile/build.sh
+        ./dockerfile/build.sh "https://github.com/aogg/opencode-to-openai" "adockero/opencode-to-openai" ./docker/Dockerfile
         
