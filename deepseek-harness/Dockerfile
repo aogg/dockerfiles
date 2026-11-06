@@ -3,7 +3,7 @@ FROM node:24-slim
 ENV DSH_HOME=/root/.dsh \
     DSH_PORT=3080
 
-ARG ARGS_DSH_VERSION latest
+ARG ARGS_DSH_VERSION=latest
 
 # 基础工具：
 # - git          ：pnpm 解析 Git 依赖必需（保留，部分插件可能仍引用 Git 仓库）

@@ -1,6 +1,6 @@
 
 
-ARG ARGS_FROM my
+ARG ARGS_FROM=my
 FROM adockero/deepseek-harness:${ARGS_FROM}
 
 

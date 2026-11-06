@@ -1,6 +1,6 @@
 
 
-ARG ARGS_FROM latest
+ARG ARGS_FROM=latest
 
 FROM adockero/deepseek-harness:${ARGS_FROM}
 
