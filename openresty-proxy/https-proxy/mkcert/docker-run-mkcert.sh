@@ -8,6 +8,7 @@ ls -al /root/.local/share/mkcert/;
 mkdir -p /mkcert-pem/;
 cp -a /root/.local/share/mkcert/* /mkcert-pem/;
 chmod 666 /mkcert-pem/*;
+chmod -R 777 /etc/nginx/ssl
 
 
 exec /docker-run.sh
