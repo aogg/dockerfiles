@@ -1,0 +1,35 @@
+name: dockerfile--webai-2api-构建和提交docker
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: 
+      - ".github/workflows/dockerfile--webai-2api.yml"
+      - "!**.md"
+
+jobs:
+
+  # 并发构建
+  setup-build-publish-v3:
+    runs-on: ubuntu-latest
+    name: 构建和推送docker镜像v3
+    steps:
+    
+    - name: 更新代码
+      # 使用action库  actions/checkout获取源码
+      uses: actions/checkout@v3
+
+
+    -  
+      name: 登录 Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: adockero
+        password: ${{ secrets.PASSWORD }}
+
+    - name: adockero/webai-2api:latest  Build and push
+      run: |
+        chmod +x dockerfile/build.sh
+        ./dockerfile/build.sh "https://github.com/aogg/WebAI2API" "adockero/webai-2api:latest"
+        
