@@ -10,7 +10,7 @@ ARG ARGS_DSH_VERSION=latest
 # - ca-certificates / curl ：健康检查与基础排障
 # - python3/make/g++ ：node-gyp 编译工具链（ssh2 等可选原生绑定、node-pty 场景）
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git ca-certificates curl python3 make g++ procps tree openssh-client rsync \
+    && apt-get install -y --no-install-recommends git ca-certificates curl python3 make g++ procps tree openssh-client rsync bubblewrap \
     && git config --global core.autocrlf false \
     && git config --global core.safecrlf false \
     && git config --global --add safe.directory '*' \
