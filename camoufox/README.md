@@ -39,6 +39,7 @@ docker run -d --name camoufox \
 | `FINGERPRINT_OS` | 空 | 指纹的操作系统：空 = `windows\|macos\|linux` 随机；可指定单个如 `windows`，或 `windows\|macos` 随机二选一 |
 | `WS_PATH` | `/` | Playwright WS 服务路径；默认 `/` = 根路径，客户端直接连 `ws://ip:9333`；设为如 `camoufox` 则连 `ws://ip:9333/camoufox`（留空按 `/` 处理） |
 | `EXTRA_FIREFOX_ARGS` | 空 | 追加的 Firefox 启动参数，空格分隔 |
+| `AUTO_OPEN_WINDOW` | `true` | 容器启动时是否自动打开一个**保活窗口**（launchServer 模式不开窗则 Xvfb 无画面，noVNC 黑屏）；`false`/`0`/`no`（大小写不敏感）视为关闭，其余值视为开启。**关闭时 noVNC 初始为黑屏，属预期**，可随时 `docker exec <容器名> open-window.sh` 手动打开，见下文「保活窗口与手动打开/关闭窗口」 |
 | `TZ` / `TIMEZONE` | 空 | 容器时区，如 `Asia/Shanghai` |
 | `DEBUG` | `false` | `true` 时打印发送给浏览器的完整指纹配置（调试用） |
 | `DATA_DIR` | `/data` | 数据目录，一般不需要改 |
@@ -126,6 +127,30 @@ docker build \
 docker logs camoufox          # 启动日志会打印 "Websocket endpoint: ws://..." 与 noVNC/VNC 地址
 cat /data/camoufox-info.json  # 最近一次启动的状态（ws 地址、端口、指纹 UA、分辨率等）
 ```
+
+### 保活窗口与手动打开/关闭窗口
+
+launchServer 模式不会主动开浏览器窗口：屏幕上没有任何窗口时 Xvfb 桌面就是黑的，
+noVNC 页面自然黑屏。因此镜像默认（`AUTO_OPEN_WINDOW=true`）在启动后自动打开一个
+**保活窗口**（内联提示页），noVNC 即有画面；该窗口由容器内常驻的保活进程持有。
+
+手动开关（容器内自带脚本，随时可用）：
+
+```bash
+# 打开保活窗口（若保活进程已在运行则提示已存在，退出码 0，不会开第二个窗口）
+docker exec camoufox open-window.sh
+
+# 关闭保活窗口（结束保活进程，窗口随之关闭）
+docker exec camoufox close-window.sh
+```
+
+行为说明：
+
+- 单实例：保活进程 pid 写在容器内 `/tmp/camoufox-open-window.pid`，重复执行 `open-window.sh` 不会重复开窗
+- 日志：保活进程输出重定向到容器内 `/var/log/camoufox-open-window.log`，可用 `docker exec camoufox tail /var/log/camoufox-open-window.log` 查看
+- **黑屏说明**：`AUTO_OPEN_WINDOW=false` 启动、或执行过 `close-window.sh` 之后，屏幕上没有窗口，**noVNC 黑屏属预期**，不是故障；执行 `open-window.sh` 即可恢复画面
+- 自动化与保活窗口**相互独立**：自动化客户端 `firefox.connect()` 后 `new_page()` 开的页面与保活窗口互不影响；关闭保活窗口/进程不影响已连接的自动化，自动化页面也不依赖保活窗口存在
+- 在 noVNC 里手动关掉保活窗口的页面后，保活进程会在约 10 秒内自动重新打开
 
 ### Docker Compose 示例
 

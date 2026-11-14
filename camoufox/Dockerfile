@@ -21,6 +21,7 @@ ENV DATA_DIR=/data \
     FINGERPRINT_OS="" \
     WS_PATH="/" \
     EXTRA_FIREFOX_ARGS="" \
+    AUTO_OPEN_WINDOW=true \
     DEBUG=false
 
 # 1. 系统依赖：
@@ -74,9 +75,11 @@ RUN if [ -n "${CAMOUFOX_VERSION}" ]; then \
         yes | python /usr/local/bin/fetch_camoufox.py; \
     fi
 
-# 4. 入口脚本与启动器
-COPY start.sh launch_browser.py /usr/local/bin/
+# 4. 入口脚本、启动器、保活窗口守护进程与手动开关窗口脚本
+COPY start.sh launch_browser.py camoufox_open_window.py open-window.sh close-window.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/start.sh /usr/local/bin/launch_browser.py \
+        /usr/local/bin/camoufox_open_window.py \
+        /usr/local/bin/open-window.sh /usr/local/bin/close-window.sh \
     && mkdir -p /data
 
 WORKDIR /data

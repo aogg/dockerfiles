@@ -103,6 +103,21 @@ if (exec 3<>"/dev/tcp/127.0.0.1/9333") 2>/dev/null; then
     echo "[start.sh] Playwright WS 端口 9333 已就绪（耗时约 ${WS_WAITED} 秒），连接地址 ws://<宿主机IP>:9333"
 fi
 
+# ---------- 保活窗口（AUTO_OPEN_WINDOW 控制，默认开） ----------
+# launchServer 模式不会主动开浏览器窗口：无窗口时 Xvfb(:99) 全黑，noVNC 无画面。
+# AUTO_OPEN_WINDOW=false/0/no（大小写不敏感）关闭；其余值或未设置一律视为开启。
+AUTO_OPEN_WINDOW_VAL="${AUTO_OPEN_WINDOW:-true}"
+case "${AUTO_OPEN_WINDOW_VAL,,}" in
+    false|0|no)
+        echo "[start.sh] AUTO_OPEN_WINDOW=${AUTO_OPEN_WINDOW_VAL}: 不自动打开保活窗口（noVNC 初始黑屏属预期，可随时 docker exec <容器名> open-window.sh 打开）"
+        ;;
+    *)
+        echo "[start.sh] AUTO_OPEN_WINDOW=${AUTO_OPEN_WINDOW_VAL}: 自动打开保活窗口"
+        /usr/local/bin/open-window.sh \
+            || echo "[start.sh] 警告：保活窗口启动失败（不影响 WS 自动化，可稍后手动 docker exec <容器名> open-window.sh 重试）"
+        ;;
+esac
+
 # 前台等待服务器进程退出；其退出码就是容器退出码
 wait "${SERVER_PID}"
 EXIT_CODE=$?
